@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+    volumes:
+      - ./app:/app/app
+      - ./components:/app/components
+      - ./lib:/app/lib
+    depends_on:
+      - auth-service
+      - tenant-service
+      - chat-service
+
+  auth-service:
+    build:
+      context: ./services/auth-service
+    ports:
+      - "${AUTH_SERVICE_PORT:-3001}:3001"
+    environment:
+      - PORT=3001
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+    volumes:
+      - ./services/auth-service:/usr/src/app
+
+  tenant-service:
+    build:
+      context: ./services/tenant-service
+    ports:
+      - "${TENANT_SERVICE_PORT:-3002}:3002"
+    environment:
+      - PORT=3002
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+    volumes:
+      - ./services/tenant-service:/usr/src/app
+
+  webhook-service:
+    build:
+      context: ./services/webhook-service
+    ports:
+      - "${WEBHOOK_SERVICE_PORT:-3003}:3003"
+    environment:
+      - PORT=3003
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - META_APP_SECRET=${META_APP_SECRET}
+      - META_WEBHOOK_VERIFY_TOKEN=${META_WEBHOOK_VERIFY_TOKEN}
+      - META_ACCESS_TOKEN=${META_ACCESS_TOKEN}
+    volumes:
+      - ./services/webhook-service:/usr/src/app
+
+  chat-service:
+    build:
+      context: ./services/chat-service
+    ports:
+      - "${CHAT_SERVICE_PORT:-3004}:3004"
+    environment:
+      - PORT=3004
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - META_ACCESS_TOKEN=${META_ACCESS_TOKEN}
+      - MESSENGER_ACCESS_TOKEN=${MESSENGER_ACCESS_TOKEN}
+    volumes:
+      - ./services/chat-service:/usr/src/app
+
+  agent-service:
+    build:
+      context: ./services/agent-service
+    ports:
+      - "${AGENT_SERVICE_PORT:-3005}:3005"
+    environment:
+      - PORT=3005
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
+    volumes:
+      - ./services/agent-service:/usr/src/app
+
+  billing-service:
+    build:
+      context: ./services/billing-service
+    ports:
+      - "${BILLING_SERVICE_PORT:-3006}:3006"
+    environment:
+      - PORT=3006
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+    volumes:
+      - ./services/billing-service:/usr/src/app
+
+  # Optional local Postgres for local testing, if not using hosted Supabase. 
+  # Since the plan states we use Supabase directly, we rely on the hosted instance.

@@ -1,0 +1,14 @@
+{
+  "name": "webhook-service",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node --env-file=../../.env.local server.js",
+    "dev": "node --watch --env-file=../../.env.local server.js"
+  },
+  "dependencies": {
+    "fastify": "^5.0.0",
+    "@supabase/supabase-js": "^2.0.0"
+  }
+}
