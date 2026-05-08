@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import { createClient } from '@supabase/supabase-js';
+import ws from 'ws';
 
 const fastify = Fastify({ logger: true });
 
@@ -11,7 +12,11 @@ if (!supabaseUrl || !supabaseKey) {
   fastify.log.error("Missing Supabase credentials");
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  realtime: {
+    transport: ws,
+  },
+});
 
 fastify.get('/health', async (request, reply) => {
   return { status: 'ok', service: 'webhook-service' };

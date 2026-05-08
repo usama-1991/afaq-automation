@@ -7,8 +7,12 @@
     "start": "node server.js",
     "dev": "node --watch --env-file=../../.env.local server.js"
   },
+  "engines": {
+    "node": ">=22"
+  },
   "dependencies": {
     "fastify": "^5.0.0",
-    "@supabase/supabase-js": "^2.0.0"
+    "@supabase/supabase-js": "^2.0.0",
+    "ws": "^8.18.0"
   }
 }
