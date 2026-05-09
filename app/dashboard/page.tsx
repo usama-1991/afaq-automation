@@ -148,8 +148,8 @@ export default function DashboardPage() {
 
       if (convs && msgs) {
         // Stats
-        const agentMsgs = msgs.filter(m => m.sender_type === 'agent');
-        const uniqueCustomers = new Set(convs.map(c => c.id)).size;
+        const agentMsgs = msgs.filter((m: any) => m.sender_type === 'agent');
+        const uniqueCustomers = new Set(convs.map((c: any) => c.id)).size;
 
         setStats({
           conversations: convs.length,
@@ -160,18 +160,18 @@ export default function DashboardPage() {
 
         // Channel breakdown
         const channelCount: Record<string, number> = {};
-        convs.forEach(c => { channelCount[c.platform] = (channelCount[c.platform] || 0) + 1; });
-        setChannels(Object.entries(channelCount).map(([name, value]) => ({
+        convs.forEach((c: any) => { channelCount[c.platform] = (channelCount[c.platform] || 0) + 1; });
+        setChannels(Object.entries(channelCount).map(([name, value]: any) => ({
           name: name.charAt(0).toUpperCase() + name.slice(1),
           value,
           color: CHANNEL_COLORS[name] || '#9ca3af',
         })));
 
         // Recent conversations (last 5)
-        const sorted = [...convs].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5);
-        const withMsgCount = sorted.map(c => ({
+        const sorted = [...convs].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5);
+        const withMsgCount = sorted.map((c: any) => ({
           ...c,
-          msgCount: msgs.filter(m => m.conversation_id === c.id).length,
+          msgCount: msgs.filter((m: any) => m.conversation_id === c.id).length,
         }));
         setRecent(withMsgCount);
 
@@ -184,8 +184,8 @@ export default function DashboardPage() {
           const dateStr = d.toISOString().split('T')[0];
           days.push({
             time: label,
-            inbound: msgs.filter(m => m.sender_type === 'customer' && m.created_at.startsWith(dateStr)).length,
-            outbound: msgs.filter(m => m.sender_type === 'agent' && m.created_at.startsWith(dateStr)).length,
+            inbound: msgs.filter((m: any) => m.sender_type === 'customer' && m.created_at.startsWith(dateStr)).length,
+            outbound: msgs.filter((m: any) => m.sender_type === 'agent' && m.created_at.startsWith(dateStr)).length,
           });
         }
         setVolumeData(days);
@@ -322,7 +322,7 @@ export default function DashboardPage() {
                 </PieChart>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginTop: 4 }}>
-                {channels.map((c) => (
+                {channels.map((c: any) => (
                   <div key={c.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ width: 10, height: 10, borderRadius: 3, background: c.color }} />
@@ -363,7 +363,7 @@ export default function DashboardPage() {
               <span style={{ textAlign: 'center' }}>Messages</span>
               <span style={{ textAlign: 'right' }}>Date</span>
             </div>
-            {recent.map((c, i) => {
+            {recent.map((c: any, i: number) => {
               const channelColor = CHANNEL_COLORS[c.platform] || '#9ca3af';
               const initials = (c.customer_name || '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase();
               const date = new Date(c.created_at).toLocaleDateString('en', { month: 'short', day: 'numeric' });
