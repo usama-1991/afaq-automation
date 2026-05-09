@@ -61,22 +61,26 @@ const startRealtimeSubscription = () => {
 
           if (intError || !integration) throw new Error("Integration not found for tenant");
 
-          const externalPhoneId = integration.external_account_id;
-          const customerPhone = conv.external_conversation_id;
-          let accessToken = integration.access_token || process.env.META_ACCESS_TOKEN;
+          const externalPhoneId = integration.external_account_id?.trim();
+          const customerPhone = conv.external_conversation_id?.trim();
+          let accessToken = (integration.access_token || process.env.META_ACCESS_TOKEN)?.trim();
 
           if (conv.platform === 'messenger') {
-            accessToken = integration.access_token || process.env.MESSENGER_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN;
+            accessToken = (integration.access_token || process.env.MESSENGER_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN)?.trim();
           }
           if (conv.platform === 'instagram') {
-            accessToken = integration.access_token || process.env.INSTAGRAM_ACCESS_TOKEN || process.env.MESSENGER_ACCESS_TOKEN;
+            accessToken = (integration.access_token || process.env.INSTAGRAM_ACCESS_TOKEN || process.env.MESSENGER_ACCESS_TOKEN)?.trim();
           }
 
           if (!accessToken) throw new Error("No Meta access token found");
+          if (!externalPhoneId) throw new Error("No External Account ID found for platform " + conv.platform);
 
           // 3. Send via Meta Graph API
           if (conv.platform === 'whatsapp') {
-            const metaResponse = await fetch(`https://graph.facebook.com/v19.0/${externalPhoneId}/messages`, {
+            const url = `https://graph.facebook.com/v19.0/${externalPhoneId}/messages`;
+            fastify.log.info(`Sending WhatsApp message to ${customerPhone} via ${url}`);
+
+            const metaResponse = await fetch(url, {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${accessToken}`,
