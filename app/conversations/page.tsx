@@ -187,7 +187,7 @@ export default function ConversationsPage() {
     fetchMessages(selected.id);
     const sub = supabase.channel(`messages_rt_${selected.id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${selected.id}` },
-        (payload) => setMessages(prev => [...prev, payload.new]))
+        (payload: any) => setMessages(prev => [...prev, payload.new]))
       .subscribe();
     return () => { supabase.removeChannel(sub); };
   }, [selected?.id]);
