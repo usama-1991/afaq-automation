@@ -300,7 +300,7 @@ export default function ConversationsPage() {
               {messages.length === 0 ? (
                 <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 13, marginTop: 40 }}>No messages yet</div>
               ) : messages.map((m, i) => {
-                const isAgent = m.sender_type === 'agent';
+                const isAgent = m.sender_type === 'agent' || m.sender_type === 'bot';
                 return (
                   <div key={m.id ?? i} style={{ display: 'flex', justifyContent: isAgent ? 'flex-end' : 'flex-start' }}>
                     <div style={{ maxWidth: '72%' }}>
@@ -315,7 +315,7 @@ export default function ConversationsPage() {
                         {m.content}
                       </div>
                       <div style={{ fontSize: 10.5, color: '#9ca3af', marginTop: 3, textAlign: isAgent ? 'right' : 'left', paddingLeft: isAgent ? 0 : 4, paddingRight: isAgent ? 4 : 0 }}>
-                        {isAgent ? 'You' : selected.customer_name || 'Customer'} · {formatTime(m.created_at)}
+                        {m.sender_type === 'bot' ? 'AI Assistant' : isAgent ? 'You' : selected.customer_name || 'Customer'} · {formatTime(m.created_at)}
                       </div>
                     </div>
                   </div>
