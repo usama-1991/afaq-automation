@@ -181,7 +181,7 @@ export default function ConversationsPage() {
     try {
       const { data, error } = await supabase.from('conversations').select('*').order('updated_at', { ascending: false });
       if (error) console.error('Fetch error:', error.message);
-      if (data) setConvos(data);
+      if (data) setConversations(data);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
