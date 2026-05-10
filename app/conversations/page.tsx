@@ -152,8 +152,23 @@ function ChannelFilter({ value, onChange }: { value: string; onChange: (v: strin
 
 // ── Main Page ──────────────────────────────────────────────────────
 export default function ConversationsPage() {
-  const [convos, setConvos] = useState<any[]>([]);
-  const [selected, setSelected] = useState<any | null>(null);
+  const [convos, setConversations] = useState<any[]>([]);
+  const [selected, setSelectedState] = useState<any>(null);
+  const setSelected = async (c: any) => {
+    setSelectedState(c);
+    if (c && c.unread_count > 0) {
+      // Reset unread count in DB
+      await supabase
+        .from('conversations')
+        .update({ unread_count: 0 })
+        .eq('id', c.id);
+      
+      // Update local state immediately
+      setConversations(prev => prev.map(conv => 
+        conv.id === c.id ? { ...conv, unread_count: 0 } : conv
+      ));
+    }
+  };
   const [messages, setMessages] = useState<any[]>([]);
   const [reply, setReply] = useState('');
   const [search, setSearch] = useState('');
@@ -269,8 +284,20 @@ export default function ConversationsPage() {
                       </span>
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {c.customer_name || c.external_conversation_id}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {c.customer_name || c.external_conversation_id}
+                        </div>
+                        {c.unread_count > 0 && (
+                          <div style={{
+                            background: '#25d366', color: '#fff',
+                            minWidth: 18, height: 18, borderRadius: 10,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 10, fontWeight: 700, padding: '0 5px'
+                          }}>
+                            {c.unread_count}
+                          </div>
+                        )}
                       </div>
                       <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
                         {p?.label ?? c.platform}

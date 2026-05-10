@@ -74,7 +74,7 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
   // 2. Find or Create Conversation
   let { data: conversation, error: convError } = await supabase
     .from('conversations')
-    .select('id')
+    .select('id, unread_count')
     .eq('tenant_id', tenantId)
     .eq('external_conversation_id', customerId)
     .single();
@@ -107,8 +107,8 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
       .eq('id', conversation.id);
   }
 
-  // 3. Insert Message
-  fastify.log.info(`[${platform}] Inserting message into conversation ${conversation.id}`);
+  // 3. Insert Message & Update Counter
+  fastify.log.info(`[${platform}] Inserting message and incrementing unread_count`);
   const { error: msgError } = await supabase
     .from('messages')
     .insert({
@@ -122,7 +122,18 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
     fastify.log.error(`[${platform}] Failed to insert message: ${msgError.message}`);
     throw msgError;
   }
-  fastify.log.info(`[${platform}] Message inserted successfully.`);
+
+  // Increment unread_count
+  const currentCount = conversation?.unread_count || 0;
+  await supabase
+    .from('conversations')
+    .update({ 
+      updated_at: new Date().toISOString(),
+      unread_count: currentCount + 1 
+    })
+    .eq('id', conversation.id);
+
+  fastify.log.info(`[${platform}] Message inserted and counter updated to ${currentCount + 1}.`);
 
   // 4. Trigger n8n Webhook for AI Agent Processing
   const n8nUrl = process.env.N8N_WEBHOOK_URL;
@@ -145,7 +156,8 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
 // Meta Webhook Event Receiver
 fastify.post('/webhook', async (request, reply) => {
   const body = request.body;
-  fastify.log.info(`Received Webhook Event: ${JSON.stringify(body, null, 2)}`);
+  fastify.log.info('--- NEW WEBHOOK EVENT ---');
+  fastify.log.info(JSON.stringify(body, null, 2));
   
   const supportedObjects = ['whatsapp_business_account', 'page', 'instagram'];
 
