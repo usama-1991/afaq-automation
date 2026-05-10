@@ -164,6 +164,12 @@ fastify.post('/webhook', async (request, reply) => {
               const customerName = contact.profile.name;
               const messageText = message.text ? message.text.body : '';
               const messageId = message.id;
+              // Skip if this is an echo (message sent by the business)
+              if (message.from === phoneNumberId || message.from === change.value.metadata.display_phone_number) {
+                fastify.log.info('[whatsapp] Skipping echo message');
+                continue;
+              }
+
               await processIncomingMessage('whatsapp', phoneNumberId, customerPhone, customerName, messageText, messageId);
             }
           }
