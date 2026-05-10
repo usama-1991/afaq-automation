@@ -300,6 +300,7 @@ export default function ConversationsPage() {
               {messages.length === 0 ? (
                 <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 13, marginTop: 40 }}>No messages yet</div>
               ) : messages.map((m, i) => {
+                if (!m.content || m.content.trim() === '') return null;
                 const isAgent = m.sender_type === 'agent' || m.sender_type === 'bot';
                 return (
                   <div key={m.id ?? i} style={{ display: 'flex', justifyContent: isAgent ? 'flex-end' : 'flex-start' }}>
