@@ -1,8 +1,9 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNiche } from '@/context/NicheContext';
+import { supabase } from '@/lib/supabase/client';
 import Sidebar from './Sidebar';
 import TopBanner from './TopBanner';
 
@@ -37,41 +38,68 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { onboarded, hydrated } = useNiche();
+  const [session, setSession] = useState<any>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   const isOnboarding = pathname === '/onboarding';
+  const isLogin = pathname === '/login';
 
   useEffect(() => {
-    // Only redirect AFTER localStorage has been read (hydrated)
-    if (!hydrated) return;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setSessionChecked(true);
+    });
 
-    // Root '/' is a pure redirect gateway — always send somewhere
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated || !sessionChecked) return;
+
+    if (!session) {
+      // User is not logged in: must be on /login
+      if (!isLogin) {
+        router.replace('/login');
+      }
+      return;
+    }
+
+    // User IS logged in:
     if (pathname === '/') {
       router.replace(onboarded ? '/dashboard' : '/onboarding');
       return;
     }
 
-    // Any other protected route: kick back to onboarding if not done
+    if (isLogin) {
+      // Already logged in, no need to see login page again
+      router.replace(onboarded ? '/dashboard' : '/onboarding');
+      return;
+    }
+
     if (!onboarded && !isOnboarding) {
       router.replace('/onboarding');
+      return;
     }
 
-    // Already onboarded but somehow on /onboarding — send to dashboard
     if (onboarded && isOnboarding) {
       router.replace('/dashboard');
+      return;
     }
-  }, [onboarded, hydrated, isOnboarding, pathname, router]);
 
-  // Show spinner until we've read localStorage — prevents blank screen flash
-  if (!hydrated) return <Spinner />;
+  }, [onboarded, hydrated, isOnboarding, isLogin, pathname, router, session, sessionChecked]);
 
-  // Root '/' is always a redirect — show spinner while that fires
+  // Show spinner until we've read localStorage and checked auth
+  if (!hydrated || !sessionChecked) return <Spinner />;
+
+  // Root '/' is a redirect gateway
   if (pathname === '/') return <Spinner />;
 
-  // Onboarding page — no sidebar/banner
-  if (isOnboarding) return <>{children}</>;
-
-  // If not onboarded yet but somehow here — show spinner while redirect fires
-  if (!onboarded) return <Spinner />;
+  // Onboarding or Login page — no sidebar/banner
+  if (isOnboarding || isLogin) return <>{children}</>;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
