@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { LayoutDashboard, MessageSquare, Users, Bot, Plug, Settings } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { LayoutDashboard, MessageSquare, Users, Bot, Plug, Settings, LogOut } from 'lucide-react';
 import { useNiche } from '@/context/NicheContext';
+import { useState } from 'react';
+import { supabase } from '@/lib/supabase/client';
 import { useState } from 'react';
 
 const nav = [
@@ -63,7 +65,13 @@ function NavItem({ href, icon: Icon, label, active }: { href: string; icon: any;
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { niche } = useNiche();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
 
   return (
     <aside style={{
@@ -94,8 +102,8 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Avatar */}
-      <div style={{ padding: '14px 0', borderTop: '1px solid rgba(220,38,38,0.07)' }}>
+      {/* Avatar & Logout */}
+      <div style={{ padding: '14px 0', borderTop: '1px solid rgba(220,38,38,0.07)', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
         <div style={{
           width: 32, height: 32, borderRadius: '50%',
           background: 'linear-gradient(135deg, #dc2626, #f59e0b)',
@@ -105,6 +113,20 @@ export default function Sidebar() {
         }}>
           {niche.label.slice(0, 2).toUpperCase()}
         </div>
+        
+        <button
+          onClick={handleLogout}
+          title="Logout"
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 8, borderRadius: 8, transition: 'all 0.15s ease'
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = '#dc2626'; e.currentTarget.style.background = '#fff5f5'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.background = 'transparent'; }}
+        >
+          <LogOut size={18} strokeWidth={1.8} />
+        </button>
       </div>
     </aside>
   );
