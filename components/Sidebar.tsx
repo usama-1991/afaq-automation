@@ -6,7 +6,6 @@ import { LayoutDashboard, MessageSquare, Users, Bot, Plug, Settings, LogOut } fr
 import { useNiche } from '@/context/NicheContext';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { useState } from 'react';
 
 const nav = [
   { href: '/dashboard',     icon: LayoutDashboard, label: 'Overview' },
