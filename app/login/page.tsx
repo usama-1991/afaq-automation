@@ -41,7 +41,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen bg-white">
       {/* LEFT SIDE - BRANDING */}
-      <div className="hidden lg:flex w-full max-w-md xl:max-w-lg bg-[#b91c1c] text-white flex-col justify-between p-12">
+      <div className="hidden lg:flex w-full max-w-md xl:max-w-lg bg-red-800 text-white flex-col justify-between p-12">
         <div>
           <div className="flex items-center gap-3 mb-16">
             <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center text-xl font-bold">
@@ -155,7 +155,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-[#b91c1c] py-2.5 font-medium text-white shadow-sm hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
+              className="w-full rounded-lg bg-red-700 py-2.5 font-medium text-white shadow-sm hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
