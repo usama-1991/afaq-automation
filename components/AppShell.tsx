@@ -45,13 +45,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isLogin = pathname === '/login';
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    supabase.auth.getSession().then((response: any) => {
+      setSession(response.data.session);
       setSessionChecked(true);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, currentSession: any) => {
+      setSession(currentSession);
     });
 
     return () => subscription.unsubscribe();
