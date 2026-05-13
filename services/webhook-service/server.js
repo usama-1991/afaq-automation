@@ -39,6 +39,19 @@ fastify.get('/webhook', async (request, reply) => {
   }
 });
 
+// Audit Logging Helper
+async function logAudit(tenantId, action, details) {
+  try {
+    await supabase.from('audit_logs').insert({
+      tenant_id: tenantId,
+      action: action,
+      details: details
+    });
+  } catch (err) {
+    fastify.log.error(`Failed to write audit log: ${err.message}`);
+  }
+}
+
 async function processIncomingMessage(platform, externalAccountId, customerId, customerName, messageText, messageId) {
   fastify.log.info(`[${platform}] Processing message ${messageId} from ${customerId}`);
 
@@ -98,6 +111,9 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
     }
     conversation = newConv;
     fastify.log.info(`[${platform}] New conversation created: ${conversation.id}`);
+    
+    // Log the new conversation creation to Audit Logs
+    await logAudit(tenantId, 'conversation_started', { platform, external_conversation_id: customerId, customer_name: customerName });
   } else {
     fastify.log.info(`[${platform}] Existing conversation found: ${conversation.id}`);
     // Update customer name and updated_at
@@ -122,6 +138,9 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
     fastify.log.error(`[${platform}] Failed to insert message: ${msgError.message}`);
     throw msgError;
   }
+
+  // Log incoming message to Audit Logs
+  await logAudit(tenantId, 'message_received', { platform, external_message_id: messageId, conversation_id: conversation.id });
 
   // Increment unread_count
   const currentCount = conversation?.unread_count || 0;
