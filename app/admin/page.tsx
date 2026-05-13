@@ -13,6 +13,7 @@ interface Tenant {
 export default function AdminPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"tenants" | "users" | "audit">("tenants");
 
   useEffect(() => {
     fetchTenants();
@@ -83,57 +84,87 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="flex gap-8 border-b border-slate-200 mb-6">
-        <button className="pb-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600">Tenants</button>
-        <button className="pb-3 text-sm font-medium text-slate-500 hover:text-slate-700">Users</button>
-        <button className="pb-3 text-sm font-medium text-slate-500 hover:text-slate-700">Audit</button>
+        <button 
+          onClick={() => setActiveTab("tenants")}
+          className={`pb-3 text-sm font-medium transition-colors ${activeTab === "tenants" ? "text-blue-600 border-b-2 border-blue-600" : "text-slate-500 hover:text-slate-700"}`}>
+          Tenants
+        </button>
+        <button 
+          onClick={() => setActiveTab("users")}
+          className={`pb-3 text-sm font-medium transition-colors ${activeTab === "users" ? "text-blue-600 border-b-2 border-blue-600" : "text-slate-500 hover:text-slate-700"}`}>
+          Users
+        </button>
+        <button 
+          onClick={() => setActiveTab("audit")}
+          className={`pb-3 text-sm font-medium transition-colors ${activeTab === "audit" ? "text-blue-600 border-b-2 border-blue-600" : "text-slate-500 hover:text-slate-700"}`}>
+          Audit
+        </button>
       </div>
 
-      {/* Table */}
-      {loading ? (
-        <div className="p-8 text-center text-slate-500">Loading tenants...</div>
-      ) : (
-        <div className="w-full">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-slate-200">
-                <th className="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Client</th>
-                <th className="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Niche</th>
-                <th className="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Plan</th>
-                <th className="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
-                <th className="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Created</th>
-                <th className="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {tenants.map((t) => (
-                <tr key={t.id}>
-                  <td className="py-4">
-                    <div className="font-semibold text-slate-900">{t.name}</div>
-                    <div className="text-xs text-slate-400 mt-0.5">demo-restaurant</div>
-                  </td>
-                  <td className="py-4 text-sm text-slate-600">Restaurant</td>
-                  <td className="py-4">
-                    <select className="text-sm border border-slate-200 rounded-md px-2 py-1 bg-slate-50 text-slate-700 outline-none">
-                      <option>starter</option>
-                      <option>pro</option>
-                    </select>
-                  </td>
-                  <td className="py-4 text-sm font-medium text-emerald-600">active</td>
-                  <td className="py-4 text-sm text-slate-600">{new Date(t.created_at).toLocaleDateString()}</td>
-                  <td className="py-4">
-                    <button className="text-sm font-medium text-red-500 hover:text-red-700 transition-colors">
-                      Suspend
-                    </button>
-                  </td>
+      {/* Tab Content */}
+      {activeTab === "tenants" && (
+        loading ? (
+          <div className="p-8 text-center text-slate-500">Loading tenants...</div>
+        ) : (
+          <div className="w-full">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-slate-200">
+                  <th className="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Client</th>
+                  <th className="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Niche</th>
+                  <th className="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Plan</th>
+                  <th className="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
+                  <th className="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Created</th>
+                  <th className="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Actions</th>
                 </tr>
-              ))}
-              {tenants.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-500">No tenants found.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {tenants.map((t) => (
+                  <tr key={t.id}>
+                    <td className="py-4">
+                      <div className="font-semibold text-slate-900">{t.name}</div>
+                      <div className="text-xs text-slate-400 mt-0.5">demo-restaurant</div>
+                    </td>
+                    <td className="py-4 text-sm text-slate-600">Restaurant</td>
+                    <td className="py-4">
+                      <select className="text-sm border border-slate-200 rounded-md px-2 py-1 bg-slate-50 text-slate-700 outline-none">
+                        <option>starter</option>
+                        <option>pro</option>
+                      </select>
+                    </td>
+                    <td className="py-4 text-sm font-medium text-emerald-600">active</td>
+                    <td className="py-4 text-sm text-slate-600">{new Date(t.created_at).toLocaleDateString()}</td>
+                    <td className="py-4">
+                      <button className="text-sm font-medium text-red-500 hover:text-red-700 transition-colors">
+                        Suspend
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {tenants.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-slate-500">No tenants found.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
+
+      {activeTab === "users" && (
+        <div className="w-full bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-500 shadow-sm">
+          <Users className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-slate-900 mb-1">User Management</h3>
+          <p className="text-sm">View and manage all user accounts across tenants. This feature is coming soon.</p>
+        </div>
+      )}
+
+      {activeTab === "audit" && (
+        <div className="w-full bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-500 shadow-sm">
+          <Activity className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-slate-900 mb-1">System Audit Logs</h3>
+          <p className="text-sm">Track system-wide events and webhook activity. This feature is coming soon.</p>
         </div>
       )}
     </div>
