@@ -43,6 +43,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const isOnboarding = pathname === '/onboarding';
   const isLogin = pathname === '/login';
+  const isAdminRoute = pathname.startsWith('/admin');
 
   useEffect(() => {
     supabase.auth.getSession().then((response: any) => {
@@ -68,29 +69,33 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    const isAdminUser = session.user?.email === 'admin@autoflow.ai';
+
     // User IS logged in:
     if (pathname === '/') {
-      router.replace(onboarded ? '/dashboard' : '/onboarding');
+      if (isAdminUser) router.replace('/admin');
+      else router.replace(onboarded ? '/dashboard' : '/onboarding');
       return;
     }
 
     if (isLogin) {
       // Already logged in, no need to see login page again
-      router.replace(onboarded ? '/dashboard' : '/onboarding');
+      if (isAdminUser) router.replace('/admin');
+      else router.replace(onboarded ? '/dashboard' : '/onboarding');
       return;
     }
 
-    if (!onboarded && !isOnboarding) {
+    if (!isAdminUser && !onboarded && !isOnboarding && !isAdminRoute) {
       router.replace('/onboarding');
       return;
     }
 
-    if (onboarded && isOnboarding) {
+    if (!isAdminUser && onboarded && isOnboarding) {
       router.replace('/dashboard');
       return;
     }
 
-  }, [onboarded, hydrated, isOnboarding, isLogin, pathname, router, session, sessionChecked]);
+  }, [onboarded, hydrated, isOnboarding, isLogin, isAdminRoute, pathname, router, session, sessionChecked]);
 
   // Show spinner until we've read localStorage and checked auth
   if (!hydrated || !sessionChecked) return <Spinner />;

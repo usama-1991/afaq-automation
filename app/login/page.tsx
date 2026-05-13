@@ -28,13 +28,17 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     
     if (error) {
       setError(error.message);
       setLoading(false);
     } else {
-      window.location.href = "/dashboard";
+      if (data.user?.email === "admin@autoflow.ai") {
+        window.location.href = "/admin";
+      } else {
+        window.location.href = "/dashboard";
+      }
     }
   };
 
