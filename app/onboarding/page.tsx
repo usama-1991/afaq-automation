@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useNiche } from '@/context/NicheContext';
 import { niches } from '@/lib/niches';
 import { Check, ArrowRight, MessageSquare, Zap, BarChart2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase/client';
 
 export default function OnboardingPage() {
   const { setNicheId, setOnboarded } = useNiche();
@@ -31,7 +32,19 @@ export default function OnboardingPage() {
     }}>
       <div style={{ width: '100%', maxWidth: 680 }}>
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+        <div style={{ textAlign: 'center', marginBottom: 40, position: 'relative' }}>
+          <button 
+            onClick={async () => {
+              await supabase.auth.signOut();
+              router.push('/login');
+            }}
+            style={{ position: 'absolute', top: 0, right: 0, fontSize: 13, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', padding: '8px 12px', borderRadius: '8px' }}
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#f3f4f6'}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'none'}
+          >
+            Sign Out
+          </button>
+
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 16 }}>
             <div style={{ width: 40, height: 40, borderRadius: 11, background: 'linear-gradient(135deg, #4f46e5, #2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: '#fff' }}>A</div>
             <span style={{ fontSize: 20, fontWeight: 700, color: '#111827', letterSpacing: '-0.4px' }}>AutoFlow AI</span>
