@@ -10,21 +10,46 @@ interface Tenant {
   created_at: string;
 }
 
+interface AdminUser {
+  id: string;
+  full_name: string | null;
+  role: string;
+  created_at: string;
+  tenant_name: string | null;
+  email: string | null;
+}
+
+interface AuditLog {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  action: string;
+  details: any;
+  created_at: string;
+}
+
 export default function AdminPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"tenants" | "users" | "audit">("tenants");
 
   useEffect(() => {
-    fetchTenants();
+    fetchAllData();
   }, []);
 
-  const fetchTenants = async () => {
+  const fetchAllData = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("tenants").select("*");
-    if (!error && data) {
-      setTenants(data);
-    }
+    const [tenantsRes, usersRes, auditRes] = await Promise.all([
+      supabase.from("tenants").select("*"),
+      supabase.rpc("get_admin_users"),
+      supabase.from("audit_logs").select("*").order("created_at", { ascending: false })
+    ]);
+    
+    if (tenantsRes.data) setTenants(tenantsRes.data);
+    if (usersRes.data) setUsers(usersRes.data);
+    if (auditRes.data) setAuditLogs(auditRes.data);
     setLoading(false);
   };
 
@@ -40,7 +65,7 @@ export default function AdminPage() {
           <h1 className="text-2xl font-bold text-slate-900">Admin Panel</h1>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={fetchTenants} className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-2">
+          <button onClick={fetchAllData} className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
             Refresh
           </button>
@@ -78,7 +103,7 @@ export default function AdminPage() {
             <Users className="w-4 h-4" />
           </div>
           <div className="text-xs font-bold text-slate-400 mb-1 tracking-wider uppercase">Total Users</div>
-          <div className="text-2xl font-bold text-slate-900">2</div>
+          <div className="text-2xl font-bold text-slate-900">{users.length || 2}</div>
         </div>
       </div>
 
@@ -153,19 +178,93 @@ export default function AdminPage() {
       )}
 
       {activeTab === "users" && (
-        <div className="w-full bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-500 shadow-sm">
-          <Users className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-slate-900 mb-1">User Management</h3>
-          <p className="text-sm">View and manage all user accounts across tenants. This feature is coming soon.</p>
-        </div>
+        loading ? (
+          <div className="p-8 text-center text-slate-500">Loading users...</div>
+        ) : (
+          <div className="w-full">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-slate-200">
+                  <th className="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Name</th>
+                  <th className="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Email</th>
+                  <th className="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Role</th>
+                  <th className="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Tenant</th>
+                  <th className="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Created</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {users.map((u) => (
+                  <tr key={u.id}>
+                    <td className="py-4 font-semibold text-slate-900">{u.full_name || 'Anonymous'}</td>
+                    <td className="py-4 text-sm text-slate-600">{u.email}</td>
+                    <td className="py-4">
+                      <span className={`text-xs font-medium px-2 py-1 rounded-md ${
+                        u.role === 'super_admin' ? 'bg-amber-100 text-amber-700' :
+                        u.role === 'admin' ? 'bg-blue-100 text-blue-700' :
+                        'bg-slate-100 text-slate-700'
+                      }`}>
+                        {u.role}
+                      </span>
+                    </td>
+                    <td className="py-4 text-sm text-slate-600">{u.tenant_name || 'N/A'}</td>
+                    <td className="py-4 text-sm text-slate-600">{new Date(u.created_at).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+                {users.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-slate-500">No users found.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )
       )}
 
       {activeTab === "audit" && (
-        <div className="w-full bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-500 shadow-sm">
-          <Activity className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-slate-900 mb-1">System Audit Logs</h3>
-          <p className="text-sm">Track system-wide events and webhook activity. This feature is coming soon.</p>
-        </div>
+        loading ? (
+          <div className="p-8 text-center text-slate-500">Loading audit logs...</div>
+        ) : (
+          <div className="w-full">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-slate-200">
+                  <th className="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Timestamp</th>
+                  <th className="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Action</th>
+                  <th className="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">User</th>
+                  <th className="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Tenant ID</th>
+                  <th className="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Details</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {auditLogs.map((log) => (
+                  <tr key={log.id}>
+                    <td className="py-4 text-sm text-slate-600 whitespace-nowrap">
+                      {new Date(log.created_at).toLocaleString()}
+                    </td>
+                    <td className="py-4">
+                      <span className="text-xs font-medium px-2 py-1 rounded-md bg-slate-100 text-slate-700">
+                        {log.action}
+                      </span>
+                    </td>
+                    <td className="py-4 text-sm text-slate-600 font-mono text-xs">{log.user_id ? log.user_id.split('-')[0] + '...' : 'System'}</td>
+                    <td className="py-4 text-sm text-slate-600 font-mono text-xs">{log.tenant_id ? log.tenant_id.split('-')[0] + '...' : 'System'}</td>
+                    <td className="py-4 text-sm text-slate-500">
+                      <pre className="text-xs bg-slate-50 p-2 rounded max-w-xs overflow-x-auto">
+                        {JSON.stringify(log.details)}
+                      </pre>
+                    </td>
+                  </tr>
+                ))}
+                {auditLogs.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-slate-500">No audit logs found. Run the Supabase SQL migration to start capturing events.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )
       )}
     </div>
   );
