@@ -31,7 +31,7 @@ export default function ContactsPage() {
         .order('updated_at', { ascending: false });
       
       if (!error && data) {
-        const mapped = data.map(conv => ({
+        const mapped = data.map((conv: any) => ({
           id: conv.id,
           name: conv.customer_name || 'Unknown User',
           phone: conv.external_conversation_id,
