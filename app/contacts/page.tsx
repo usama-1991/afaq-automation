@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Search, Plus, MessageSquare, Phone, Mail, Tag, X, ChevronRight, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 
@@ -12,6 +13,7 @@ const tagColors: Record<string, { bg: string; color: string }> = {
 };
 
 export default function ContactsPage() {
+  const router = useRouter();
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -178,10 +180,14 @@ export default function ContactsPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', fontSize: 12.5, fontWeight: 600, background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+                <button
+                  onClick={() => router.push(`/conversations?conversation=${selected.id}`)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', fontSize: 12.5, fontWeight: 600, background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
                   <MessageSquare size={13} /> Message
                 </button>
-                <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', fontSize: 12.5, fontWeight: 600, background: '#fff', color: '#374151', border: '1px solid rgba(220,38,38,0.15)', borderRadius: 8, cursor: 'pointer' }}>
+                <button
+                  onClick={() => router.push(`/conversations?conversation=${selected.id}`)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', fontSize: 12.5, fontWeight: 600, background: '#fff', color: '#374151', border: '1px solid rgba(220,38,38,0.15)', borderRadius: 8, cursor: 'pointer' }}>
                   <Phone size={13} /> Call
                 </button>
               </div>

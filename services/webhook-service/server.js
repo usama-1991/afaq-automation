@@ -223,10 +223,13 @@ fastify.post('/webhook', async (request, reply) => {
                 let customerName = 'Messenger User';
                 try {
                   const token = process.env.MESSENGER_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN;
-                  const nameRes = await fetch(`https://graph.facebook.com/v19.0/${customerPsid}?fields=name&access_token=${token}`);
-                  const nameData = await nameRes.json();
-                  if (nameData.name) customerName = nameData.name;
-                  else fastify.log.warn(`[messenger] Could not get name for PSID ${customerPsid}: ${JSON.stringify(nameData)}`);
+                  if (token) {
+                    const nameRes = await fetch(`https://graph.facebook.com/v19.0/${customerPsid}?fields=name,first_name,last_name&access_token=${token}`);
+                    const nameData = await nameRes.json();
+                    if (nameData.name) customerName = nameData.name;
+                    else if (nameData.first_name) customerName = `${nameData.first_name} ${nameData.last_name || ''}`.trim();
+                    else fastify.log.warn(`[messenger] Could not get name for PSID ${customerPsid}: ${JSON.stringify(nameData)}`);
+                  }
                 } catch (e) {
                   fastify.log.warn(`[messenger] Name fetch failed: ${e.message}`);
                 }
@@ -252,11 +255,12 @@ fastify.post('/webhook', async (request, reply) => {
                 let customerName = 'Instagram User';
                 try {
                   const token = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.MESSENGER_ACCESS_TOKEN;
-                  const nameRes = await fetch(`https://graph.facebook.com/v19.0/${senderIgsid}?fields=name,username&access_token=${token}`);
-                  const nameData = await nameRes.json();
-                  if (nameData.name) customerName = nameData.name;
-                  else if (nameData.username) customerName = '@' + nameData.username;
-                  else fastify.log.warn(`[instagram] Could not get name for IGSID ${senderIgsid}: ${JSON.stringify(nameData)}`);
+                  if (token) {
+                    const nameRes = await fetch(`https://graph.facebook.com/v19.0/${senderIgsid}?fields=name,profile_pic&access_token=${token}`);
+                    const nameData = await nameRes.json();
+                    if (nameData.name) customerName = nameData.name;
+                    else fastify.log.warn(`[instagram] Could not get name for IGSID ${senderIgsid}: ${JSON.stringify(nameData)}`);
+                  }
                 } catch (e) {
                   fastify.log.warn(`[instagram] Name fetch failed: ${e.message}`);
                 }

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Search, Send, MessageSquare, Loader2, ChevronDown, Check } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 
@@ -151,7 +152,9 @@ function ChannelFilter({ value, onChange }: { value: string; onChange: (v: strin
 }
 
 // ── Main Page ──────────────────────────────────────────────────────
-export default function ConversationsPage() {
+function ConversationsInner() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [convos, setConversations] = useState<any[]>([]);
   const [selected, setSelectedState] = useState<any>(null);
   const setSelected = async (c: any) => {
@@ -196,6 +199,19 @@ export default function ConversationsPage() {
     const sub = supabase.channel('conversations_rt').on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, fetchConversations).subscribe();
     return () => { supabase.removeChannel(sub); };
   }, []);
+
+  // Auto-select conversation from URL param (deep-link from Contacts page)
+  useEffect(() => {
+    const targetId = searchParams.get('conversation');
+    if (targetId && convos.length > 0) {
+      const match = convos.find(c => c.id === targetId);
+      if (match) {
+        setSelected(match);
+        // Clean the URL without reloading
+        router.replace('/conversations', { scroll: false });
+      }
+    }
+  }, [searchParams, convos]);
 
   useEffect(() => {
     if (!selected) return;
@@ -385,5 +401,13 @@ export default function ConversationsPage() {
       </div>
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
+  );
+}
+
+export default function ConversationsPage() {
+  return (
+    <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}><Loader2 size={24} style={{ animation: 'spin 1s linear infinite' }} /></div>}>
+      <ConversationsInner />
+    </Suspense>
   );
 }
