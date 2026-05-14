@@ -220,21 +220,23 @@ fastify.post('/webhook', async (request, reply) => {
                 const messageText = event.message.text || '';
                 const messageId = event.message.mid;
 
-                // Try to get name from webhook payload first (profile fields if available)
+                // Fetch Messenger name via Page Conversations API (PSID profile lookup is blocked by Meta)
                 let customerName = 'Messenger User';
                 try {
-                  // Some Messenger events include sender profile
+                  // Check if webhook payload includes name directly
                   if (event.sender?.name) {
                     customerName = event.sender.name;
                   } else {
                     const token = process.env.MESSENGER_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN;
                     if (token) {
-                      const nameRes = await fetch(`https://graph.facebook.com/v19.0/${customerPsid}?fields=name,first_name,last_name&access_token=${token}`);
-                      const nameData = await nameRes.json();
-                      fastify.log.info(`[messenger] Name API response for ${customerPsid}: ${JSON.stringify(nameData)}`);
-                      if (nameData.name) customerName = nameData.name;
-                      else if (nameData.first_name) customerName = `${nameData.first_name} ${nameData.last_name || ''}`.trim();
-                      else fastify.log.warn(`[messenger] Name unavailable for PSID ${customerPsid} — API returned: ${JSON.stringify(nameData)}`);
+                      // Use the Page Conversations API — this is allowed by Meta unlike direct PSID lookup
+                      const convRes = await fetch(`https://graph.facebook.com/v19.0/${pageId}/conversations?user_id=${customerPsid}&fields=participants&access_token=${token}`);
+                      const convData = await convRes.json();
+                      fastify.log.info(`[messenger] Conversations API response for ${customerPsid}: ${JSON.stringify(convData)}`);
+                      const participants = convData?.data?.[0]?.participants?.data || [];
+                      const user = participants.find(p => p.id !== pageId);
+                      if (user?.name) customerName = user.name;
+                      else fastify.log.warn(`[messenger] Could not extract name from participants: ${JSON.stringify(participants)}`);
                     }
                   }
                 } catch (e) {
