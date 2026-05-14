@@ -127,7 +127,6 @@ const startRealtimeSubscription = () => {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                messaging_type: 'RESPONSE',
                 recipient: { id: customerPhone },
                 message: { text: message.content }
               })
