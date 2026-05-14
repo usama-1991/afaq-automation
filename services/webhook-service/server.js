@@ -135,6 +135,10 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
     });
 
   if (msgError) {
+    if (msgError.code === '23505') {
+      fastify.log.info(`[${platform}] Duplicate message caught by DB unique constraint: ${messageId}. Skipping.`);
+      return;
+    }
     fastify.log.error(`[${platform}] Failed to insert message: ${msgError.message}`);
     throw msgError;
   }
