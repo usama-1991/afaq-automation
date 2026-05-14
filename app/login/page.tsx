@@ -9,7 +9,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"super" | "business">("super");
 
   const setDemoCredentials = (type: "super" | "business") => {
@@ -40,6 +42,27 @@ export default function LoginPage() {
         window.location.href = "/dashboard";
       }
     }
+  };
+
+  const handleResetPassword = async () => {
+    if (!email) {
+      setError("Please enter your email address to reset your password.");
+      return;
+    }
+    setError(null);
+    setResetMessage(null);
+    setResetLoading(true);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/login`,
+    });
+
+    if (error) {
+      setError(error.message);
+    } else {
+      setResetMessage("Password reset email sent! Check your inbox.");
+    }
+    setResetLoading(false);
   };
 
   return (
@@ -121,6 +144,7 @@ export default function LoginPage() {
           </div>
 
           {error && <div className="mb-6 text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">{error}</div>}
+          {resetMessage && <div className="mb-6 text-sm text-emerald-600 bg-emerald-50 p-3 rounded-lg border border-emerald-100">{resetMessage}</div>}
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
@@ -136,7 +160,17 @@ export default function LoginPage() {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-medium text-gray-700">Password</label>
+                <button
+                  type="button"
+                  onClick={handleResetPassword}
+                  disabled={resetLoading}
+                  className="text-sm font-medium text-red-600 hover:text-red-700 hover:underline disabled:opacity-50"
+                >
+                  {resetLoading ? "Sending..." : "Forgot password?"}
+                </button>
+              </div>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
