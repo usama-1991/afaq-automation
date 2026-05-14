@@ -51,8 +51,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       setSessionChecked(true);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, currentSession: any) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, currentSession: any) => {
       setSession(currentSession);
+      if (event === 'PASSWORD_RECOVERY') {
+        router.replace('/update-password');
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -63,7 +66,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     if (!session) {
       // User is not logged in: must be on /login
-      if (!isLogin) {
+      if (!isLogin && pathname !== '/update-password') {
         router.replace('/login');
       }
       return;
@@ -85,6 +88,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    if (pathname === '/update-password') {
+      return; // Allow user to stay on the update password page if they are logged in
+    }
+
     if (!isAdminUser && !onboarded && !isOnboarding && !isAdminRoute) {
       router.replace('/onboarding');
       return;
@@ -103,8 +110,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   // Root '/' is a redirect gateway
   if (pathname === '/') return <Spinner />;
 
-  // Onboarding or Login page — no sidebar/banner
-  if (isOnboarding || isLogin) return <>{children}</>;
+  // Full screen pages — no sidebar/banner
+  if (isOnboarding || isLogin || pathname === '/update-password') return <>{children}</>;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
