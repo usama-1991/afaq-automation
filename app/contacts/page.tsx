@@ -273,7 +273,9 @@ export default function ContactsPage() {
               {[
                 { preview: 'Active chat thread...', time: selected.lastVisit, channel: '💬', resolved: selected.visits === 0 },
               ].map((c, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid rgba(220,38,38,0.07)', cursor: 'pointer' }}>
+                <div key={i}
+                  onClick={() => router.push(`/conversations?conversation=${selected.id}`)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid rgba(220,38,38,0.07)', cursor: 'pointer' }}>
                   <span style={{ fontSize: 18 }}>{c.channel}</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, color: '#374151', fontWeight: 500 }}>{c.preview}</div>
@@ -285,7 +287,9 @@ export default function ContactsPage() {
                   <ChevronRight size={13} color="#9ca3af" />
                 </div>
               ))}
-              <button style={{ marginTop: 10, width: '100%', padding: '8px', fontSize: 12.5, fontWeight: 500, border: '1px solid rgba(220,38,38,0.15)', borderRadius: 8, background: '#fff5f5', color: '#dc2626', cursor: 'pointer' }}>
+              <button
+                onClick={() => router.push(`/conversations?conversation=${selected.id}`)}
+                style={{ marginTop: 10, width: '100%', padding: '8px', fontSize: 12.5, fontWeight: 500, border: '1px solid rgba(220,38,38,0.15)', borderRadius: 8, background: '#fff5f5', color: '#dc2626', cursor: 'pointer' }}>
                 View all conversations →
               </button>
             </div>
