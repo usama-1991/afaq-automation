@@ -176,6 +176,7 @@ function ConversationsInner() {
   const [reply, setReply] = useState('');
   const [search, setSearch] = useState('');
   const [channelFilter, setChannelFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -237,8 +238,17 @@ function ConversationsInner() {
   const filtered = convos.filter(c => {
     const matchSearch = !search || (c.customer_name ?? '').toLowerCase().includes(search.toLowerCase());
     const matchChannel = channelFilter === 'all' || c.platform === channelFilter;
-    return matchSearch && matchChannel;
+    const convStatus = c.status || 'open';
+    const matchStatus = statusFilter === 'all' || convStatus === statusFilter;
+    return matchSearch && matchChannel && matchStatus;
   });
+
+  const STATUS_TABS = [
+    { key: 'all',      label: 'All',      count: convos.length },
+    { key: 'open',     label: 'Open',     count: convos.filter(c => (c.status || 'open') === 'open').length },
+    { key: 'resolved', label: 'Resolved', count: convos.filter(c => c.status === 'resolved').length },
+    { key: 'pending',  label: 'Pending',  count: convos.filter(c => c.status === 'pending').length },
+  ];
 
   return (
     <div style={{ height: 'calc(100vh - 38px)', display: 'flex', flexDirection: 'column', fontFamily: 'inherit' }}>
@@ -262,7 +272,35 @@ function ConversationsInner() {
               />
             </div>
             <ChannelFilter value={channelFilter} onChange={setChannelFilter} />
+            {/* Status filter tabs */}
+            <div style={{ display: 'flex', gap: 2, background: '#faf9f9', borderRadius: 8, padding: 3, border: '1px solid rgba(220,38,38,0.1)' }}>
+              {STATUS_TABS.map(tab => (
+                <button
+                  key={tab.key}
+                  onClick={() => setStatusFilter(tab.key)}
+                  style={{
+                    flex: 1, padding: '5px 4px', fontSize: 11.5, fontWeight: 600,
+                    borderRadius: 6, border: 'none', cursor: 'pointer',
+                    background: statusFilter === tab.key ? '#dc2626' : 'transparent',
+                    color: statusFilter === tab.key ? '#fff' : '#6b7280',
+                    transition: 'all 0.15s',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
+                  }}
+                >
+                  {tab.label}
+                  {tab.count > 0 && (
+                    <span style={{
+                      fontSize: 9.5, fontWeight: 700,
+                      background: statusFilter === tab.key ? 'rgba(255,255,255,0.3)' : 'rgba(220,38,38,0.1)',
+                      color: statusFilter === tab.key ? '#fff' : '#dc2626',
+                      borderRadius: 10, padding: '0px 5px', minWidth: 16, textAlign: 'center',
+                    }}>{tab.count}</span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
+
 
           {/* List */}
           <div style={{ flex: 1, overflowY: 'auto' }}>

@@ -12,18 +12,6 @@ export default function LoginPage() {
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"super" | "business">("super");
-
-  const setDemoCredentials = (type: "super" | "business") => {
-    setActiveTab(type);
-    if (type === "super") {
-      setEmail("admin@autoflow.ai");
-      setPassword("admin123");
-    } else {
-      setEmail("demo@business.com");
-      setPassword("demo123");
-    }
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,37 +101,7 @@ export default function LoginPage() {
             <p className="text-gray-500">Sign in to your AutoFlow dashboard</p>
           </div>
 
-          {/* Demo Credentials Picker */}
-          <div className="bg-red-50 border border-red-100 rounded-xl p-4 mb-8">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="w-5 h-5 bg-red-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-[10px] font-bold">@</span>
-              </span>
-              <span className="text-sm font-semibold text-red-900">Demo Credentials</span>
-            </div>
-            <div className="flex bg-white/50 p-1 rounded-lg border border-red-200/50">
-              <button
-                type="button"
-                onClick={() => setDemoCredentials("super")}
-                className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  activeTab === "super" ? "bg-red-600 text-white shadow-sm" : "text-red-700 hover:bg-red-50"
-                }`}
-              >
-                Super Admin
-              </button>
-              <button
-                type="button"
-                onClick={() => setDemoCredentials("business")}
-                className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  activeTab === "business" ? "bg-red-600 text-white shadow-sm" : "text-red-700 hover:bg-red-50"
-                }`}
-              >
-                Business Owner
-              </button>
-            </div>
-          </div>
-
-          {error && <div className="mb-6 text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">{error}</div>}
+{error && <div className="mb-6 text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">{error}</div>}
           {resetMessage && <div className="mb-6 text-sm text-emerald-600 bg-emerald-50 p-3 rounded-lg border border-emerald-100">{resetMessage}</div>}
 
           <form onSubmit={handleLogin} className="space-y-5">
