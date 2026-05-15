@@ -36,7 +36,7 @@ export default function UpdatePasswordPage() {
 
     // Establish the session from the recovery tokens
     supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-      .then(({ error }) => {
+      .then(({ error }: { error: { message: string } | null }) => {
         if (error) {
           setSessionError(`Session error: ${error.message}`);
         } else {
