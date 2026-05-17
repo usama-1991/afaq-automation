@@ -15,9 +15,10 @@ function UpdatePasswordInner() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // The /auth/callback route handler already exchanged the code and set the
-    // session in cookies. We just need to confirm the session exists.
-    supabase.auth.getSession().then(({ data }) => {
+    (async () => {
+      // The /auth/callback route handler already exchanged the code and set the
+      // session in cookies. We just need to confirm the session exists.
+      const { data } = await supabase.auth.getSession();
       if (data.session) {
         setSessionReady(true);
       } else {
@@ -25,7 +26,7 @@ function UpdatePasswordInner() {
           "Your session could not be verified. Please go back and request a new password reset email."
         );
       }
-    });
+    })();
   }, []);
 
   const handleUpdate = async (e: React.FormEvent) => {
