@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Shield, Eye, EyeOff, Loader2 } from "lucide-react";
 
-export default function UpdatePasswordPage() {
+function UpdatePasswordInner() {
+  const searchParams = useSearchParams();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -15,37 +18,61 @@ export default function UpdatePasswordPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // Supabase sends the recovery token in the URL hash:
-    // /update-password#access_token=xxx&refresh_token=yyy&type=recovery
-    // We must parse it and call setSession before updateUser will work.
-    const hash = window.location.hash;
-    if (!hash) {
-      setSessionError("Invalid or expired reset link. Please request a new one.");
-      return;
-    }
-
-    const params = new URLSearchParams(hash.substring(1)); // strip leading #
-    const accessToken = params.get("access_token");
-    const refreshToken = params.get("refresh_token");
-    const type = params.get("type");
-
-    if (type !== "recovery" || !accessToken || !refreshToken) {
-      setSessionError("Invalid or expired reset link. Please request a new one.");
-      return;
-    }
-
-    // Establish the session from the recovery tokens
-    supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-      .then(({ error }: { error: { message: string } | null }) => {
+    async function establishSession() {
+      // ── PKCE flow (default in @supabase/ssr) ──────────────────────
+      // Supabase sends: /update-password?code=XXXX
+      const code = searchParams.get("code");
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) {
-          setSessionError(`Session error: ${error.message}`);
+          setSessionError(`Link error: ${error.message}. Please request a new one.`);
         } else {
           setSessionReady(true);
-          // Clean the URL so tokens aren't visible
+          // Clean the code from the URL bar
           window.history.replaceState(null, "", window.location.pathname);
         }
-      });
-  }, []);
+        return;
+      }
+
+      // ── Legacy implicit flow fallback ─────────────────────────────
+      // Supabase sends: /update-password#access_token=...&type=recovery
+      const hash = window.location.hash;
+      if (hash) {
+        const params = new URLSearchParams(hash.substring(1));
+        const accessToken = params.get("access_token");
+        const refreshToken = params.get("refresh_token");
+        const type = params.get("type");
+
+        if (type === "recovery" && accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (error) {
+            setSessionError(`Session error: ${error.message}. Please request a new one.`);
+          } else {
+            setSessionReady(true);
+            window.history.replaceState(null, "", window.location.pathname);
+          }
+          return;
+        }
+      }
+
+      // ── Already has an active session (PASSWORD_RECOVERY event) ───
+      // AppShell fires router.replace('/update-password') on this event,
+      // which means the session is already set by Supabase.
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        setSessionReady(true);
+        return;
+      }
+
+      // Nothing worked
+      setSessionError("Invalid or expired reset link. Please request a new password reset email.");
+    }
+
+    establishSession();
+  }, [searchParams]);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +95,7 @@ export default function UpdatePasswordPage() {
       setLoading(false);
     } else {
       setMessage("✅ Password updated successfully! Redirecting to login...");
+      await supabase.auth.signOut();
       setTimeout(() => {
         window.location.href = "/login";
       }, 2500);
@@ -93,40 +121,39 @@ export default function UpdatePasswordPage() {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-gray-200">
 
-          {/* Session loading state */}
+          {/* Verifying */}
           {!sessionReady && !sessionError && (
             <div className="flex items-center justify-center gap-3 py-6 text-gray-500 text-sm">
               <Loader2 className="w-5 h-5 animate-spin text-red-600" />
-              Verifying your reset link...
+              Verifying your reset link…
             </div>
           )}
 
-          {/* Session error state */}
+          {/* Error state */}
           {sessionError && (
-            <div className="text-center">
-              <div className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">
+            <div className="text-center space-y-4">
+              <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">
                 {sessionError}
               </div>
-              <a
-                href="/login"
-                className="text-sm font-medium text-red-600 hover:underline"
-              >
-                ← Back to Login
+              <a href="/login" className="inline-block text-sm font-medium text-red-600 hover:underline">
+                ← Back to Login (use Forgot Password again)
               </a>
             </div>
           )}
 
-          {/* Password form — only shown once session is ready */}
+          {/* Password form */}
           {sessionReady && (
             <>
-              {error && <div className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">{error}</div>}
-              {message && <div className="mb-4 text-sm text-emerald-600 bg-emerald-50 p-3 rounded-lg border border-emerald-100">{message}</div>}
+              {error && (
+                <div className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">{error}</div>
+              )}
+              {message && (
+                <div className="mb-4 text-sm text-emerald-600 bg-emerald-50 p-3 rounded-lg border border-emerald-100">{message}</div>
+              )}
 
               <form onSubmit={handleUpdate} className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    New Password
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
                   <div className="relative">
                     <input
                       type={showPassword ? "text" : "password"}
@@ -148,9 +175,7 @@ export default function UpdatePasswordPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Confirm Password
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
                   <input
                     type={showPassword ? "text" : "password"}
                     required
@@ -167,7 +192,9 @@ export default function UpdatePasswordPage() {
                   className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
                 >
                   {loading ? (
-                    <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Updating...</span>
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Updating…
+                    </span>
                   ) : "Update Password"}
                 </button>
               </form>
@@ -176,5 +203,17 @@ export default function UpdatePasswordPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function UpdatePasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+      </div>
+    }>
+      <UpdatePasswordInner />
+    </Suspense>
   );
 }
