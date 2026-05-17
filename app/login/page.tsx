@@ -1,14 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { MessageSquare, Bot, BarChart2, Shield, Eye, EyeOff } from "lucide-react";
 
-export default function LoginPage() {
+function LoginForm() {
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    searchParams.get('error') === 'invalid_reset_link'
+      ? 'Your reset link was invalid or expired. Please enter your email and click Forgot Password again.'
+      : null
+  );
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
@@ -42,7 +48,8 @@ export default function LoginPage() {
     setResetLoading(true);
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/update-password`,
+      // Route through /auth/callback which exchanges the PKCE code server-side via cookies
+      redirectTo: `${window.location.origin}/auth/callback?next=/update-password`,
     });
 
     if (error) {
@@ -167,5 +174,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin" /></div>}>
+      <LoginForm />
+    </Suspense>
   );
 }
