@@ -220,30 +220,49 @@ fastify.post('/webhook', async (request, reply) => {
                 const messageText = event.message.text || '';
                 const messageId = event.message.mid;
 
-                // Fetch Messenger name via Page Conversations API (PSID profile lookup is blocked by Meta)
+                // ── Resolve real Messenger name (multi-strategy) ─────────
                 let customerName = 'Messenger User';
                 try {
-                  // Check if webhook payload includes name directly
+                  const token = process.env.MESSENGER_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN;
+
+                  // Strategy 1: Name in webhook payload (rare but possible)
                   if (event.sender?.name) {
                     customerName = event.sender.name;
-                  } else {
-                    const token = process.env.MESSENGER_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN;
-                    if (token) {
-                      // Use the Page Conversations API — this is allowed by Meta unlike direct PSID lookup
-                      const convRes = await fetch(`https://graph.facebook.com/v19.0/${pageId}/conversations?user_id=${customerPsid}&fields=participants&access_token=${token}`);
-                      const convData = await convRes.json();
-                      fastify.log.info(`[messenger] Conversations API response for ${customerPsid}: ${JSON.stringify(convData)}`);
-                      const participants = convData?.data?.[0]?.participants?.data || [];
-                      const user = participants.find(p => p.id !== pageId);
-                      if (user?.name) customerName = user.name;
-                      else fastify.log.warn(`[messenger] Could not extract name from participants: ${JSON.stringify(participants)}`);
+                    fastify.log.info(`[messenger] Name from payload: ${customerName}`);
+                  }
+
+                  // Strategy 2: Page Conversations API — lists thread participants by name
+                  else if (token) {
+                    const convRes = await fetch(
+                      `https://graph.facebook.com/v19.0/${pageId}/conversations?user_id=${customerPsid}&fields=participants&access_token=${token}`
+                    );
+                    const convData = await convRes.json();
+                    const participants = convData?.data?.[0]?.participants?.data || [];
+                    fastify.log.info(`[messenger] Conversations API participants: ${JSON.stringify(participants)}`);
+                    const user = participants.find(p => p.id !== pageId);
+                    if (user?.name && user.name !== 'Facebook User') {
+                      customerName = user.name;
+                      fastify.log.info(`[messenger] Name from Conversations API: ${customerName}`);
+                    }
+
+                    // Strategy 3: Try fetching via messaging profile (works for some app permissions)
+                    if (customerName === 'Messenger User') {
+                      const profileRes = await fetch(
+                        `https://graph.facebook.com/v19.0/${customerPsid}?fields=name,first_name,last_name&access_token=${token}`
+                      );
+                      const profileData = await profileRes.json();
+                      fastify.log.info(`[messenger] Profile API response: ${JSON.stringify(profileData)}`);
+                      if (profileData.name) customerName = profileData.name;
+                      else if (profileData.first_name) customerName = `${profileData.first_name} ${profileData.last_name || ''}`.trim();
                     }
                   }
                 } catch (e) {
                   fastify.log.warn(`[messenger] Name fetch failed: ${e.message}`);
                 }
 
+                fastify.log.info(`[messenger] Resolved customer name: "${customerName}" for PSID ${customerPsid}`);
                 await processIncomingMessage('messenger', pageId, customerPsid, customerName, messageText, messageId);
+
               }
             }
           }
