@@ -82,26 +82,34 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    supabase.auth.getSession().then(async (response: any) => {
-      const currentSession = response.data.session;
+    // Fail-safe timeout: Dismiss the loading screen after 2.5 seconds no matter what
+    const failSafeTimeout = setTimeout(() => {
+      console.warn('Supabase auth check timed out. Dismissing loading screen via fail-safe.');
+      setSessionChecked(true);
+    }, 2500);
+
+    supabase.auth.getSession().then((response: any) => {
+      clearTimeout(failSafeTimeout);
+      const currentSession = response?.data?.session;
       setSession(currentSession);
       if (currentSession?.user) {
         setUserEmail(currentSession.user.email || 'usamahabib1991@gmail.com');
         setUserName(currentSession.user.user_metadata?.full_name || currentSession.user.email?.split('@')[0] || 'Usama Habib');
-        await bootstrapTenantNiche(currentSession.user);
+        bootstrapTenantNiche(currentSession.user);
       }
       setSessionChecked(true);
     }).catch((err: any) => {
+      clearTimeout(failSafeTimeout);
       console.error('Error getting session:', err);
       setSessionChecked(true);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, currentSession: any) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, currentSession: any) => {
       setSession(currentSession);
       if (currentSession?.user) {
         setUserEmail(currentSession.user.email || 'usamahabib1991@gmail.com');
         setUserName(currentSession.user.user_metadata?.full_name || currentSession.user.email?.split('@')[0] || 'Usama Habib');
-        await bootstrapTenantNiche(currentSession.user);
+        bootstrapTenantNiche(currentSession.user);
       }
       if (event === 'PASSWORD_RECOVERY') {
         router.replace('/update-password');
