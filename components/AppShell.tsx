@@ -76,6 +76,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    if (!supabase) {
+      console.error('Supabase client is not initialized. NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are missing.');
+      setSessionChecked(true);
+      return;
+    }
+
     supabase.auth.getSession().then(async (response: any) => {
       const currentSession = response.data.session;
       setSession(currentSession);
@@ -84,6 +90,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         setUserName(currentSession.user.user_metadata?.full_name || currentSession.user.email?.split('@')[0] || 'Usama Habib');
         await bootstrapTenantNiche(currentSession.user);
       }
+      setSessionChecked(true);
+    }).catch((err: any) => {
+      console.error('Error getting session:', err);
       setSessionChecked(true);
     });
 
@@ -108,7 +117,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     document.addEventListener('mousedown', handleClickOutside);
 
     return () => {
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
@@ -160,7 +169,42 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   // Show spinner until we've read localStorage and checked auth
-  if (!hydrated || !sessionChecked) return <Spinner />;
+  if (!hydrated || !sessionChecked) {
+    if (!supabase) {
+      return (
+        <div style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #fef2f2 0%, #fff5f5 100%)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 20,
+          padding: 20, textAlign: 'center',
+        }}>
+          <div style={{
+            width: 54, height: 54, borderRadius: 14,
+            background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 26, color: '#fff', fontWeight: 800,
+            boxShadow: '0 4px 14px rgba(220,38,38,0.3)',
+          }}>⚠️</div>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#111827', margin: 0 }}>Supabase Configuration Missing</h2>
+          <p style={{ fontSize: 14, color: '#4b5563', maxWidth: 450, lineHeight: 1.5, margin: 0 }}>
+            AutoFlow AI could not initialize the database client because environment variables are not configured on your Railway server.
+          </p>
+          <div style={{
+            background: '#fff', border: '1px solid rgba(220,38,38,0.15)',
+            padding: '12px 18px', borderRadius: 10, fontSize: 13, color: '#dc2626',
+            fontWeight: 600, fontFamily: 'monospace', textAlign: 'left',
+          }}>
+            NEXT_PUBLIC_SUPABASE_URL<br />
+            NEXT_PUBLIC_SUPABASE_ANON_KEY
+          </div>
+          <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>
+            Please add these keys to your Railway environment variables and redeploy to get online.
+          </p>
+        </div>
+      );
+    }
+    return <Spinner />;
+  }
 
   // Root '/' is a redirect gateway
   if (pathname === '/') return <Spinner />;
