@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useNiche } from '@/context/NicheContext';
 import { niches } from '@/lib/niches';
+import { supabase } from '@/lib/supabase/client';
 
 const tabs = ['Business Profile', 'Channels & APIs', 'Voice & Opt-Outs', 'Usage Quotas'] as const;
 type Tab = typeof tabs[number];
@@ -65,10 +66,35 @@ function SettingsInner() {
 
   // Business settings
   const [businessName, setBusinessName] = useState('AutoFlow Solutions');
-  const [ownerName, setOwnerName] = useState('Afaq Butt');
+  const [ownerName, setOwnerName] = useState('Usama Habib');
   const [waNumber, setWaNumber] = useState('+92 300 0000000');
   const [location, setLocation] = useState('Karachi, Pakistan');
   const [website, setWebsite] = useState('https://autoflow.ai');
+
+  // Dynamic niche fields
+  const [menuLink, setMenuLink] = useState('https://menus.autoflow.ai/spice-garden');
+  const [slotCapacity, setSlotCapacity] = useState('8');
+  const [isHalal, setIsHalal] = useState(true);
+
+  const [dentalEmergency, setDentalEmergency] = useState('+92 300 9991112');
+  const [slotLength, setSlotLength] = useState('30');
+  const [insurances, setInsurances] = useState('Jubilee Life, EFU Life, Adamjee Insurance');
+
+  const [catalogLink, setCatalogLink] = useState('https://shop.autoflow.ai/lawn-collection');
+  const [codEnabled, setCodEnabled] = useState(true);
+  const [deliveryDays, setDeliveryDays] = useState('3');
+  const [minOrder, setMinOrder] = useState('1500');
+
+  const [agencyLicense, setAgencyLicense] = useState('RE-2026-9842');
+  const [operatingCities, setOperatingCities] = useState('Karachi, Lahore, Islamabad');
+  const [propertyTypes, setPropertyTypes] = useState('Luxury Apartments, Residential Plots');
+
+  const [stylistsCount, setStylistsCount] = useState('5');
+  const [bridalPackages, setBridalPackages] = useState(true);
+
+  const [opdHours, setOpdHours] = useState('9:00 AM - 5:00 PM');
+  const [emergencyPhone, setEmergencyPhone] = useState('+92 21 111 222 333');
+  const [specialties, setSpecialties] = useState('Pediatrics, Cardiology, General Medicine');
 
   // APIs state
   const [openaiKey, setOpenaiKey] = useState('sk-proj-••••••••••••5aB2');
@@ -105,7 +131,103 @@ function SettingsInner() {
     } catch (_) {}
   }, []);
 
-  const handleSave = () => { 
+  // Fetch Supabase Tenant info
+  useEffect(() => {
+    const fetchTenantSettings = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from('users')
+            .select('tenant_id')
+            .eq('id', user.id)
+            .single();
+
+          if (profile?.tenant_id) {
+            const { data: tenant } = await supabase
+              .from('tenants')
+              .select('*')
+              .eq('id', profile.tenant_id)
+              .single();
+
+            if (tenant) {
+              if (tenant.business_name) setBusinessName(tenant.business_name);
+              if (tenant.business_phone) setWaNumber(tenant.business_phone);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error loading tenant profile settings:', err);
+      }
+    };
+    fetchTenantSettings();
+  }, []);
+
+  // Load custom simulated niche fields from localstorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(`autoflow_custom_settings_${niche.id}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.menuLink) setMenuLink(parsed.menuLink);
+        if (parsed.slotCapacity) setSlotCapacity(parsed.slotCapacity);
+        if (parsed.isHalal !== undefined) setIsHalal(parsed.isHalal);
+        if (parsed.dentalEmergency) setDentalEmergency(parsed.dentalEmergency);
+        if (parsed.slotLength) setSlotLength(parsed.slotLength);
+        if (parsed.insurances) setInsurances(parsed.insurances);
+        if (parsed.catalogLink) setCatalogLink(parsed.catalogLink);
+        if (parsed.codEnabled !== undefined) setCodEnabled(parsed.codEnabled);
+        if (parsed.deliveryDays) setDeliveryDays(parsed.deliveryDays);
+        if (parsed.minOrder) setMinOrder(parsed.minOrder);
+        if (parsed.agencyLicense) setAgencyLicense(parsed.agencyLicense);
+        if (parsed.operatingCities) setOperatingCities(parsed.operatingCities);
+        if (parsed.propertyTypes) setPropertyTypes(parsed.propertyTypes);
+        if (parsed.stylistsCount) setStylistsCount(parsed.stylistsCount);
+        if (parsed.bridalPackages !== undefined) setBridalPackages(parsed.bridalPackages);
+        if (parsed.opdHours) setOpdHours(parsed.opdHours);
+        if (parsed.emergencyPhone) setEmergencyPhone(parsed.emergencyPhone);
+        if (parsed.specialties) setSpecialties(parsed.specialties);
+        if (parsed.ownerName) setOwnerName(parsed.ownerName);
+        if (parsed.location) setLocation(parsed.location);
+        if (parsed.website) setWebsite(parsed.website);
+      }
+    } catch (_) {}
+  }, [niche]);
+
+  const handleSave = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('tenant_id')
+          .eq('id', user.id)
+          .single();
+
+        if (profile?.tenant_id) {
+          // Update tenants table with basic profile data
+          await supabase
+            .from('tenants')
+            .update({
+              business_name: businessName,
+              business_phone: waNumber
+            })
+            .eq('id', profile.tenant_id);
+        }
+      }
+    } catch (err) {
+      console.error('Error saving settings to Supabase:', err);
+    }
+    
+    // Save other simulated fields to localstorage
+    const localSettings = {
+      menuLink, slotCapacity, isHalal, dentalEmergency, slotLength, insurances,
+      catalogLink, codEnabled, deliveryDays, minOrder, agencyLicense, operatingCities,
+      propertyTypes, stylistsCount, bridalPackages, opdHours, emergencyPhone, specialties,
+      businessName, ownerName, waNumber, location, website
+    };
+    localStorage.setItem(`autoflow_custom_settings_${niche.id}`, JSON.stringify(localSettings));
+
     setSaved(true); 
     setTimeout(() => setSaved(false), 2000); 
   };
@@ -221,6 +343,80 @@ function SettingsInner() {
               <Field label="WhatsApp Business Number" value={waNumber} onChange={setWaNumber} hint="Used to display in AI conversations" />
               <Field label="HQ Location" value={location} onChange={setLocation} />
               <Field label="Website Link" value={website} onChange={setWebsite} type="url" hint="Auto-scraped as primary knowledge base resource" />
+            </div>
+
+            {/* Niche-Specific Context Settings Panel */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16 }}>
+                <Sparkles size={16} color="#dc2626" />
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Industry-Specific Attributes ({niche.label})</div>
+              </div>
+
+              {niche.id === 'restaurant' && (
+                <>
+                  <Field label="Online Menu URL" value={menuLink} onChange={setMenuLink} hint="AI shares this with guests seeking menus" />
+                  <Field label="Max Table Slot Capacity" value={slotCapacity} onChange={setSlotCapacity} type="number" hint="Maximum number of guests allowed per reservation" />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', maxWidth: 480 }}>
+                    <div>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block' }}>100% Halal Certified</span>
+                      <span style={{ fontSize: 11, color: '#9ca3af' }}>Enable if your dining menu is certified Halal</span>
+                    </div>
+                    <Toggle checked={isHalal} onChange={() => setIsHalal(!isHalal)} />
+                  </div>
+                </>
+              )}
+
+              {niche.id === 'dental' && (
+                <>
+                  <Field label="Emergency Hotline Phone" value={dentalEmergency} onChange={setDentalEmergency} hint="Shared with patients in acute pain" />
+                  <Field label="Default Slot Length (Minutes)" value={slotLength} onChange={setSlotLength} type="number" hint="Standard appointment slot duration" />
+                  <Field label="Accepted Insurances" value={insurances} onChange={setInsurances} hint="List comma-separated insurance providers" />
+                </>
+              )}
+
+              {niche.id === 'ecommerce' && (
+                <>
+                  <Field label="Product Catalog URL" value={catalogLink} onChange={setCatalogLink} hint="Sent to customers asking for catalogs or shop link" />
+                  <Field label="Standard Delivery Days" value={deliveryDays} onChange={setDeliveryDays} type="number" hint="Expected transit time for shipments" />
+                  <Field label="Minimum Order Value (PKR)" value={minOrder} onChange={setMinOrder} type="number" hint="Minimum cart subtotal to process checkouts" />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', maxWidth: 480 }}>
+                    <div>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block' }}>Cash On Delivery (COD)</span>
+                      <span style={{ fontSize: 11, color: '#9ca3af' }}>Accept Cash on Delivery during conversational checkouts</span>
+                    </div>
+                    <Toggle checked={codEnabled} onChange={() => setCodEnabled(!codEnabled)} />
+                  </div>
+                </>
+              )}
+
+              {niche.id === 'realestate' && (
+                <>
+                  <Field label="Agency License Number" value={agencyLicense} onChange={setAgencyLicense} hint="Regulatory registration credential code" />
+                  <Field label="Operating Cities" value={operatingCities} onChange={setOperatingCities} hint="Primary regions of coverage" />
+                  <Field label="Specialized Property Types" value={propertyTypes} onChange={setPropertyTypes} hint="Apartments, plots, commercial, etc." />
+                </>
+              )}
+
+              {niche.id === 'salon' && (
+                <>
+                  <Field label="Total Active Stylists" value={stylistsCount} onChange={setStylistsCount} type="number" hint="Affects booking slot counts" />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', maxWidth: 480 }}>
+                    <div>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block' }}>Bridal Booking Packages</span>
+                      <span style={{ fontSize: 11, color: '#9ca3af' }}>Show wedding packages inside the conversation options</span>
+                    </div>
+                    <Toggle checked={bridalPackages} onChange={() => setBridalPackages(!bridalPackages)} />
+                  </div>
+                </>
+              )}
+
+              {niche.id === 'clinic' && (
+                <>
+                  <Field label="OPD Consultation Hours" value={opdHours} onChange={setOpdHours} hint="e.g. 9:00 AM - 5:00 PM" />
+                  <Field label="Clinical Emergency Number" value={emergencyPhone} onChange={setEmergencyPhone} hint="Hotline for critical patient calls" />
+                  <Field label="Medical Specialties" value={specialties} onChange={setSpecialties} hint="List comma-separated services/departments" />
+                </>
+              )}
             </div>
 
             {/* Business Logo Upload */}

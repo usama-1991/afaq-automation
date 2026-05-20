@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Bot, Trash2, Save, Eye, Check, ChevronDown, Minus, Globe, Upload, Sliders, Users, User, Shield, Activity, Power, Mail, HelpCircle } from 'lucide-react';
 import { useNiche } from '@/context/NicheContext';
+import { supabase } from '@/lib/supabase/client';
 
 const tones = ['Professional', 'Friendly', 'Enthusiastic', 'Empathetic', 'Direct'];
 const languages = ['English (US)', 'Urdu', 'Arabic', 'Spanish', 'French', 'German', 'Hindi'];
@@ -95,6 +96,50 @@ export default function AgentsPage() {
 
   const kb = niche.knowledgeBase || [];
 
+  const syncAgentToDB = async (updatedPublished?: boolean, updatedPaused?: boolean) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('users')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.tenant_id) return;
+
+      const { data: existingAgent } = await supabase
+        .from('agents')
+        .select('id')
+        .eq('tenant_id', profile.tenant_id)
+        .maybeSingle();
+
+      const isPub = updatedPublished !== undefined ? updatedPublished : published;
+      const isPaused = updatedPaused !== undefined ? updatedPaused : paused;
+
+      const agentData = {
+        tenant_id: profile.tenant_id,
+        name: agentName,
+        prompt: systemRole,
+        is_active: isPub && !isPaused
+      };
+
+      if (existingAgent?.id) {
+        await supabase
+          .from('agents')
+          .update(agentData)
+          .eq('id', existingAgent.id);
+      } else {
+        await supabase
+          .from('agents')
+          .insert(agentData);
+      }
+    } catch (err) {
+      console.error('Error syncing agent to Supabase:', err);
+    }
+  };
+
   // Load team data from localstorage or defaults
   useEffect(() => {
     const stored = localStorage.getItem('autoflow_team_members');
@@ -115,43 +160,76 @@ export default function AgentsPage() {
       localStorage.setItem('autoflow_team_members', JSON.stringify(defaultTeam));
     }
 
-    // Load AI Config overrides if any
-    const storedAi = localStorage.getItem(`autoflow_ai_config_${niche.id}`);
-    if (storedAi) {
+    const loadAgentFromDBAndLocal = async () => {
+      // 1. Try to load from Supabase database first
       try {
-        const parsed = JSON.parse(storedAi);
-        if (parsed.agentName) setAgentName(parsed.agentName);
-        if (parsed.greeting) setGreeting(parsed.greeting);
-        if (parsed.systemRole) setSystemRole(parsed.systemRole);
-        if (parsed.channels) setChannels(parsed.channels);
-        if (parsed.tone) setTone(parsed.tone);
-        if (parsed.dos) setDos(parsed.dos);
-        if (parsed.donts) setDonts(parsed.donts);
-        if (parsed.selectedLangs) setSelectedLangs(parsed.selectedLangs);
-        if (parsed.selectedVoice) setSelectedVoice(parsed.selectedVoice);
-        if (parsed.humanHandoff !== undefined) setHumanHandoff(parsed.humanHandoff);
-        if (parsed.galleryCards !== undefined) setGalleryCards(parsed.galleryCards);
-        if (parsed.maxCards) setMaxCards(parsed.maxCards);
-        if (parsed.published !== undefined) setPublished(parsed.published);
-        if (parsed.paused !== undefined) setPaused(parsed.paused);
-      } catch (e) {
-        console.error("Failed to load local AI settings", e);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from('users')
+            .select('tenant_id')
+            .eq('id', user.id)
+            .single();
+
+          if (profile?.tenant_id) {
+            const { data: agent } = await supabase
+              .from('agents')
+              .select('*')
+              .eq('tenant_id', profile.tenant_id)
+              .maybeSingle();
+
+            if (agent) {
+              if (agent.name) setAgentName(agent.name);
+              if (agent.prompt) setSystemRole(agent.prompt);
+              setPublished(agent.is_active);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load agent from Supabase", err);
       }
-    }
+
+      // 2. Overlay with local storage configs if they exist
+      const storedAi = localStorage.getItem(`autoflow_ai_config_${niche.id}`);
+      if (storedAi) {
+        try {
+          const parsed = JSON.parse(storedAi);
+          if (parsed.agentName) setAgentName(parsed.agentName);
+          if (parsed.greeting) setGreeting(parsed.greeting);
+          if (parsed.systemRole) setSystemRole(parsed.systemRole);
+          if (parsed.channels) setChannels(parsed.channels);
+          if (parsed.tone) setTone(parsed.tone);
+          if (parsed.dos) setDos(parsed.dos);
+          if (parsed.donts) setDonts(parsed.donts);
+          if (parsed.selectedLangs) setSelectedLangs(parsed.selectedLangs);
+          if (parsed.selectedVoice) setSelectedVoice(parsed.selectedVoice);
+          if (parsed.humanHandoff !== undefined) setHumanHandoff(parsed.humanHandoff);
+          if (parsed.galleryCards !== undefined) setGalleryCards(parsed.galleryCards);
+          if (parsed.maxCards) setMaxCards(parsed.maxCards);
+          if (parsed.published !== undefined) setPublished(parsed.published);
+          if (parsed.paused !== undefined) setPaused(parsed.paused);
+        } catch (e) {
+          console.error("Failed to load local AI settings", e);
+        }
+      }
+    };
+
+    loadAgentFromDBAndLocal();
   }, [niche]);
 
-  const handleSaveAI = () => {
+  const handleSaveAI = async () => {
     const aiConfig = {
       agentName, greeting, systemRole, channels, tone, dos, donts,
       selectedLangs, selectedVoice, humanHandoff, galleryCards, maxCards,
       published, paused
     };
     localStorage.setItem(`autoflow_ai_config_${niche.id}`, JSON.stringify(aiConfig));
+    await syncAgentToDB();
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const handlePublishAI = () => {
+  const handlePublishAI = async () => {
     setPublished(true);
     setPaused(false);
     const aiConfig = {
@@ -160,6 +238,7 @@ export default function AgentsPage() {
       published: true, paused: false
     };
     localStorage.setItem(`autoflow_ai_config_${niche.id}`, JSON.stringify(aiConfig));
+    await syncAgentToDB(true, false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };

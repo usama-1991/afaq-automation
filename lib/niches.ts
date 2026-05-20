@@ -1,3 +1,20 @@
+export interface QuickReply {
+  label: string;
+  text: string;
+}
+
+export interface QuickReplyCategory {
+  category: string;
+  replies: QuickReply[];
+}
+
+export interface DashboardMetric {
+  label: string;
+  value: string;
+  desc: string;
+  trend?: string; // e.g. "+12.4% vs last week"
+}
+
 export interface NicheConfig {
   id: string;
   label: string;
@@ -13,6 +30,11 @@ export interface NicheConfig {
   sampleConversations: SampleConvo[];
   contacts: Contact[];
   stats: { conversations: number; avgResponse: string; sentiment: string; sentimentScore: number; resolution: number };
+  quickReplies: QuickReplyCategory[];
+  dashboardMetrics: DashboardMetric[];
+  keyPhrases: string[];
+  appointmentBased: boolean;
+  ecommerceEnabled: boolean;
 }
 
 export interface SampleConvo {
@@ -127,7 +149,7 @@ export const niches: NicheConfig[] = [
     id: 'restaurant',
     label: 'Restaurant / Food',
     icon: '🍽️',
-    color: '#f59e0b',
+    color: '#dc2626', // Keep main red highlights for cohesiveness or distinct warm color
     bgColor: '#fffbeb',
     agentName: 'FoodBot',
     greeting: "Hello! Welcome to our restaurant 🍽️ How can I help you today? I can help with reservations, menu queries, and orders.",
@@ -146,6 +168,30 @@ export const niches: NicheConfig[] = [
       { id: 3, name: 'Fatima Noor', phone: '+92 333 5556667', email: '', visits: 12, lastVisit: 'Today', totalSpent: 'PKR 28,000', tags: ['VIP', 'Regular'] },
     ],
     stats: { conversations: 247, avgResponse: '1.2', sentiment: 'Positive', sentimentScore: 0.82, resolution: 91 },
+    appointmentBased: true,
+    ecommerceEnabled: false,
+    keyPhrases: ['reservation', 'table', 'menu', 'hours', 'halal', 'book', 'location'],
+    quickReplies: [
+      {
+        category: 'Booking & Timing',
+        replies: [
+          { label: 'Hours & Location', text: "We're open Mon–Sat 12pm–11pm and Sunday 1pm–10pm. We're located at Block 5, Clifton, Karachi! 📍" },
+          { label: 'Confirm Reservation', text: "Perfect! I've noted a reservation for 4 guests tonight at 8:00 PM. Can I get your name and phone number to confirm?" }
+        ]
+      },
+      {
+        category: 'Menu & Food',
+        replies: [
+          { label: 'Halal Certificate', text: "Yes! All our meat is 100% halal certified 🥩 Our entire menu is halal. Is there anything specific you would like to know?" },
+          { label: 'Recommend Starters', text: "Our top starter recommendations are the Honey Chilli Wings and Creamy Garlic Mushrooms! 🌶️🍄" }
+        ]
+      }
+    ],
+    dashboardMetrics: [
+      { label: 'Total Bookings', value: '42', desc: 'Reservations scheduled today', trend: '+14% vs yesterday' },
+      { label: 'Avg Table Size', value: '3.8', desc: 'Average guests per booking' },
+      { label: 'Table No-Shows', value: '2', desc: 'Missed table bookings', trend: '-50% from last week' }
+    ]
   },
   {
     id: 'realestate',
@@ -169,6 +215,29 @@ export const niches: NicheConfig[] = [
       { id: 2, name: 'Hina Malik', phone: '+92 300 4445556', email: 'hina@email.com', visits: 2, lastVisit: '3 days ago', totalSpent: '—', tags: ['Renter'] },
     ],
     stats: { conversations: 183, avgResponse: '2.1', sentiment: 'Positive', sentimentScore: 0.75, resolution: 87 },
+    appointmentBased: true,
+    ecommerceEnabled: false,
+    keyPhrases: ['buy', 'rent', 'flat', 'house', 'viewing', 'price', 'dha', 'clifton'],
+    quickReplies: [
+      {
+        category: 'Property Tours',
+        replies: [
+          { label: 'Schedule Viewing', text: "I'd love to show you the property! Are you free for a viewing this Saturday at 2:00 PM or Sunday at 11:00 AM?" },
+          { label: 'Required Documents', text: "To buy or rent a property, you'll need: CNIC (original + copies), NTN certificate, 6 months bank statements, and income proof. 📋" }
+        ]
+      },
+      {
+        category: 'Available Listings',
+        replies: [
+          { label: 'DHA DHA-V Listings', text: "We have exclusive premium 3-Bed apartments in DHA Phase 6 and 8. Prices start from PKR 2.8 Crore. Would you like a brochure? 🏢" }
+        ]
+      }
+    ],
+    dashboardMetrics: [
+      { label: 'Hot Prospects', value: '18', desc: 'Leads actively seeking listings', trend: '+20% this week' },
+      { label: 'Active Listings', value: '154', desc: 'Properties currently in catalog' },
+      { label: 'Scheduled Viewings', value: '12', desc: 'Site visits planned this weekend', trend: '+3 viewings' }
+    ]
   },
   {
     id: 'dental',
@@ -192,6 +261,29 @@ export const niches: NicheConfig[] = [
       { id: 2, name: 'Zaid Hassan', phone: '+92 321 2223334', email: '', visits: 1, lastVisit: '1 week ago', totalSpent: 'PKR 3,500', tags: ['New'] },
     ],
     stats: { conversations: 312, avgResponse: '0.9', sentiment: 'Positive', sentimentScore: 0.88, resolution: 94 },
+    appointmentBased: true,
+    ecommerceEnabled: false,
+    keyPhrases: ['scaling', 'appointment', 'whitening', 'dentist', 'pain', 'consultation'],
+    quickReplies: [
+      {
+        category: 'Bookings',
+        replies: [
+          { label: 'Suggest Clinic Hours', text: "We're open Mon–Sat 9am–8pm. Dr. Hassan is available on Tuesday at 3:00 PM or Thursday at 11:00 AM. Which one works?" },
+          { label: 'Confirm Scaling', text: "Confirmed! ✅ Scaling & Polishing appointment on Thursday at 11:00 AM with Dr. Hassan. Please arrive 10 min early." }
+        ]
+      },
+      {
+        category: 'Treatments',
+        replies: [
+          { label: 'Teeth Whitening Cost', text: "Our professional teeth whitening packages start from PKR 8,000. Results are visible in a single session! 🦷✨" }
+        ]
+      }
+    ],
+    dashboardMetrics: [
+      { label: 'OPD Appointments', value: '28', desc: 'Patients booked today', trend: '+5 patients' },
+      { label: 'Patient Retention', value: '94.2%', desc: 'Return visits percentage' },
+      { label: 'Avg Ticket Value', value: 'PKR 7,500', desc: 'Average dental service spend', trend: '+12% vs last month' }
+    ]
   },
   {
     id: 'ecommerce',
@@ -215,6 +307,30 @@ export const niches: NicheConfig[] = [
       { id: 2, name: 'Sana Qureshi', phone: '+92 300 1112222', email: 'sana@email.com', visits: 3, lastVisit: '5 days ago', totalSpent: 'PKR 6,200', tags: ['Regular'] },
     ],
     stats: { conversations: 521, avgResponse: '1.8', sentiment: 'Neutral', sentimentScore: 0.65, resolution: 83 },
+    appointmentBased: false,
+    ecommerceEnabled: true,
+    keyPhrases: ['order', 'track', 'lawn', 'kurti', 'size', 'price', 'delivery'],
+    quickReplies: [
+      {
+        category: 'Ordering & Sizes',
+        replies: [
+          { label: 'Ask Size & Code', text: "Sure! Could you please let me know your preferred size (S, M, L, XL) and the design name so I can check availability? 👗" },
+          { label: 'Confirm Order Details', text: "Awesome! I've registered your order for Lawn Kurti (Size M). Total is PKR 2,500. Please share your complete delivery address." }
+        ]
+      },
+      {
+        category: 'Shipping & Returns',
+        replies: [
+          { label: 'Tracking Info', text: "You can track your package via TCS using your tracking number: TCS-8847263. Delivery takes 2-3 business days! 🚚" },
+          { label: 'Return Policy Details', text: "We offer a hassle-free 7-day return policy for unused items with original tags intact. 🔄" }
+        ]
+      }
+    ],
+    dashboardMetrics: [
+      { label: 'Gross Revenue', value: 'PKR 30,140.00', desc: 'Sales generated today', trend: '+18.2% vs yesterday' },
+      { label: 'Conversion Rate', value: '63.6%', desc: 'Purchase Intent to Order', trend: '+3.1% this week' },
+      { label: 'AI Orders Made', value: '7', desc: 'Orders closed by bot interactions' }
+    ]
   },
   {
     id: 'salon',
@@ -234,6 +350,23 @@ export const niches: NicheConfig[] = [
     sampleConversations: [],
     contacts: [],
     stats: { conversations: 198, avgResponse: '1.5', sentiment: 'Positive', sentimentScore: 0.85, resolution: 89 },
+    appointmentBased: true,
+    ecommerceEnabled: false,
+    keyPhrases: ['hair', 'nails', 'stylist', 'facial', 'bridal', 'book'],
+    quickReplies: [
+      {
+        category: 'Services',
+        replies: [
+          { label: 'Confirm Styling Slot', text: "Glow on! 💅 You're booked for Hair Highlights with Sarah on Friday at 3:00 PM. We look forward to pampering you!" },
+          { label: 'Bridal Package Info', text: "Our premium bridal package starts at PKR 25,000, including full makeup, hair styling, and skin prep. 👰✨" }
+        ]
+      }
+    ],
+    dashboardMetrics: [
+      { label: 'Stylist Capacity', value: '88%', desc: 'Active stylists scheduled today', trend: '+5%' },
+      { label: 'Services Booked', value: '34', desc: 'Beauty bookings today' },
+      { label: 'Repeat Rate', value: '76%', desc: 'Loyal customer return percentage' }
+    ]
   },
   {
     id: 'clinic',
@@ -253,6 +386,23 @@ export const niches: NicheConfig[] = [
     sampleConversations: [],
     contacts: [],
     stats: { conversations: 156, avgResponse: '1.1', sentiment: 'Positive', sentimentScore: 0.79, resolution: 92 },
+    appointmentBased: true,
+    ecommerceEnabled: false,
+    keyPhrases: ['doctor', 'opd', 'appointment', 'fee', 'consultation', 'reports'],
+    quickReplies: [
+      {
+        category: 'Patient Booking',
+        replies: [
+          { label: 'OPD Schedule Slot', text: "Booked! Your OPD consultation is confirmed for Dr. Irfan (Cardiologist) on Monday at 10:00 AM. Please bring previous reports. 🏥" },
+          { label: 'No Diagnosis Alert', text: "Please consult our physician directly for any medical concerns, as we cannot provide diagnosis or write prescriptions over chat. 👨‍⚕️" }
+        ]
+      }
+    ],
+    dashboardMetrics: [
+      { label: 'OPD Appointments', value: '45', desc: 'Total patients schedule today', trend: '+8 today' },
+      { label: 'Emergency Walk-ins', value: '3', desc: 'Critical case arrivals today' },
+      { label: 'Patient Care Rating', value: '4.8/5.0', desc: 'Post-consultation customer score' }
+    ]
   },
 ];
 

@@ -3,17 +3,23 @@
 import { useState, useEffect } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell, Legend,
+  ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar
 } from 'recharts';
 import {
   MessageSquare, Users, Zap, TrendingUp, RefreshCw,
   ArrowUpRight, ArrowDownRight, MessageCircle, Activity,
+  ShoppingBag, DollarSign, Percent, BarChart3, Clock,
+  Calendar, CheckCircle2, ChevronRight, AlertTriangle,
+  Scissors, HeartPulse, Building, Eye, Target, Sparkles,
+  Search, ShieldCheck, Smile
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import { useNiche } from '@/context/NicheContext';
 
 // ── Palette ──────────────────────────────────────────────────
 const RED   = '#dc2626';
 const RED_L = '#fef2f2';
+const RED_D = '#b91c1c';
 const GREEN = '#10b981';
 const BLUE  = '#3b82f6';
 const AMB   = '#f59e0b';
@@ -31,13 +37,20 @@ function fmt(n: number) {
 }
 
 // ── Sub-components ────────────────────────────────────────────
+interface StatCardProps {
+  label: string;
+  value: string | number;
+  sub: string;
+  icon: any;
+  color: string;
+  bg: string;
+  trend?: string;
+  trendUp?: boolean;
+}
+
 function StatCard({
   label, value, sub, icon: Icon, color, bg, trend, trendUp,
-}: {
-  label: string; value: string | number; sub: string;
-  icon: any; color: string; bg: string;
-  trend?: string; trendUp?: boolean;
-}) {
+}: StatCardProps) {
   return (
     <div style={{
       background: '#fff', borderRadius: 16, padding: '20px 22px',
@@ -48,7 +61,7 @@ function StatCard({
       cursor: 'default',
     }}
     onMouseEnter={e => {
-      (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 20px rgba(0,0,0,0.09)';
+      (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 20px rgba(220,38,38,0.08)';
       (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
     }}
     onMouseLeave={e => {
@@ -61,7 +74,7 @@ function StatCard({
           width: 40, height: 40, borderRadius: 11, background: bg,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <Icon size={19} color={color} strokeWidth={2} />
+          <Icon size={19} color={color} strokeWidth={2.5} />
         </div>
         {trend && (
           <div style={{
@@ -80,7 +93,7 @@ function StatCard({
         <div style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>
           {label}
         </div>
-        <div style={{ fontSize: 32, fontWeight: 800, color: '#111827', letterSpacing: '-1.5px', lineHeight: 1 }}>
+        <div style={{ fontSize: 26, fontWeight: 800, color: '#111827', letterSpacing: '-1px', lineHeight: 1.1 }}>
           {value}
         </div>
         <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 5 }}>{sub}</div>
@@ -129,8 +142,56 @@ function ChartTooltip({ active, payload, label }: any) {
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────
+// ── Mock Timeline Data for Appointment Niches ─────────────────
+interface Slot {
+  time: string;
+  client: string;
+  service: string;
+  status: 'Booked' | 'Available' | 'Break';
+  provider: string;
+}
+
+const mockWeeklyCalendar: Record<string, Slot[]> = {
+  Mon: [
+    { time: '09:00 AM', client: 'Sara Ahmed', service: 'Regular Consultation', status: 'Booked', provider: 'Dr. Hassan' },
+    { time: '11:00 AM', client: 'Bilal Khan', service: 'Scaling & Polishing', status: 'Booked', provider: 'Dr. Hassan' },
+    { time: '02:30 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Dr. Hassan' },
+  ],
+  Tue: [
+    { time: '10:00 AM', client: 'Fatima Noor', service: 'Emergency Root Canal', status: 'Booked', provider: 'Dr. Hassan' },
+    { time: '03:00 PM', client: 'Aisha Butt', service: 'Orthodontic Checkup', status: 'Booked', provider: 'Dr. Hassan' },
+  ],
+  Wed: [
+    { time: '09:30 AM', client: 'Omar Sheikh', service: 'General Dental Checkup', status: 'Booked', provider: 'Dr. Hassan' },
+    { time: '11:30 AM', client: 'Hina Malik', service: 'Composite Filling', status: 'Booked', provider: 'Dr. Hassan' },
+    { time: '03:00 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Dr. Hassan' },
+  ],
+  Thu: [
+    { time: '09:00 AM', client: 'Aisha Butt', service: 'Scaling & Polishing', status: 'Booked', provider: 'Dr. Hassan' },
+    { time: '10:00 AM', client: 'Zaid Hassan', service: 'Teeth Whitening Consultation', status: 'Booked', provider: 'Dr. Hassan' },
+    { time: '11:00 AM', client: 'Sara Ahmed', service: 'Root Canal Therapy', status: 'Booked', provider: 'Dr. Hassan' },
+    { time: '12:00 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Hassan' },
+    { time: '01:00 PM', client: '', service: 'OPD Lunch Break ☕', status: 'Break', provider: '' },
+    { time: '02:00 PM', client: 'Bilal Khan', service: 'Composite Filling', status: 'Booked', provider: 'Dr. Hassan' },
+    { time: '03:00 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Hassan' },
+  ],
+  Fri: [
+    { time: '10:00 AM', client: 'Bilal Khan', service: 'Dental Consultation', status: 'Booked', provider: 'Dr. Hassan' },
+    { time: '01:00 PM', client: 'Fatima Noor', service: 'Full Checkup', status: 'Booked', provider: 'Dr. Hassan' },
+    { time: '03:30 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Dr. Hassan' },
+  ],
+  Sat: [
+    { time: '11:00 AM', client: 'Aisha Butt', service: 'Urgent Care scaling', status: 'Booked', provider: 'Dr. Hassan' },
+    { time: '01:00 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Dr. Hassan' },
+  ],
+  Sun: [
+    { time: '10:00 AM', client: '', service: 'Emergency Only Slot', status: 'Available', provider: 'On-Call Doc' },
+  ],
+};
+
+// ── Main Component ────────────────────────────────────────────
 export default function DashboardPage() {
+  const { nicheId, niche } = useNiche();
   const [stats, setStats] = useState({ conversations: 0, messages: 0, agentMessages: 0, customers: 0 });
   const [channels, setChannels] = useState<{ name: string; value: number; color: string }[]>([]);
   const [recent, setRecent] = useState<any[]>([]);
@@ -138,16 +199,21 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Appointment based niche state
+  const [activeDay, setActiveDay] = useState<'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun'>('Thu');
+  const [highlightedSlot, setHighlightedSlot] = useState<number | null>(null);
+
+  // Real estate prospect active state
+  const [prospectFilter, setProspectFilter] = useState<'all' | 'buy' | 'rent'>('all');
+
   const fetchAll = async () => {
     setRefreshing(true);
     try {
-      // Conversations
+      // Fetch Live Database Metrics
       const { data: convs } = await supabase.from('conversations').select('id, platform, customer_name, created_at');
-      // Messages
       const { data: msgs } = await supabase.from('messages').select('id, sender_type, created_at, conversation_id');
 
       if (convs && msgs) {
-        // Stats
         const agentMsgs = msgs.filter((m: any) => m.sender_type === 'agent');
         const uniqueCustomers = new Set(convs.map((c: any) => c.id)).size;
 
@@ -190,17 +256,69 @@ export default function DashboardPage() {
         }
         setVolumeData(days);
       }
+    } catch (err) {
+      console.error('Error fetching dashboard database metrics:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => {
+    fetchAll();
+  }, [nicheId]);
 
   const now = new Date();
   const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening';
   const dateLabel = now.toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+  // Get dynamic slot details based on Niche
+  const appointmentConfig = (() => {
+    if (nicheId === 'salon') {
+      return {
+        title: 'Stylist Slots & Daily Capacity',
+        capacityText: '88% Stylist Capacity Booked',
+        slots: [
+          { time: '09:00 AM', client: 'Aisha Butt', service: 'Hair Highlights', status: 'Booked', provider: 'Stylist Sarah' },
+          { time: '10:30 AM', client: 'Zaid Hassan', service: 'Beard Grooming', status: 'Booked', provider: 'Stylist Alex' },
+          { time: '12:00 PM', client: 'Sara Ahmed', service: 'Glow Facial', status: 'Booked', provider: 'Stylist Maria' },
+          { time: '01:30 PM', client: '', service: 'Salon Lunch Break ☕', status: 'Break', provider: '' },
+          { time: '02:30 PM', client: 'Bilal Khan', service: 'Manicure & Pedicure', status: 'Booked', provider: 'Stylist Sarah' },
+          { time: '04:00 PM', client: '', service: 'Available Stylist Slot', status: 'Available', provider: 'Stylist Sarah' },
+        ] as Slot[],
+      };
+    } else if (nicheId === 'restaurant') {
+      return {
+        title: 'Table Bookings & Table Capacity',
+        capacityText: '82% Table Reservations Full',
+        slots: [
+          { time: '12:00 PM', client: 'Sara Ahmed', service: 'Table 4 (4 Pax)', status: 'Booked', provider: 'Clifton Branch' },
+          { time: '01:30 PM', client: 'Bilal Khan', service: 'Table 2 (2 Pax)', status: 'Booked', provider: 'Clifton Branch' },
+          { time: '03:00 PM', client: '', service: 'Table 1 (6 Pax) Available', status: 'Available', provider: 'Clifton Branch' },
+          { time: '06:00 PM', client: 'Fatima Noor', service: 'Table 6 (8 Pax)', status: 'Booked', provider: 'Clifton Branch' },
+          { time: '08:00 PM', client: 'Aisha Butt', service: 'Table for 4 Guest', status: 'Booked', provider: 'Clifton Branch' },
+          { time: '09:30 PM', client: '', service: 'Available Booking Slot', status: 'Available', provider: 'Clifton Branch' },
+        ] as Slot[],
+      };
+    } else {
+      // dentist / clinic
+      return {
+        title: 'OPD Dental Slots & Daily Capacity',
+        capacityText: '85% Clinic Capacity Booked',
+        slots: [
+          { time: '09:00 AM', client: 'Aisha Butt', service: 'Scaling & Polishing', status: 'Booked', provider: 'Dr. Hassan' },
+          { time: '10:00 AM', client: 'Zaid Hassan', service: 'Teeth Whitening Consultation', status: 'Booked', provider: 'Dr. Hassan' },
+          { time: '11:00 AM', client: 'Sara Ahmed', service: 'Root Canal Therapy', status: 'Booked', provider: 'Dr. Hassan' },
+          { time: '12:00 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Hassan' },
+          { time: '01:00 PM', client: '', service: 'OPD Lunch Break ☕', status: 'Break', provider: '' },
+          { time: '02:00 PM', client: 'Bilal Khan', service: 'Composite Filling', status: 'Booked', provider: 'Dr. Hassan' },
+          { time: '03:00 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Hassan' },
+        ] as Slot[],
+      };
+    }
+  })();
+
+  const activeTimelineSlots = mockWeeklyCalendar[activeDay] || [];
 
   return (
     <div style={{ padding: '28px 28px 40px', minHeight: '100%', background: '#faf9f9' }}>
@@ -210,10 +328,10 @@ export default function DashboardPage() {
         <div>
           <div style={{ fontSize: 12.5, color: '#9ca3af', fontWeight: 500, marginBottom: 4 }}>{dateLabel}</div>
           <h1 style={{ fontSize: 26, fontWeight: 800, color: '#111827', letterSpacing: '-0.7px', lineHeight: 1.1 }}>
-            {greeting} 👋
+            {greeting}, Usama! 👋
           </h1>
           <p style={{ fontSize: 13.5, color: '#6b7280', marginTop: 5 }}>
-            Here's what's happening across your channels today.
+            Here is your live industry metrics panel for <strong>{niche.label}</strong> today.
           </p>
         </div>
         <button
@@ -229,44 +347,627 @@ export default function DashboardPage() {
           }}
         >
           <RefreshCw size={13} style={refreshing ? { animation: 'spin 0.8s linear infinite' } : {}} />
-          Refresh
+          Refresh Stats
         </button>
       </div>
 
-      {/* ── Stat Cards ── */}
+      {/* ── Industry-Specific High-Fidelity Statistics Cards ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
-        <StatCard
-          label="Total Conversations" value={fmt(stats.conversations)}
-          sub="All channels combined"
-          icon={MessageSquare} color={RED} bg={RED_L}
-          trend="+12%" trendUp={true}
-        />
-        <StatCard
-          label="Total Messages" value={fmt(stats.messages)}
-          sub="Inbound & outbound"
-          icon={Activity} color={BLUE} bg="#eff6ff"
-          trend="+8%" trendUp={true}
-        />
-        <StatCard
-          label="Agent Replies" value={fmt(stats.agentMessages)}
-          sub="Sent from this CRM"
-          icon={Zap} color={AMB} bg="#fffbeb"
-          trend="+24%" trendUp={true}
-        />
-        <StatCard
-          label="Active Contacts" value={fmt(stats.customers)}
-          sub="Unique conversations"
-          icon={Users} color={PURP} bg="#f5f3ff"
-        />
+        {nicheId === 'ecommerce' ? (
+          <>
+            <StatCard
+              label="Gross Revenue" value="PKR 30,140.00"
+              sub="Direct sales closed via chat"
+              icon={DollarSign} color={RED} bg={RED_L}
+              trend="+18.2% vs yesterday" trendUp={true}
+            />
+            <StatCard
+              label="AI Assisted Orders" value="7"
+              sub="Completed orders by ShopBot"
+              icon={ShoppingBag} color={BLUE} bg="#eff6ff"
+              trend="+40% this week" trendUp={true}
+            />
+            <StatCard
+              label="Conversion Rate" value="63.6%"
+              sub="Purchase Intent to Order"
+              icon={Percent} color={AMB} bg="#fffbeb"
+              trend="+3.1% this week" trendUp={true}
+            />
+            <StatCard
+              label="Average Order Value" value="PKR 4,305.71"
+              sub="Basket size across orders"
+              icon={BarChart3} color={PURP} bg="#f5f3ff"
+            />
+          </>
+        ) : niche.appointmentBased ? (
+          <>
+            <StatCard
+              label="OPD / Booking Appointments" value={nicheId === 'restaurant' ? '42 Bookings' : '28 Patients'}
+              sub="Scheduled reservations today"
+              icon={Calendar} color={RED} bg={RED_L}
+              trend={nicheId === 'restaurant' ? '+14% vs yesterday' : '+5 patients'} trendUp={true}
+            />
+            <StatCard
+              label="Active Stylist / Clinic Capacity" value={nicheId === 'restaurant' ? '82% Full' : '88% Booked'}
+              sub="Resource and staff capacity"
+              icon={Clock} color={BLUE} bg="#eff6ff"
+              trend="+5% resource limit" trendUp={true}
+            />
+            <StatCard
+              label="Loyal Repeat Rate" value="76%"
+              sub="Return patient / customer index"
+              icon={Smile} color={AMB} bg="#fffbeb"
+              trend="+2% vs last month" trendUp={true}
+            />
+            <StatCard
+              label="Avg Service Value" value={nicheId === 'restaurant' ? 'PKR 4,300' : 'PKR 7,500'}
+              sub="Average billing value per ticket"
+              icon={BarChart3} color={PURP} bg="#f5f3ff"
+              trend="+12% from last month" trendUp={true}
+            />
+          </>
+        ) : nicheId === 'realestate' ? (
+          <>
+            <StatCard
+              label="Hot Prospects" value="18 Leads"
+              sub="Actively seeking site viewings"
+              icon={Target} color={RED} bg={RED_L}
+              trend="+20% this week" trendUp={true}
+            />
+            <StatCard
+              label="Active Property Listings" value="154 Listed"
+              sub="Properties in live catalog"
+              icon={Building} color={BLUE} bg="#eff6ff"
+              trend="+14 new props" trendUp={true}
+            />
+            <StatCard
+              label="Scheduled Property Viewings" value="12 Site Visits"
+              sub="Confirmed site view visits"
+              icon={Eye} color={AMB} bg="#fffbeb"
+              trend="+3 viewings" trendUp={true}
+            />
+            <StatCard
+              label="Avg Closing Time" value="14 Days"
+              sub="From first chat to handshake"
+              icon={Clock} color={PURP} bg="#f5f3ff"
+            />
+          </>
+        ) : (
+          // Fallback / General Niche Cards
+          <>
+            <StatCard
+              label="Total Conversations" value={fmt(stats.conversations)}
+              sub="Across synced channels"
+              icon={MessageSquare} color={RED} bg={RED_L}
+              trend="+12%" trendUp={true}
+            />
+            <StatCard
+              label="Total Messages" value={fmt(stats.messages)}
+              sub="Inbound and outbound messages"
+              icon={Activity} color={BLUE} bg="#eff6ff"
+              trend="+8%" trendUp={true}
+            />
+            <StatCard
+              label="Agent Response Rate" value="94%"
+              sub="AI answers & resolution"
+              icon={Zap} color={AMB} bg="#fffbeb"
+              trend="+24%" trendUp={true}
+            />
+            <StatCard
+              label="Active Contacts" value={fmt(stats.customers)}
+              sub="Customers registered in CRM"
+              icon={Users} color={PURP} bg="#f5f3ff"
+            />
+          </>
+        )}
       </div>
 
-      {/* ── Charts Row ── */}
+      {/* ── Industry Specific Workspace Suites ── */}
+      {nicheId === 'ecommerce' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 14, marginBottom: 20 }}>
+          
+          {/* Funnel chart */}
+          <SectionCard 
+            title="Conversational Commerce Funnel" 
+            subtitle="Dropoff tracking from initial customer contact to successful sale checkout"
+          >
+            <div style={{ height: 220 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  layout="vertical"
+                  data={[
+                    { name: 'Conversations', count: 521, pct: 100, fill: '#dc2626' },
+                    { name: 'Product Intent', count: 332, pct: 63.7, fill: '#ef4444' },
+                    { name: 'Catalog Views', count: 215, pct: 41.2, fill: '#f87171' },
+                    { name: 'Checkout Initialized', count: 88, pct: 16.8, fill: '#fca5a5' },
+                    { name: 'Successful Orders', count: 7, pct: 1.34, fill: '#fee2e2' },
+                  ]}
+                  margin={{ top: 10, right: 30, left: 40, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.03)" horizontal={false} />
+                  <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+                  <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11.5, fontWeight: 550, fill: '#374151' }} />
+                  <Tooltip cursor={{ fill: 'rgba(220,38,38,0.02)' }} content={({ active, payload }: any) => {
+                    if (!active || !payload?.length) return null;
+                    const d = payload[0].payload;
+                    return (
+                      <div style={{ background: '#111827', color: '#fff', padding: '8px 12px', borderRadius: 8, fontSize: 12 }}>
+                        <strong>{d.name}</strong>: {d.count} ({d.pct}%)
+                      </div>
+                    );
+                  }} />
+                  <Bar dataKey="count" radius={[0, 6, 6, 0]}>
+                    {[
+                      '#dc2626',
+                      '#ef4444',
+                      '#f87171',
+                      '#fca5a5',
+                      '#fee2e2'
+                    ].map((col, idx) => (
+                      <Cell key={idx} fill={col} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            
+            {/* Legend showing progressive dropoff */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(220,38,38,0.05)', paddingTop: 12, marginTop: 12 }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase' }}>Inbound Leads</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginTop: 2 }}>521</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase' }}>Shop Intent</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#dc2626', marginTop: 2 }}>63.7%</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase' }}>Cart Conversion</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: GREEN, marginTop: 2 }}>3.26%</div>
+              </div>
+            </div>
+          </SectionCard>
+
+          {/* Refund Intents Handled panel */}
+          <SectionCard
+            title="Refund Intents Handled"
+            subtitle="AI self-resolution status of refund requests"
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 15, height: '100%', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{
+                  width: 52, height: 52, borderRadius: '50%', background: '#ecfdf5',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                }}>
+                  <ShieldCheck size={26} color={GREEN} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: '#111827' }}>14 Requests</div>
+                  <div style={{ fontSize: 12.5, color: '#6b7280' }}>Refund intents recognized & resolved by AI</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, background: '#fcfbfb', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(220,38,38,0.04)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 12.5, color: '#4b5563', fontWeight: 550 }}>Satisfied Resolution (Exchanges/Credit)</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: GREEN }}>11 (78.5%)</span>
+                </div>
+                <div style={{ width: '100%', height: 6, background: '#e5e7eb', borderRadius: 3, overflow: 'hidden' }}>
+                  <div style={{ width: '78.5%', height: '100%', background: GREEN }} />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, background: '#fcfbfb', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(220,38,38,0.04)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 12.5, color: '#4b5563', fontWeight: 550 }}>Escalations to Human Agent</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b' }}>3 (21.5%)</span>
+                </div>
+                <div style={{ width: '100%', height: 6, background: '#e5e7eb', borderRadius: 3, overflow: 'hidden' }}>
+                  <div style={{ width: '21.5%', height: '100%', background: '#f59e0b' }} />
+                </div>
+              </div>
+            </div>
+          </SectionCard>
+
+        </div>
+      )}
+
+      {nicheId === 'ecommerce' && (
+        <div style={{ marginBottom: 20 }}>
+          {/* Product Insights Card */}
+          <SectionCard
+            title="ShopBot Product Catalog Insights"
+            subtitle="Customer search and shopping habits tracked directly from conversations"
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+              
+              {/* Top Searches */}
+              <div style={{ background: '#faf9f9', padding: 16, borderRadius: 12, border: '1px solid rgba(220,38,38,0.05)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 750, color: '#111827', textTransform: 'uppercase', marginBottom: 12 }}>
+                  <Search size={14} color={RED} /> Top Queries & Searches
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[
+                    { term: 'Lawn 2026 Collection', count: 142 },
+                    { term: 'Printed Kurtis Size M', count: 98 },
+                    { term: 'Cotton Chiffon Dupatta', count: 64 },
+                    { term: 'Summer Linen Maxis', count: 32 },
+                  ].map((item, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
+                      <span style={{ color: '#4b5563' }}>{item.term}</span>
+                      <span style={{ fontWeight: 600, color: '#111827' }}>{item.count} queries</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Most Ordered */}
+              <div style={{ background: '#faf9f9', padding: 16, borderRadius: 12, border: '1px solid rgba(220,38,38,0.05)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 750, color: '#111827', textTransform: 'uppercase', marginBottom: 12 }}>
+                  <ShoppingBag size={14} color={BLUE} /> Most Ordered via AI
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[
+                    { term: 'Floral Lawn Kurti', count: 12 },
+                    { term: 'Solid Linen Co-ord Set', count: 8 },
+                    { term: 'Jacquard 3-Piece Suite', count: 5 },
+                    { term: 'Cotton Summer Kurti', count: 4 },
+                  ].map((item, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
+                      <span style={{ color: '#4b5563' }}>{item.term}</span>
+                      <span style={{ fontWeight: 600, color: '#111827' }}>{item.count} closed</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Cart Abandoned */}
+              <div style={{ background: '#faf9f9', padding: 16, borderRadius: 12, border: '1px solid rgba(220,38,38,0.05)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 750, color: '#111827', textTransform: 'uppercase', marginBottom: 12 }}>
+                  <AlertTriangle size={14} color={AMB} /> Cart Abandoned Items
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[
+                    { term: 'Embroidered Organza Maxi', count: 18 },
+                    { term: 'Casual Linen Tunic', count: 12 },
+                    { term: 'Luxury Lawn Trouser', count: 8 },
+                    { term: 'Silk Hand-embroidered Dupatta', count: 5 },
+                  ].map((item, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
+                      <span style={{ color: '#4b5563' }}>{item.term}</span>
+                      <span style={{ fontWeight: 600, color: '#111827' }}>{item.count} items left</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          </SectionCard>
+        </div>
+      )}
+
+      {/* Appointment Based Suite Section */}
+      {niche.appointmentBased && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
+          
+          {/* Left Column: Active Slots Grid */}
+          <SectionCard 
+            title={appointmentConfig.title} 
+            subtitle="Click or tap any slot to inspect patient appointment cards or availability"
+            action={<span style={{ fontSize: 12, fontWeight: 650, background: '#ecfdf5', color: GREEN, padding: '4px 10px', borderRadius: 20 }}>{appointmentConfig.capacityText}</span>}
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 4 }}>
+              {appointmentConfig.slots.map((slot, index) => {
+                const isBooked = slot.status === 'Booked';
+                const isBreak = slot.status === 'Break';
+                const isHighlighted = highlightedSlot === index;
+
+                return (
+                  <div
+                    key={index}
+                    onClick={() => {
+                      if (!isBreak) setHighlightedSlot(isHighlighted ? null : index);
+                    }}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: 12,
+                      cursor: isBreak ? 'default' : 'pointer',
+                      border: isHighlighted
+                        ? '1.5px solid #dc2626'
+                        : isBooked
+                          ? '1px solid rgba(220,38,38,0.06)'
+                          : '1.5px dashed rgba(220,38,38,0.18)',
+                      background: isHighlighted
+                        ? '#fef2f2'
+                        : isBreak
+                          ? '#f9fafb'
+                          : isBooked
+                            ? '#fff'
+                            : '#fefbfb',
+                      transition: 'all 0.15s',
+                      boxShadow: isBooked && !isHighlighted ? '0 1px 2px rgba(0,0,0,0.02)' : 'none',
+                    }}
+                    onMouseEnter={e => {
+                      if (!isBreak && !isHighlighted) {
+                        e.currentTarget.style.borderColor = '#dc2626';
+                        e.currentTarget.style.background = '#fff5f5';
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (!isBreak && !isHighlighted) {
+                        e.currentTarget.style.borderColor = isBooked ? 'rgba(220,38,38,0.06)' : 'rgba(220,38,38,0.18)';
+                        e.currentTarget.style.background = isBooked ? '#fff' : '#fefbfb';
+                      }
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, color: '#4b5563' }}>{slot.time}</span>
+                      <span style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: '2px 6px',
+                        borderRadius: 10,
+                        textTransform: 'uppercase',
+                        background: isBreak ? '#e5e7eb' : isBooked ? '#fef2f2' : '#ecfdf5',
+                        color: isBreak ? '#4b5563' : isBooked ? '#dc2626' : GREEN,
+                      }}>
+                        {slot.status}
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: 13, fontWeight: 750, color: '#111827', marginTop: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {slot.client || slot.service}
+                    </div>
+
+                    {isBooked && (
+                      <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>{slot.service}</span>
+                        <span style={{ fontWeight: 550 }}>{slot.provider}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {highlightedSlot !== null && (
+              <div style={{
+                marginTop: 14,
+                padding: '12px 14px',
+                borderRadius: 12,
+                background: '#fff8f8',
+                border: '1px solid rgba(220,38,38,0.12)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                animation: 'fadeUp 0.15s ease-out'
+              }}>
+                <div>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: '#dc2626' }}>
+                    Active Booking: {appointmentConfig.slots[highlightedSlot]?.client}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 2 }}>
+                    Assigned: {appointmentConfig.slots[highlightedSlot]?.provider} • service: {appointmentConfig.slots[highlightedSlot]?.service}
+                  </div>
+                </div>
+                <a
+                  href="/conversations"
+                  style={{
+                    fontSize: 11.5, fontWeight: 650, color: '#fff', background: '#dc2626',
+                    textDecoration: 'none', padding: '6px 12px', borderRadius: 8,
+                    boxShadow: '0 2px 6px rgba(220,38,38,0.2)',
+                  }}
+                >
+                  Open Thread
+                </a>
+              </div>
+            )}
+          </SectionCard>
+
+          {/* Right Column: Weekly Timeline Calendar Preview */}
+          <SectionCard 
+            title="Weekly Reservation Timeline" 
+            subtitle="Click on any day of the week to inspect scheduled booking lists"
+          >
+            {/* Days Tabs Row */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+              {(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const).map(day => {
+                const isActive = activeDay === day;
+                return (
+                  <button
+                    key={day}
+                    onClick={() => {
+                      setActiveDay(day);
+                      setHighlightedSlot(null);
+                    }}
+                    style={{
+                      flex: 1, padding: '7px 0', border: 'none', borderRadius: 8,
+                      fontWeight: 650, fontSize: 11.5, cursor: 'pointer',
+                      background: isActive ? '#dc2626' : 'transparent',
+                      color: isActive ? '#fff' : '#6b7280',
+                      transition: 'all 0.15s',
+                    }}
+                    onMouseEnter={e => {
+                      if (!isActive) e.currentTarget.style.background = '#fef2f2';
+                    }}
+                    onMouseLeave={e => {
+                      if (!isActive) e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    {day}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Timelines List for the active day */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 250, overflowY: 'auto' }}>
+              {activeTimelineSlots.length === 0 ? (
+                <div style={{ padding: '30px 0', textAlign: 'center', fontSize: 12.5, color: '#9ca3af' }}>
+                  No bookings scheduled for Sunday. Emergency only.
+                </div>
+              ) : (
+                activeTimelineSlots.map((item, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '10px 12px', borderRadius: 10,
+                      background: item.status === 'Booked' ? '#fff' : '#fafafa',
+                      borderLeft: `4px solid ${item.status === 'Booked' ? '#dc2626' : '#e5e7eb'}`,
+                      border: '1px solid rgba(220,38,38,0.04)',
+                    }}
+                  >
+                    <div style={{ width: 68, fontSize: 11.5, fontWeight: 700, color: '#4b5563' }}>
+                      {item.time}
+                    </div>
+
+                    <div style={{ flex: 1 }}>
+                      {item.status === 'Booked' ? (
+                        <>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{item.client}</div>
+                          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 1 }}>
+                            {item.service} • <span style={{ fontWeight: 550 }}>{item.provider}</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div style={{ fontSize: 12.5, fontStyle: 'italic', color: '#9ca3af' }}>{item.service}</div>
+                      )}
+                    </div>
+
+                    <div>
+                      {item.status === 'Booked' ? (
+                        <span style={{ fontSize: 10, fontWeight: 700, background: '#fef2f2', color: '#dc2626', padding: '2px 7px', borderRadius: 10 }}>CONFIRMED</span>
+                      ) : (
+                        <span style={{ fontSize: 10, fontWeight: 700, background: '#ecfdf5', color: GREEN, padding: '2px 7px', borderRadius: 10 }}>VACANT</span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </SectionCard>
+
+        </div>
+      )}
+
+      {/* Real Estate Vertical Suite Section */}
+      {nicheId === 'realestate' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 14, marginBottom: 20 }}>
+          
+          {/* Left Column: Hot Prospects Directory */}
+          <SectionCard
+            title="Hot Real Estate Prospects"
+            subtitle="Customer leads seeking properties on WhatsApp"
+            action={
+              <div style={{ display: 'flex', gap: 4, background: '#f3f4f6', padding: 2, borderRadius: 8 }}>
+                {(['all', 'buy', 'rent'] as const).map(type => (
+                  <button
+                    key={type}
+                    onClick={() => setProspectFilter(type)}
+                    style={{
+                      padding: '4px 10px', fontSize: 11, fontWeight: 600, border: 'none', borderRadius: 6,
+                      background: prospectFilter === type ? '#fff' : 'transparent',
+                      color: prospectFilter === type ? '#111827' : '#6b7280',
+                      boxShadow: prospectFilter === type ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                      cursor: 'pointer', textTransform: 'capitalize'
+                    }}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+            }
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+              {[
+                { name: 'Omar Sheikh', goal: 'buy', label: 'Buy 3-Bed Apartment', budget: 'PKR 2.5–3.0 Crore', area: 'Clifton / DHA', channel: 'WhatsApp', status: 'Hot Lead' },
+                { name: 'Hina Malik', goal: 'rent', label: 'Rent 2-Bed Flat', budget: 'PKR 80,000–100,000 / mo', area: 'DHA Phase 5', channel: 'WhatsApp', status: 'Active Prospect' },
+                { name: 'Zainab Fatima', goal: 'buy', label: 'Buy Luxury House', budget: 'PKR 5.0 Crore', area: 'KDA Scheme 1', channel: 'Instagram', status: 'Active Prospect' },
+              ]
+                .filter(p => prospectFilter === 'all' || p.goal === prospectFilter)
+                .map((lead, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(220,38,38,0.06)',
+                      background: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 13.5, fontWeight: 750, color: '#111827' }}>{lead.name}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, background: '#fef2f2', color: '#dc2626', padding: '2px 6px', borderRadius: 10 }}>{lead.status}</span>
+                      </div>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: '#4b5563', marginTop: 6 }}>
+                        {lead.label}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 3 }}>
+                        Budget: <strong style={{ color: '#111827' }}>{lead.budget}</strong> • Area: {lead.area}
+                      </div>
+                    </div>
+
+                    <a
+                      href="/conversations"
+                      style={{
+                        padding: '6px 12px', background: '#dc2626', color: '#fff',
+                        borderRadius: 8, fontSize: 11.5, fontWeight: 650, textDecoration: 'none',
+                        boxShadow: '0 2px 6px rgba(220,38,38,0.15)'
+                      }}
+                    >
+                      Open Lead
+                    </a>
+                  </div>
+                ))}
+            </div>
+          </SectionCard>
+
+          {/* Right Column: Listing Portfolio Category view counts */}
+          <SectionCard
+            title="Shared Listings View Activity"
+            subtitle="Visual traffic analysis of property listing links shared on WhatsApp"
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 4 }}>
+              {[
+                { name: 'DHA Phase 6 Apartments', listings: 42, views: 312, color: '#dc2626' },
+                { name: 'Clifton Seafront Penthouses', listings: 18, views: 247, color: '#ef4444' },
+                { name: 'DHA Phase 8 Luxury Villas', listings: 24, views: 189, color: '#f87171' },
+                { name: 'Commercial Spaces Clifton', listings: 35, views: 98, color: '#fee2e2' },
+              ].map((item, idx) => (
+                <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
+                    <span style={{ fontWeight: 600, color: '#374151' }}>{item.name}</span>
+                    <span style={{ fontSize: 11.5, color: '#9ca3af' }}>{item.listings} props • <strong>{item.views} views</strong></span>
+                  </div>
+                  <div style={{ width: '100%', height: 7, background: '#f3f4f6', borderRadius: 3.5, overflow: 'hidden' }}>
+                    <div style={{ width: `${(item.views / 350) * 100}%`, height: '100%', background: item.color }} />
+                  </div>
+                </div>
+              ))}
+
+              <div style={{ display: 'flex', gap: 12, borderTop: '1px solid rgba(220,38,38,0.06)', paddingTop: 12, marginTop: 4 }}>
+                <div style={{ flex: 1, background: '#faf9f9', padding: '8px 12px', borderRadius: 10, textAlign: 'center' }}>
+                  <div style={{ fontSize: 10, color: '#9ca3af', textTransform: 'uppercase' }}>Shared Links</div>
+                  <div style={{ fontSize: 15, fontWeight: 750, color: '#111827', marginTop: 2 }}>154</div>
+                </div>
+                <div style={{ flex: 1, background: '#faf9f9', padding: '8px 12px', borderRadius: 10, textAlign: 'center' }}>
+                  <div style={{ fontSize: 10, color: '#9ca3af', textTransform: 'uppercase' }}>Total Views</div>
+                  <div style={{ fontSize: 15, fontWeight: 750, color: '#dc2626', marginTop: 2 }}>846 views</div>
+                </div>
+              </div>
+            </div>
+          </SectionCard>
+
+        </div>
+      )}
+
+      {/* ── Standard Live CRM Charts Row ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14, marginBottom: 20 }}>
 
-        {/* Volume Chart */}
+        {/* Message Volume */}
         <SectionCard
-          title="Message Volume"
-          subtitle="Last 7 days — inbound vs agent replies"
+          title="CRM Message Traffic"
+          subtitle="Last 7 days volume — inbound vs outbound messages"
         >
           <div style={{ height: 210 }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -292,7 +993,7 @@ export default function DashboardPage() {
           </div>
           {/* Legend */}
           <div style={{ display: 'flex', gap: 18, marginTop: 10 }}>
-            {[{ color: RED, label: 'Inbound' }, { color: BLUE, label: 'Outbound (Agent)' }].map(l => (
+            {[{ color: RED, label: 'Inbound Customer' }, { color: BLUE, label: 'Outbound Agent' }].map(l => (
               <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <div style={{ width: 10, height: 3, borderRadius: 2, background: l.color }} />
                 <span style={{ fontSize: 11.5, color: '#9ca3af', fontWeight: 500 }}>{l.label}</span>
@@ -302,10 +1003,10 @@ export default function DashboardPage() {
         </SectionCard>
 
         {/* Channel Pie */}
-        <SectionCard title="Channel Breakdown" subtitle="Conversations by platform">
+        <SectionCard title="Live Channel Breakdown" subtitle="Conversations by platform">
           {channels.length === 0 ? (
             <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: 13 }}>
-              No data yet
+              No chat logs recorded yet
             </div>
           ) : (
             <>
@@ -330,7 +1031,7 @@ export default function DashboardPage() {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 12.5, fontWeight: 700, color: '#111827' }}>{c.value}</span>
-                      <span style={{ fontSize: 11, color: '#9ca3af' }}>conv.</span>
+                      <span style={{ fontSize: 11, color: '#9ca3af' }}>convs</span>
                     </div>
                   </div>
                 ))}
@@ -342,18 +1043,18 @@ export default function DashboardPage() {
 
       {/* ── Recent Conversations ── */}
       <SectionCard
-        title="Recent Conversations"
-        subtitle="Latest active threads across all channels"
+        title="Recent Client Conversations"
+        subtitle="Latest active message threads across your channels"
         action={
-          <a href="/conversations" style={{ fontSize: 12.5, color: RED, fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-            View all <ArrowUpRight size={13} />
+          <a href="/conversations" style={{ fontSize: 12.5, color: RED, fontWeight: 650, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+            View Inbox <ArrowUpRight size={13} />
           </a>
         }
       >
         {loading ? (
-          <div style={{ padding: '20px 0', textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>Loading…</div>
+          <div style={{ padding: '20px 0', textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>Loading CRM logs…</div>
         ) : recent.length === 0 ? (
-          <div style={{ padding: '20px 0', textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>No conversations yet</div>
+          <div style={{ padding: '20px 0', textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>No active client threads yet</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
             {/* Header */}
@@ -422,7 +1123,13 @@ export default function DashboardPage() {
         )}
       </SectionCard>
 
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }

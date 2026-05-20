@@ -38,7 +38,7 @@ function Spinner() {
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { onboarded, hydrated, niche } = useNiche();
+  const { onboarded, hydrated, niche, setNicheId, setOnboarded } = useNiche();
   const [session, setSession] = useState<any>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -50,21 +50,49 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isLogin = pathname === '/login';
   const isAdminRoute = pathname.startsWith('/admin');
 
-  useEffect(() => {
-    supabase.auth.getSession().then((response: any) => {
-      setSession(response.data.session);
-      if (response.data.session?.user) {
-        setUserEmail(response.data.session.user.email || 'usamahabib1991@gmail.com');
-        setUserName(response.data.session.user.user_metadata?.full_name || response.data.session.user.email?.split('@')[0] || 'Usama Habib');
-      }
-      setSessionChecked(true);
-    });
+  const bootstrapTenantNiche = async (user: any) => {
+    try {
+      const { data: profile } = await supabase
+        .from('users')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, currentSession: any) => {
+      if (profile?.tenant_id) {
+        const { data: tenant } = await supabase
+          .from('tenants')
+          .select('niche')
+          .eq('id', profile.tenant_id)
+          .single();
+
+        if (tenant?.niche && tenant.niche !== 'general') {
+          setNicheId(tenant.niche);
+          setOnboarded(true);
+        }
+      }
+    } catch (err) {
+      console.error('Error bootstrapping tenant niche:', err);
+    }
+  };
+
+  useEffect(() => {
+    supabase.auth.getSession().then(async (response: any) => {
+      const currentSession = response.data.session;
       setSession(currentSession);
       if (currentSession?.user) {
         setUserEmail(currentSession.user.email || 'usamahabib1991@gmail.com');
         setUserName(currentSession.user.user_metadata?.full_name || currentSession.user.email?.split('@')[0] || 'Usama Habib');
+        await bootstrapTenantNiche(currentSession.user);
+      }
+      setSessionChecked(true);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, currentSession: any) => {
+      setSession(currentSession);
+      if (currentSession?.user) {
+        setUserEmail(currentSession.user.email || 'usamahabib1991@gmail.com');
+        setUserName(currentSession.user.user_metadata?.full_name || currentSession.user.email?.split('@')[0] || 'Usama Habib');
+        await bootstrapTenantNiche(currentSession.user);
       }
       if (event === 'PASSWORD_RECOVERY') {
         router.replace('/update-password');

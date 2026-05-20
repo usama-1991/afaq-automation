@@ -4,6 +4,7 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Search, Send, MessageSquare, Loader2, ChevronDown, Check, Paperclip, FileText, Image as ImageIcon, File, Eye } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import { useNiche } from '@/context/NicheContext';
 
 // ── Official brand SVG icons ────────────────────────────────────────
 function WhatsAppIcon({ size = 14 }: { size?: number }) {
@@ -179,6 +180,9 @@ function ConversationsInner() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [activeQuickCategory, setActiveQuickCategory] = useState(0);
+  const { niche } = useNiche();
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -541,7 +545,102 @@ function ConversationsInner() {
             </div>
 
             {/* Input bar */}
-            <div style={{ padding: '12px 16px', background: '#fff', borderTop: '1px solid rgba(220,38,38,0.08)' }}>
+            <div style={{ padding: '12px 16px', background: '#fff', borderTop: '1px solid rgba(220,38,38,0.08)', position: 'relative' }}>
+              {niche && niche.quickReplies && niche.quickReplies.length > 0 && (
+                <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', position: 'relative' }}>
+                  <button 
+                    onClick={() => setShowQuickReplies(!showQuickReplies)}
+                    style={{
+                      background: '#fef2f2',
+                      border: '1px solid rgba(220,38,38,0.15)',
+                      borderRadius: 16,
+                      padding: '5px 12px',
+                      fontSize: 12,
+                      fontWeight: 650,
+                      color: '#dc2626',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      transition: 'all 0.15s'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#fee2e2'}
+                    onMouseLeave={e => e.currentTarget.style.background = '#fef2f2'}
+                  >
+                    ⚡ Quick Replies
+                  </button>
+                  
+                  {showQuickReplies && (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: 34,
+                      left: 0,
+                      width: 320,
+                      background: '#fff',
+                      border: '1px solid rgba(220,38,38,0.12)',
+                      borderRadius: 12,
+                      boxShadow: '0 8px 24px rgba(220,38,38,0.15)',
+                      padding: 12,
+                      zIndex: 50,
+                    }}>
+                      <div style={{ display: 'flex', gap: 6, borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: 6, marginBottom: 8, overflowX: 'auto' }}>
+                        {niche.quickReplies.map((cat: any, index: number) => (
+                          <button
+                            key={index}
+                            onClick={() => setActiveQuickCategory(index)}
+                            style={{
+                              background: activeQuickCategory === index ? '#dc2626' : 'transparent',
+                              color: activeQuickCategory === index ? '#fff' : '#6b7280',
+                              border: 'none',
+                              borderRadius: 12,
+                              padding: '4px 8px',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {cat.category}
+                          </button>
+                        ))}
+                      </div>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 180, overflowY: 'auto' }}>
+                        {niche.quickReplies[activeQuickCategory]?.replies.map((replyItem: any, index: number) => (
+                          <div
+                            key={index}
+                            onClick={() => {
+                              setReply(replyItem.text);
+                              setShowQuickReplies(false);
+                            }}
+                            style={{
+                              padding: '8px 10px',
+                              borderRadius: 8,
+                              background: '#fafafa',
+                              border: '1px solid #f3f4f6',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s',
+                              textAlign: 'left'
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.background = '#fef2f2';
+                              e.currentTarget.style.borderColor = 'rgba(220,38,38,0.15)';
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.background = '#fafafa';
+                              e.currentTarget.style.borderColor = '#f3f4f6';
+                            }}
+                          >
+                            <div style={{ fontSize: 11.5, fontWeight: 700, color: '#dc2626', marginBottom: 2 }}>{replyItem.label}</div>
+                            <div style={{ fontSize: 11, color: '#4b5563', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{replyItem.text}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#faf9f9', borderRadius: 24, border: '1px solid rgba(220,38,38,0.12)', padding: '6px 8px 6px 16px' }}>
                 <input 
                   type="file" 
