@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Search, Send, MessageSquare, Loader2, ChevronDown, Check } from 'lucide-react';
+import { Search, Send, MessageSquare, Loader2, ChevronDown, Check, Paperclip, FileText, Image as ImageIcon, File, Eye } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 
 // ── Official brand SVG icons ────────────────────────────────────────
@@ -180,6 +180,7 @@ function ConversationsInner() {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchConversations = async () => {
     try {
@@ -233,6 +234,66 @@ function ConversationsInner() {
     setReply('');
     await supabase.from('messages').insert([{ conversation_id: selected.id, sender_type: 'agent', content }]);
     setSending(false);
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selected) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const fileUrl = event.target?.result as string;
+      if (!fileUrl) return;
+
+      let category: 'Images' | 'Documents' | 'Videos' | 'Audio' = 'Documents';
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext || '')) {
+        category = 'Images';
+      } else if (['mp4', 'mov', 'webm', 'avi'].includes(ext || '')) {
+        category = 'Videos';
+      } else if (['mp3', 'wav', 'ogg', 'aac'].includes(ext || '')) {
+        category = 'Audio';
+      }
+
+      let sizeStr = '0 KB';
+      const sizeMb = file.size / (1024 * 1024);
+      if (sizeMb >= 1) {
+        sizeStr = `${sizeMb.toFixed(1)} MB`;
+      } else {
+        sizeStr = `${(file.size / 1024).toFixed(0)} KB`;
+      }
+
+      const formattedContent = `[Media: ${category}] ${file.name}|${fileUrl}`;
+      
+      await supabase.from('messages').insert([{
+        conversation_id: selected.id,
+        sender_type: 'agent',
+        content: formattedContent
+      }]);
+
+      try {
+        const stored = localStorage.getItem('autoflow_media_library');
+        const library = stored ? JSON.parse(stored) : [];
+        const newMedia = {
+          id: Math.random().toString(36).substr(2, 9),
+          name: file.name,
+          category,
+          size: sizeStr,
+          url: fileUrl,
+          addedAt: new Date().toISOString().split('T')[0]
+        };
+        library.unshift(newMedia);
+        localStorage.setItem('autoflow_media_library', JSON.stringify(library));
+      } catch (err) {
+        console.error('Error saving to media vault:', err);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const filtered = convos.filter(c => {
@@ -383,19 +444,92 @@ function ConversationsInner() {
               ) : messages.map((m, i) => {
                 if (!m.content || m.content.trim() === '') return null;
                 const isAgent = m.sender_type === 'agent' || m.sender_type === 'bot';
+                
+                const mediaRegex = /^\[Media:\s*(Images|Documents|Videos|Audio)\]\s*([^|]+)\|(.+)$/i;
+                const match = m.content.match(mediaRegex);
+                
+                let isMedia = false;
+                let mediaElement = null;
+                
+                if (match) {
+                  isMedia = true;
+                  const [_, category, fileName, fileUrl] = match;
+                  const catLower = category.toLowerCase();
+                  
+                  if (catLower === 'images') {
+                    mediaElement = (
+                      <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.05)', background: isAgent ? 'rgba(0,0,0,0.1)' : '#f3f4f6', maxWidth: 300 }}>
+                        <img src={fileUrl} alt={fileName} style={{ width: '100%', display: 'block', maxHeight: 220, objectFit: 'cover' }} />
+                        <div style={{ padding: '8px 12px', background: isAgent ? 'rgba(0,0,0,0.15)' : '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                          <span style={{ fontSize: 11.5, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', color: isAgent ? '#fff' : '#374151', flex: 1 }}>{fileName}</span>
+                          <a href={fileUrl} download={fileName} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: isAgent ? '#fff' : '#dc2626', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 3 }}>
+                            <Eye size={12} /> View
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  } else if (catLower === 'audio') {
+                    mediaElement = (
+                      <div style={{ padding: 10, background: isAgent ? 'rgba(255,255,255,0.15)' : '#f3f4f6', borderRadius: 12, minWidth: 260 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: isAgent ? '#fff' : '#374151', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <FileText size={13} /> {fileName}
+                        </div>
+                        <audio src={fileUrl} controls style={{ width: '100%', height: 32, outline: 'none' }} />
+                      </div>
+                    );
+                  } else if (catLower === 'videos') {
+                    mediaElement = (
+                      <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.05)', background: '#000', maxWidth: 300 }}>
+                        <video src={fileUrl} controls style={{ width: '100%', maxHeight: 180, display: 'block' }} />
+                        <div style={{ padding: '8px 12px', background: isAgent ? 'rgba(255,255,255,0.15)' : '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                          <span style={{ fontSize: 11.5, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', color: isAgent ? '#fff' : '#374151', flex: 1 }}>{fileName}</span>
+                          <a href={fileUrl} download={fileName} style={{ textDecoration: 'none', color: isAgent ? '#fff' : '#dc2626', fontSize: 11, fontWeight: 700 }}>
+                            Download
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    mediaElement = (
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '10px 14px', borderRadius: 12,
+                        background: isAgent ? 'rgba(255,255,255,0.15)' : '#f3f4f6',
+                        border: '1px solid rgba(0,0,0,0.05)', minWidth: 220, maxWidth: 300
+                      }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 8, background: isAgent ? 'rgba(255,255,255,0.2)' : 'rgba(220,38,38,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <FileText size={18} color={isAgent ? '#fff' : '#dc2626'} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: isAgent ? '#fff' : '#111827', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                            {fileName}
+                          </div>
+                          <a href={fileUrl} download={fileName} style={{ fontSize: 11, fontWeight: 700, color: isAgent ? 'rgba(255,255,255,0.85)' : '#dc2626', textDecoration: 'none', display: 'inline-block', marginTop: 2 }}>
+                            Download File
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  }
+                }
+
                 return (
                   <div key={m.id ?? i} style={{ display: 'flex', justifyContent: isAgent ? 'flex-end' : 'flex-start' }}>
                     <div style={{ maxWidth: '72%' }}>
-                      <div style={{
-                        padding: '10px 14px',
-                        borderRadius: isAgent ? '16px 16px 3px 16px' : '16px 16px 16px 3px',
-                        background: isAgent ? '#dc2626' : '#fff',
-                        color: isAgent ? '#fff' : '#111827',
-                        fontSize: 13.5, lineHeight: 1.55,
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
-                      }}>
-                        {m.content}
-                      </div>
+                      {isMedia ? (
+                        mediaElement
+                      ) : (
+                        <div style={{
+                          padding: '10px 14px',
+                          borderRadius: isAgent ? '16px 16px 3px 16px' : '16px 16px 16px 3px',
+                          background: isAgent ? '#dc2626' : '#fff',
+                          color: isAgent ? '#fff' : '#111827',
+                          fontSize: 13.5, lineHeight: 1.55,
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
+                        }}>
+                          {m.content}
+                        </div>
+                      )}
                       <div style={{ fontSize: 10.5, color: '#9ca3af', marginTop: 3, textAlign: isAgent ? 'right' : 'left', paddingLeft: isAgent ? 0 : 4, paddingRight: isAgent ? 4 : 0 }}>
                         {m.sender_type === 'bot' ? 'AI Assistant' : isAgent ? 'You' : selected.customer_name || 'Customer'} · {formatTime(m.created_at)}
                       </div>
@@ -409,6 +543,29 @@ function ConversationsInner() {
             {/* Input bar */}
             <div style={{ padding: '12px 16px', background: '#fff', borderTop: '1px solid rgba(220,38,38,0.08)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#faf9f9', borderRadius: 24, border: '1px solid rgba(220,38,38,0.12)', padding: '6px 8px 6px 16px' }}>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleFileChange} 
+                  style={{ display: 'none' }} 
+                />
+                <button 
+                  onClick={triggerFileInput} 
+                  style={{ 
+                    background: 'none', 
+                    border: 'none', 
+                    cursor: 'pointer', 
+                    color: '#9ca3af', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    padding: '0 4px', 
+                    transition: 'color 0.2s' 
+                  }} 
+                  onMouseEnter={e => e.currentTarget.style.color = '#dc2626'} 
+                  onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
+                >
+                  <Paperclip size={18} />
+                </button>
                 <input
                   value={reply} onChange={e => setReply(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}

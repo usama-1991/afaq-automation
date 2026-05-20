@@ -19,59 +19,7 @@ interface Template {
   buttons: Array<{ type: 'QUICK_REPLY' | 'URL' | 'PHONE'; text: string; urlOrPhone?: string }>;
 }
 
-const defaultTemplates: Template[] = [
-  {
-    id: '1',
-    name: 'welcome_message',
-    category: 'Marketing',
-    language: 'English (US)',
-    status: 'Approved',
-    headerType: 'Text',
-    headerText: 'Welcome to AutoFlow Studio!',
-    bodyText: 'Hello {{1}}, thank you for joining AutoFlow. We are excited to help you automate your business communications! Click below to explore your dashboard.',
-    footerText: 'AutoFlow Team',
-    buttons: [
-      { type: 'URL', text: 'Go to Dashboard', urlOrPhone: 'https://autoflow.ai/dashboard' },
-      { type: 'QUICK_REPLY', text: 'Speak to Agent' }
-    ]
-  },
-  {
-    id: '2',
-    name: 'order_receipt_confirmation',
-    category: 'Utility',
-    language: 'English (US)',
-    status: 'Approved',
-    headerType: 'None',
-    bodyText: 'Hi {{1}}! Your order #{{2}} has been confirmed. We will dispatch it shortly. You can track your shipment status with the link below.',
-    footerText: 'Order Department',
-    buttons: [
-      { type: 'URL', text: 'Track Order', urlOrPhone: 'https://autoflow.ai/orders/track' }
-    ]
-  },
-  {
-    id: '3',
-    name: 'auth_otp_code',
-    category: 'Authentication',
-    language: 'English (US)',
-    status: 'Approved',
-    headerType: 'None',
-    bodyText: 'Your AutoFlow AI secure verification code is {{1}}. This code is valid for 10 minutes. Do not share it with anyone.',
-    buttons: []
-  },
-  {
-    id: '4',
-    name: 'cart_abandonment_offer',
-    category: 'Marketing',
-    language: 'English (US)',
-    status: 'Pending',
-    headerType: 'Image',
-    bodyText: 'Hey {{1}}! We noticed you left some amazing workflows in your cart. Use code {{2}} at checkout to get a premium 15% discount today!',
-    footerText: 'Special Promotions',
-    buttons: [
-      { type: 'URL', text: 'Complete Checkout', urlOrPhone: 'https://autoflow.ai/checkout' }
-    ]
-  }
-];
+const defaultTemplates: Template[] = [];
 
 export default function TemplatesPage() {
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -102,13 +50,13 @@ export default function TemplatesPage() {
         setTemplates(parsed);
         if (parsed.length > 0) setSelectedTemplate(parsed[0]);
       } catch (e) {
-        setTemplates(defaultTemplates);
-        setSelectedTemplate(defaultTemplates[0]);
+        setTemplates([]);
+        setSelectedTemplate(null);
       }
     } else {
-      setTemplates(defaultTemplates);
-      setSelectedTemplate(defaultTemplates[0]);
-      localStorage.setItem('autoflow_whatsapp_templates', JSON.stringify(defaultTemplates));
+      setTemplates([]);
+      setSelectedTemplate(null);
+      localStorage.setItem('autoflow_whatsapp_templates', JSON.stringify([]));
     }
   }, []);
 

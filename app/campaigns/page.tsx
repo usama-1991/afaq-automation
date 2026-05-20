@@ -19,56 +19,7 @@ interface Campaign {
   scheduledTime: string;
 }
 
-const defaultCampaigns: Campaign[] = [
-  {
-    id: '1',
-    name: 'May VIP Newsletter Promo',
-    templateName: 'welcome_message',
-    segmentName: 'VIP Customers',
-    sentCount: 45,
-    deliveredCount: 44,
-    readCount: 39,
-    failedCount: 1,
-    status: 'Completed',
-    scheduledTime: '2026-05-10 10:00 AM'
-  },
-  {
-    id: '2',
-    name: 'Abandoned Cart Rescue',
-    templateName: 'cart_abandonment_offer',
-    segmentName: 'Hot Leads',
-    sentCount: 120,
-    deliveredCount: 118,
-    readCount: 92,
-    failedCount: 2,
-    status: 'Completed',
-    scheduledTime: '2026-05-18 04:30 PM'
-  },
-  {
-    id: '3',
-    name: 'OTP Service Notifications Check',
-    templateName: 'auth_otp_code',
-    segmentName: 'All Contacts',
-    sentCount: 38,
-    deliveredCount: 38,
-    readCount: 38,
-    failedCount: 0,
-    status: 'Completed',
-    scheduledTime: '2026-05-19 11:15 AM'
-  },
-  {
-    id: '4',
-    name: 'Late May Product Blast',
-    templateName: 'welcome_message',
-    segmentName: 'All Contacts',
-    sentCount: 250,
-    deliveredCount: 0,
-    readCount: 0,
-    failedCount: 0,
-    status: 'Scheduled',
-    scheduledTime: '2026-05-25 09:00 AM'
-  }
-];
+const defaultCampaigns: Campaign[] = [];
 
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -92,11 +43,11 @@ export default function CampaignsPage() {
       try {
         setCampaigns(JSON.parse(stored));
       } catch (e) {
-        setCampaigns(defaultCampaigns);
+        setCampaigns([]);
       }
     } else {
-      setCampaigns(defaultCampaigns);
-      localStorage.setItem('autoflow_campaigns', JSON.stringify(defaultCampaigns));
+      setCampaigns([]);
+      localStorage.setItem('autoflow_campaigns', JSON.stringify([]));
     }
 
     // Load templates for selector

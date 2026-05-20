@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { 
   Check, RefreshCw, Bot, Plug, Settings, Sparkles, 
   Volume2, UserX, BarChart3, Upload, Key, ShieldCheck, 
@@ -56,8 +57,9 @@ function Field({ label, value, onChange, type = 'text', hint }: { label: string;
   );
 }
 
-export default function SettingsPage() {
+function SettingsInner() {
   const { niche, setNicheId, setOnboarded } = useNiche();
+  const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>('Business Profile');
   const [saved, setSaved] = useState(false);
 
@@ -84,6 +86,13 @@ export default function SettingsPage() {
 
   // Opt-out lead count from localStorage (simulated)
   const [optOutCount, setOptOutCount] = useState(0);
+
+  useEffect(() => {
+    const t = searchParams.get('tab');
+    if (t && tabs.includes(t as any)) {
+      setTab(t as Tab);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     try {
@@ -574,5 +583,17 @@ export default function SettingsPage() {
         </button>
       )}
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#faf9f9' }}>
+        <div style={{ color: '#dc2626', fontWeight: 600 }}>Loading Settings...</div>
+      </div>
+    }>
+      <SettingsInner />
+    </Suspense>
   );
 }

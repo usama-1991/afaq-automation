@@ -15,40 +15,7 @@ interface MediaFile {
   addedAt: string;
 }
 
-const defaultMedia: MediaFile[] = [
-  {
-    id: '1',
-    name: 'autoflow_banner_logo.png',
-    category: 'Images',
-    size: '142 KB',
-    url: 'https://app.autoflow.ai/media/autoflow_banner_logo.png',
-    addedAt: '2026-05-14'
-  },
-  {
-    id: '2',
-    name: 'welcome_onboarding_guide.pdf',
-    category: 'Documents',
-    size: '1.4 MB',
-    url: 'https://app.autoflow.ai/media/welcome_onboarding_guide.pdf',
-    addedAt: '2026-05-16'
-  },
-  {
-    id: '3',
-    name: 'promo_intro_video.mp4',
-    category: 'Videos',
-    size: '8.2 MB',
-    url: 'https://app.autoflow.ai/media/promo_intro_video.mp4',
-    addedAt: '2026-05-18'
-  },
-  {
-    id: '4',
-    name: 'support_interactive_welcome.mp3',
-    category: 'Audio',
-    size: '620 KB',
-    url: 'https://app.autoflow.ai/media/support_interactive_welcome.mp3',
-    addedAt: '2026-05-19'
-  }
-];
+const defaultMedia: MediaFile[] = [];
 
 export default function MediaPage() {
   const [mediaList, setMediaList] = useState<MediaFile[]>([]);
@@ -70,11 +37,11 @@ export default function MediaPage() {
       try {
         setMediaList(JSON.parse(stored));
       } catch (e) {
-        setMediaList(defaultMedia);
+        setMediaList([]);
       }
     } else {
-      setMediaList(defaultMedia);
-      localStorage.setItem('autoflow_media_library', JSON.stringify(defaultMedia));
+      setMediaList([]);
+      localStorage.setItem('autoflow_media_library', JSON.stringify([]));
     }
   }, []);
 

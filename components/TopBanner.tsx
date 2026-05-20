@@ -1,10 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Sparkles, X } from 'lucide-react';
 
 export default function TopBanner() {
   const [visible, setVisible] = useState(true);
+  const router = useRouter();
+  
   if (!visible) return null;
   return (
     <div style={{
@@ -26,13 +29,23 @@ export default function TopBanner() {
         <span>Your Growth Plan trial ends in <strong>7 days</strong> on Jun 3, 2026. Experience the future of Omni-channel AI.</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontSize: 12, opacity: 0.85, cursor: 'pointer', textDecoration: 'underline' }}>Onboarding checklist</span>
-        <button style={{
-          background: 'rgba(255,255,255,0.18)', color: '#fff',
-          border: '1.5px solid rgba(255,255,255,0.4)',
-          borderRadius: 20, padding: '3px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-          backdropFilter: 'blur(4px)',
-        }}>Upgrade now</button>
+        <span 
+          onClick={() => router.push('/onboarding')}
+          style={{ fontSize: 12, opacity: 0.85, cursor: 'pointer', textDecoration: 'underline' }}
+        >
+          Onboarding checklist
+        </span>
+        <button 
+          onClick={() => router.push('/settings?tab=Usage%20Quotas')}
+          style={{
+            background: 'rgba(255,255,255,0.18)', color: '#fff',
+            border: '1.5px solid rgba(255,255,255,0.4)',
+            borderRadius: 20, padding: '3px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            backdropFilter: 'blur(4px)',
+          }}
+        >
+          Upgrade now
+        </button>
         <button onClick={() => setVisible(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', opacity: 0.7 }}>
           <X size={14} color="#fff" />
         </button>
