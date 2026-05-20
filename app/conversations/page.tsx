@@ -251,7 +251,7 @@ function ConversationsInner() {
   ];
 
   return (
-    <div style={{ height: 'calc(100vh - 38px)', display: 'flex', flexDirection: 'column', fontFamily: 'inherit' }}>
+    <div style={{ height: 'calc(100vh - 98px)', display: 'flex', flexDirection: 'column', fontFamily: 'inherit' }}>
       {/* Header */}
       <div style={{ padding: '16px 24px 12px', background: '#fff', borderBottom: '1px solid rgba(220,38,38,0.08)' }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, color: '#111827', letterSpacing: '-0.4px', margin: 0 }}>Live Conversations</h1>

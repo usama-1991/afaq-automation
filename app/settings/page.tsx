@@ -1,17 +1,22 @@
 'use client';
 
-import { useState } from 'react';
-import { Check, RefreshCw } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { 
+  Check, RefreshCw, Bot, Plug, Settings, Sparkles, 
+  Volume2, UserX, BarChart3, Upload, Key, ShieldCheck, 
+  User, CreditCard, LayoutGrid, Sliders, MessageSquare, 
+  AlertCircle 
+} from 'lucide-react';
 import { useNiche } from '@/context/NicheContext';
 import { niches } from '@/lib/niches';
 
-const tabs = ['Business', 'API Keys', 'Notifications', 'Appearance', 'Billing'] as const;
+const tabs = ['Business Profile', 'Channels & APIs', 'Voice & Opt-Outs', 'Usage Quotas'] as const;
 type Tab = typeof tabs[number];
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
   return (
     <div onClick={onChange} style={{
-      width: 44, height: 24, background: checked ? '#2563eb' : '#e5e7eb',
+      width: 44, height: 24, background: checked ? '#dc2626' : '#e5e7eb',
       borderRadius: 12, position: 'relative', cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0,
     }}>
       <div style={{
@@ -23,220 +28,551 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
   );
 }
 
-function Field({ label, defaultValue, type = 'text', hint }: { label: string; defaultValue?: string; type?: string; hint?: string }) {
+function Field({ label, value, onChange, type = 'text', hint }: { label: string; value: string; onChange: (v: string) => void; type?: string; hint?: string }) {
   return (
     <div style={{ marginBottom: 16 }}>
-      <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 5 }}>{label}</label>
-      <input defaultValue={defaultValue} type={type} style={{
-        width: '100%', maxWidth: 440, padding: '10px 12px', fontSize: 13.5,
-        border: '1.5px solid rgba(99,102,241,0.2)', borderRadius: 9, background: '#fafafa',
-        fontFamily: 'inherit', color: '#111', outline: 'none',
-      }} />
+      <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>{label}</label>
+      <input 
+        value={value} 
+        onChange={e => onChange(e.target.value)}
+        type={type} 
+        style={{
+          width: '100%', maxWidth: 480, padding: '10px 12px', fontSize: 13,
+          border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fff',
+          fontFamily: 'inherit', color: '#1f2937', outline: 'none',
+          transition: 'all 0.15s',
+        }}
+        onFocus={e => {
+          e.currentTarget.style.borderColor = '#dc2626';
+          e.currentTarget.style.boxShadow = '0 0 0 3px rgba(220,38,38,0.08)';
+        }}
+        onBlur={e => {
+          e.currentTarget.style.borderColor = 'rgba(220,38,38,0.12)';
+          e.currentTarget.style.boxShadow = 'none';
+        }}
+      />
       {hint && <p style={{ fontSize: 11.5, color: '#9ca3af', marginTop: 4 }}>{hint}</p>}
     </div>
   );
 }
 
-// Notification items as a controlled component outside the map
-const defaultNotifications = [
-  { id: 'new_conv',    label: 'New conversation',        desc: 'Alert when a new customer message comes in', on: true },
-  { id: 'offline',     label: 'AI agent offline',         desc: 'Notify if the AI agent stops responding', on: true },
-  { id: 'handoff',     label: 'Human handoff triggered',  desc: 'When AI escalates to a human agent', on: true },
-  { id: 'new_contact', label: 'New contact added',        desc: 'When a new customer is captured', on: false },
-  { id: 'daily',       label: 'Daily summary',            desc: 'Receive a daily performance report at 9am', on: true },
-  { id: 'weekly',      label: 'Weekly analytics',         desc: 'Summary of weekly performance every Monday', on: false },
-];
-
 export default function SettingsPage() {
   const { niche, setNicheId, setOnboarded } = useNiche();
-  const [tab, setTab] = useState<Tab>('Business');
+  const [tab, setTab] = useState<Tab>('Business Profile');
   const [saved, setSaved] = useState(false);
-  // All notification toggles stored as one state object — NO hooks inside map
-  const [notifs, setNotifs] = useState<Record<string, boolean>>(
-    Object.fromEntries(defaultNotifications.map(n => [n.id, n.on]))
-  );
 
-  const handleSave = () => { setSaved(true); setTimeout(() => setSaved(false), 2000); };
+  // Business settings
+  const [businessName, setBusinessName] = useState('AutoFlow Solutions');
+  const [ownerName, setOwnerName] = useState('Afaq Butt');
+  const [waNumber, setWaNumber] = useState('+92 300 0000000');
+  const [location, setLocation] = useState('Karachi, Pakistan');
+  const [website, setWebsite] = useState('https://autoflow.ai');
+
+  // APIs state
+  const [openaiKey, setOpenaiKey] = useState('sk-proj-••••••••••••5aB2');
+  const [waToken, setWaToken] = useState('EAAGm••••••••••••3kL');
+  const [waPhoneId, setWaPhoneId] = useState('108253102123984');
+  const [waAccountId, setWaAccountId] = useState('109283019238472');
+  const [tiktokKey, setTiktokKey] = useState('tt-dev-••••••••••••x9A7');
+  const [sheetKey, setSheetKey] = useState('AIza••••••••••••_M9');
+
+  // Automation & Opt-Out settings
+  const [voiceAutoTranscribe, setVoiceAutoTranscribe] = useState(true);
+  const [voiceAccuracy, setVoiceAccuracy] = useState<'Standard' | 'Premium Whisper-4o'>('Premium Whisper-4o');
+  const [optOutKeywords, setOptOutKeywords] = useState('STOP, UNSUBSCRIBE, CANCEL, MUT, EXIT');
+  const [optOutAutoReply, setOptOutAutoReply] = useState('You have been successfully opted out of messages from our channel. You will not receive any further automated outreach.');
+
+  // Opt-out lead count from localStorage (simulated)
+  const [optOutCount, setOptOutCount] = useState(0);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('autoflow_contact_meta');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const count = Object.values(parsed).filter((c: any) => c.optedOut === true).length;
+        setOptOutCount(count);
+      }
+    } catch (_) {}
+  }, []);
+
+  const handleSave = () => { 
+    setSaved(true); 
+    setTimeout(() => setSaved(false), 2000); 
+  };
+  
   const handleNicheChange = (id: string) => setNicheId(id);
-  const handleReset = () => { setOnboarded(false); window.location.href = '/onboarding'; };
+  const handleReset = () => { 
+    setOnboarded(false); 
+    window.location.href = '/onboarding'; 
+  };
 
   return (
-    <div style={{ padding: '24px 28px' }}>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111827', letterSpacing: '-0.5px' }}>Settings</h1>
-        <p style={{ fontSize: 13.5, color: '#6b7280', marginTop: 3 }}>Manage your account, integrations, and preferences</p>
+    <div style={{ padding: '24px 28px', maxWidth: 1000 }}>
+      {/* Page Header */}
+      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#111827', letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Settings size={24} color="#dc2626" /> System Settings
+          </h1>
+          <p style={{ fontSize: 13.5, color: '#6b7280', marginTop: 3 }}>Configure your AutoFlow AI channels, integrations, and preferences.</p>
+        </div>
+
+        {saved && (
+          <div style={{
+            background: '#ecfdf5', border: '1px solid #10b981', color: '#047857',
+            fontSize: 12.5, fontWeight: 600, padding: '8px 16px', borderRadius: 8,
+            display: 'flex', alignItems: 'center', gap: 6,
+            animation: 'fadeUp 0.15s ease-out',
+          }}>
+            <Check size={14} strokeWidth={3} /> Settings saved successfully!
+          </div>
+        )}
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 2, borderBottom: '1px solid rgba(99,102,241,0.12)', marginBottom: 28 }}>
-        {tabs.map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            padding: '9px 18px', fontSize: 13,
-            fontWeight: tab === t ? 600 : 400,
-            color: tab === t ? '#2563eb' : '#6b7280',
-            background: 'none', border: 'none',
-            borderBottom: tab === t ? '2px solid #2563eb' : '2px solid transparent',
-            marginBottom: -1, cursor: 'pointer', transition: 'all 0.12s',
-          }}>{t}</button>
-        ))}
+      {/* Modern Red-Themed Tabs */}
+      <div style={{ display: 'flex', gap: 2, borderBottom: '1px solid rgba(220,38,38,0.08)', marginBottom: 28 }}>
+        {tabs.map(t => {
+          const active = tab === t;
+          return (
+            <button 
+              key={t} 
+              onClick={() => setTab(t)} 
+              style={{
+                padding: '10px 20px', fontSize: 13,
+                fontWeight: active ? 700 : 500,
+                color: active ? '#dc2626' : '#6b7280',
+                background: 'none', border: 'none',
+                borderBottom: active ? '2.5px solid #dc2626' : '2.5px solid transparent',
+                marginBottom: -1.5, cursor: 'pointer', transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => { if(!active) e.currentTarget.style.color = '#dc2626'; }}
+              onMouseLeave={e => { if(!active) e.currentTarget.style.color = '#6b7280'; }}
+            >
+              {t}
+            </button>
+          );
+        })}
       </div>
 
-      <div style={{ maxWidth: 600 }}>
+      {/* Tab Panels */}
+      <div style={{ maxWidth: 640 }}>
 
-        {/* ── Business ── */}
-        {tab === 'Business' && (
-          <div>
-            <div style={{ background: '#fff', borderRadius: 14, padding: '20px', marginBottom: 20, border: '1px solid rgba(99,102,241,0.1)' }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 4 }}>Business Type</div>
-              <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>
-                Changing your niche updates the AI agent prompts, knowledge base, and dashboard labels.
+        {/* ── Business Profile Tab ── */}
+        {tab === 'Business Profile' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Niche Selector panel */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <LayoutGrid size={16} color="#dc2626" />
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Business Niche Context</div>
+              </div>
+              <p style={{ fontSize: 12.5, color: '#6b7280', marginBottom: 16 }}>
+                Updating your niche recalibrates the AI model, matching tone, custom system instructions, and analytics counters.
               </p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                {niches.map(n => (
-                  <div key={n.id} onClick={() => handleNicheChange(n.id)} style={{
-                    padding: '12px 10px', borderRadius: 10, cursor: 'pointer',
-                    border: niche.id === n.id ? '2px solid #2563eb' : '1.5px solid rgba(99,102,241,0.12)',
-                    background: niche.id === n.id ? '#f0f4ff' : '#fafafa',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                    transition: 'all 0.12s', position: 'relative',
-                  }}>
-                    {niche.id === n.id && (
-                      <div style={{ position: 'absolute', top: 6, right: 6, width: 16, height: 16, borderRadius: '50%', background: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Check size={9} color="#fff" strokeWidth={3} />
-                      </div>
-                    )}
-                    <span style={{ fontSize: 22 }}>{n.icon}</span>
-                    <span style={{ fontSize: 11.5, fontWeight: 600, color: niche.id === n.id ? '#1e40af' : '#374151', textAlign: 'center', lineHeight: 1.3 }}>{n.label}</span>
-                  </div>
-                ))}
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                {niches.map(n => {
+                  const selected = niche.id === n.id;
+                  return (
+                    <div 
+                      key={n.id} 
+                      onClick={() => handleNicheChange(n.id)} 
+                      style={{
+                        padding: '14px 10px', borderRadius: 10, cursor: 'pointer',
+                        border: selected ? '2px solid #dc2626' : '1.5px solid rgba(220,38,38,0.08)',
+                        background: selected ? '#fef2f2' : '#fafafa',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                        transition: 'all 0.15s', position: 'relative',
+                      }}
+                      onMouseEnter={e => { if(!selected) e.currentTarget.style.borderColor = 'rgba(220,38,38,0.3)'; }}
+                      onMouseLeave={e => { if(!selected) e.currentTarget.style.borderColor = 'rgba(220,38,38,0.08)'; }}
+                    >
+                      {selected && (
+                        <div style={{ position: 'absolute', top: 6, right: 6, width: 16, height: 16, borderRadius: '50%', background: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Check size={9} color="#fff" strokeWidth={3} />
+                        </div>
+                      )}
+                      <span style={{ fontSize: 24 }}>{n.icon}</span>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, color: selected ? '#991b1b' : '#374151', textAlign: 'center', lineHeight: 1.3 }}>{n.label}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-            <Field label="Business Name" defaultValue="My Business" />
-            <Field label="Owner Name" defaultValue="Afaq Butt" />
-            <Field label="WhatsApp Number" defaultValue="+92 300 0000000" hint="The number your AI agent replies from" />
-            <Field label="Business Location" defaultValue="Karachi, Pakistan" />
-            <Field label="Website" type="url" hint="Optional — used for knowledge base" />
-            <div style={{ marginTop: 20, padding: '16px', background: '#fef2f2', borderRadius: 12, border: '1px solid #fecaca' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#991b1b', marginBottom: 6 }}>⚠️ Reset Onboarding</div>
-              <p style={{ fontSize: 12.5, color: '#7f1d1d', marginBottom: 12 }}>Takes you back to the niche selection screen.</p>
-              <button onClick={handleReset} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', fontSize: 13, fontWeight: 600, background: '#ef4444', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
-                <RefreshCw size={13} /> Restart Setup
+
+            {/* Profile fields */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16 }}>
+                <User size={16} color="#dc2626" />
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Profile Details</div>
+              </div>
+              <Field label="Business Name" value={businessName} onChange={setBusinessName} />
+              <Field label="Owner Name" value={ownerName} onChange={setOwnerName} />
+              <Field label="WhatsApp Business Number" value={waNumber} onChange={setWaNumber} hint="Used to display in AI conversations" />
+              <Field label="HQ Location" value={location} onChange={setLocation} />
+              <Field label="Website Link" value={website} onChange={setWebsite} type="url" hint="Auto-scraped as primary knowledge base resource" />
+            </div>
+
+            {/* Business Logo Upload */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 8 }}>Dashboard Logo</div>
+              <div style={{ 
+                border: '2.5px dashed rgba(220,38,38,0.15)', borderRadius: 12, padding: '24px', 
+                textAlign: 'center', cursor: 'pointer', background: '#fff5f5', transition: 'all 0.15s' 
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = '#fef2f2';
+                e.currentTarget.style.borderColor = '#dc2626';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = '#fff5f5';
+                e.currentTarget.style.borderColor = 'rgba(220,38,38,0.15)';
+              }}
+              >
+                <Upload size={22} color="#dc2626" style={{ margin: '0 auto 8px' }} />
+                <div style={{ fontSize: 13, color: '#4b5563', fontWeight: 600 }}>Upload company logo</div>
+                <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>Supports SVG, PNG (Max 2MB)</div>
+              </div>
+            </div>
+
+            {/* Danger Zone */}
+            <div style={{ padding: '18px', background: '#fef2f2', borderRadius: 14, border: '1.5px solid rgba(220,38,38,0.2)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                <AlertCircle size={16} color="#dc2626" />
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#991b1b' }}>Danger Zone</div>
+              </div>
+              <p style={{ fontSize: 12.5, color: '#7f1d1d', marginBottom: 14, lineHeight: 1.4 }}>
+                Resetting onboarding clears your saved business context parameters, requiring you to re-run the initial AI configuration wizard.
+              </p>
+              <button 
+                onClick={handleReset} 
+                style={{ 
+                  display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', fontSize: 12.5, fontWeight: 700, 
+                  background: '#dc2626', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer',
+                  transition: 'background 0.15s', boxShadow: '0 2px 6px rgba(220,38,38,0.15)'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = '#b91c1c'}
+                onMouseLeave={e => e.currentTarget.style.background = '#dc2626'}
+              >
+                <RefreshCw size={13} /> Reset Setup & Restart Onboarding
               </button>
             </div>
           </div>
         )}
 
-        {/* ── API Keys ── */}
-        {tab === 'API Keys' && (
-          <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(99,102,241,0.1)' }}>
-            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 20, lineHeight: 1.6 }}>Keep these secret. Never share API keys publicly.</p>
-            {[
-              { label: 'OpenAI API Key', value: 'sk-proj-••••••••••••5aB2', hint: 'Powers AI agent responses' },
-              { label: 'Meta WhatsApp Token', value: 'EAAGm••••••••••••3kL', hint: 'Sends & receives WhatsApp messages' },
-              { label: 'n8n Webhook Secret', value: 'n8n_••••••••••••xF7G', hint: 'Authenticates n8n automation calls' },
-              { label: 'Google Sheets API Key', value: 'AIza••••••••••••_M9', hint: 'Exports data to Google Sheets' },
-              { label: 'EasyPaisa Merchant ID', value: '••••••••••••••••', hint: 'Payment processing in Pakistan' },
-            ].map(k => (
-              <div key={k.label} style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 5 }}>{k.label}</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input defaultValue={k.value} type="password" style={{ flex: 1, padding: '9px 12px', fontSize: 13, border: '1.5px solid rgba(99,102,241,0.2)', borderRadius: 9, background: '#fafafa', fontFamily: 'inherit', color: '#111', outline: 'none' }} />
-                  <button style={{ padding: '8px 12px', fontSize: 12, border: '1px solid rgba(99,102,241,0.15)', borderRadius: 9, background: '#fff', cursor: 'pointer', color: '#4f46e5', fontWeight: 500 }}>Show</button>
-                </div>
-                {k.hint && <p style={{ fontSize: 11.5, color: '#9ca3af', marginTop: 3 }}>{k.hint}</p>}
-              </div>
-            ))}
-          </div>
-        )}
+        {/* ── Channels & APIs Tab ── */}
+        {tab === 'Channels & APIs' && (
+          <div style={{ background: '#fff', borderRadius: 14, padding: '24px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <Plug size={16} color="#dc2626" />
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Connected Integrations</div>
+            </div>
+            <p style={{ fontSize: 12.5, color: '#6b7280', marginBottom: 20 }}>Configure credentials for omni-channel messaging routing and automation triggers.</p>
 
-        {/* ── Notifications ── */}
-        {tab === 'Notifications' && (
-          <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(99,102,241,0.1)' }}>
-            {defaultNotifications.map(n => (
-              <div key={n.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid rgba(99,102,241,0.07)' }}>
-                <div>
-                  <div style={{ fontSize: 13.5, fontWeight: 500, color: '#111827' }}>{n.label}</div>
-                  <div style={{ fontSize: 12.5, color: '#6b7280', marginTop: 2 }}>{n.desc}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              {/* OpenAI Key */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                  <Sparkles size={14} color="#dc2626" />
+                  <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151' }}>OpenAI Copilot Secret Key</label>
                 </div>
-                <Toggle
-                  checked={notifs[n.id]}
-                  onChange={() => setNotifs(prev => ({ ...prev, [n.id]: !prev[n.id] }))}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input 
+                    type="password" 
+                    value={openaiKey} 
+                    onChange={e => setOpenaiKey(e.target.value)} 
+                    style={{ flex: 1, padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fafafa', fontFamily: 'inherit', outline: 'none' }} 
+                  />
+                  <button style={{ padding: '8px 14px', fontSize: 12, border: '1px solid rgba(220,38,38,0.15)', borderRadius: 9, background: '#fff', cursor: 'pointer', color: '#dc2626', fontWeight: 600 }}>Test Connection</button>
+                </div>
+                <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>Powers user intent identification and chat automation replies.</p>
+              </div>
+
+              {/* Meta WhatsApp Token */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                  <Key size={14} color="#dc2626" />
+                  <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151' }}>Meta WhatsApp Business Token</label>
+                </div>
+                <input 
+                  type="password" 
+                  value={waToken} 
+                  onChange={e => setWaToken(e.target.value)} 
+                  style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fafafa', outline: 'none' }} 
                 />
               </div>
-            ))}
-          </div>
-        )}
 
-        {/* ── Appearance ── */}
-        {tab === 'Appearance' && (
-          <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(99,102,241,0.1)' }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 12 }}>Brand Color</div>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
-              {['#2563eb', '#4f46e5', '#7c3aed', '#10b981', '#f59e0b', '#ef4444', '#111827'].map(c => (
-                <div key={c} style={{ width: 32, height: 32, borderRadius: '50%', background: c, cursor: 'pointer', border: c === '#2563eb' ? '3px solid #111' : '3px solid transparent' }} />
-              ))}
-              <input type="color" defaultValue="#2563eb" style={{ width: 32, height: 32, padding: 0, border: '1px solid rgba(99,102,241,0.2)', borderRadius: '50%', cursor: 'pointer' }} />
-            </div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 12 }}>Dashboard Logo</div>
-            <div style={{ border: '2px dashed rgba(99,102,241,0.2)', borderRadius: 12, padding: '24px', textAlign: 'center', cursor: 'pointer', background: '#f8f9ff', marginBottom: 20 }}>
-              <div style={{ fontSize: 13.5, color: '#6b7280' }}>+ Upload your business logo</div>
-              <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>PNG or SVG, max 1MB</div>
-            </div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 12 }}>Agent Avatar</div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              {['🤖', '💬', '⚡', '🎯', '🌟'].map(e => (
-                <div key={e} style={{ width: 48, height: 48, borderRadius: 12, background: '#f0f4ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, cursor: 'pointer', border: '2px solid transparent', transition: 'border 0.12s' }}
-                  onMouseEnter={ev => (ev.currentTarget as HTMLElement).style.borderColor = '#2563eb'}
-                  onMouseLeave={ev => (ev.currentTarget as HTMLElement).style.borderColor = 'transparent'}
-                >{e}</div>
-              ))}
-            </div>
-          </div>
-        )}
+              {/* WhatsApp IDs grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Meta Phone Number ID</label>
+                  <input 
+                    type="text" 
+                    value={waPhoneId} 
+                    onChange={e => setWaPhoneId(e.target.value)} 
+                    style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fafafa', outline: 'none' }} 
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>WhatsApp Account ID</label>
+                  <input 
+                    type="text" 
+                    value={waAccountId} 
+                    onChange={e => setWaAccountId(e.target.value)} 
+                    style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fafafa', outline: 'none' }} 
+                  />
+                </div>
+              </div>
 
-        {/* ── Billing ── */}
-        {tab === 'Billing' && (
-          <div>
-            <div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #1e40af 100%)', borderRadius: 14, padding: '20px 24px', marginBottom: 16, color: '#fff' }}>
-              <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Current Plan</div>
-              <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 2 }}>Growth Plan</div>
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>Trial ends June 3, 2026 · Free for 7 more days</div>
-            </div>
-            {[
-              { name: 'Starter', price: '$49', priceLocal: 'PKR 13,600', features: ['WhatsApp channel', '500 conversations', 'Basic analytics', 'Email support'], current: false },
-              { name: 'Growth', price: '$149', priceLocal: 'PKR 41,300', features: ['All channels (WA + IG + FB)', 'Unlimited conversations', 'Advanced analytics', 'Human handoff', 'Priority support'], current: true },
-              { name: 'Enterprise', price: '$399', priceLocal: 'PKR 110,700', features: ['White-label dashboard', 'Unlimited agents', 'API access', 'Custom integrations', 'Dedicated support'], current: false },
-            ].map(plan => (
-              <div key={plan.name} style={{ background: '#fff', borderRadius: 14, padding: '20px', marginBottom: 12, border: plan.current ? '2px solid #2563eb' : '1px solid rgba(99,102,241,0.1)', position: 'relative' }}>
-                {plan.current && <span style={{ position: 'absolute', top: -10, left: 20, background: '#2563eb', color: '#fff', fontSize: 10.5, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>Current Plan</span>}
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>{plan.name}</div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 22, fontWeight: 700, color: '#111827' }}>{plan.price}<span style={{ fontSize: 13, fontWeight: 400, color: '#6b7280' }}>/mo</span></div>
-                    <div style={{ fontSize: 11.5, color: '#9ca3af' }}>{plan.priceLocal}/mo</div>
+              {/* TikTok Business Link */}
+              <div style={{ paddingTop: 10, borderTop: '1px solid rgba(220,38,38,0.06)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                  <Plug size={14} color="#dc2626" />
+                  <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151' }}>TikTok Business Client Key</label>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input 
+                    type="password" 
+                    value={tiktokKey} 
+                    onChange={e => setTiktokKey(e.target.value)} 
+                    style={{ flex: 1, padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fafafa', outline: 'none' }} 
+                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#fef2f2', border: '1px solid rgba(220,38,38,0.15)', color: '#dc2626', padding: '0 12px', borderRadius: 9, fontSize: 11.5, fontWeight: 700 }}>
+                    Active
                   </div>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-                  {plan.features.map(f => (
-                    <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: '#374151' }}>
-                      <Check size={12} color="#10b981" strokeWidth={3} /> {f}
-                    </div>
-                  ))}
-                </div>
-                <button style={{ width: '100%', padding: '9px', fontSize: 13, fontWeight: 600, borderRadius: 9, cursor: 'pointer', background: plan.current ? '#f3f4f6' : 'linear-gradient(135deg, #4f46e5, #2563eb)', color: plan.current ? '#6b7280' : '#fff', border: plan.current ? '1px solid #e5e7eb' : 'none' }}>
-                  {plan.current ? 'Current Plan' : 'Upgrade'}
-                </button>
+                <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>Syncs customer query direct messages from TikTok Business Creator Suite.</p>
               </div>
-            ))}
+
+              {/* Google Sheets */}
+              <div>
+                <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Google Sheets Sync API Key</label>
+                <input 
+                  type="password" 
+                  value={sheetKey} 
+                  onChange={e => setSheetKey(e.target.value)} 
+                  style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fafafa', outline: 'none' }} 
+                />
+              </div>
+            </div>
           </div>
         )}
 
-        {tab !== 'Billing' && (
-          <button onClick={handleSave} style={{ marginTop: 24, display: 'flex', alignItems: 'center', gap: 8, padding: '11px 24px', fontSize: 14, fontWeight: 600, background: saved ? '#10b981' : 'linear-gradient(135deg, #4f46e5, #2563eb)', color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer', boxShadow: '0 4px 14px rgba(79,70,229,0.25)', transition: 'background 0.2s' }}>
-            {saved ? <><Check size={15} /> Saved!</> : 'Save Changes'}
-          </button>
+        {/* ── Voice & Opt-Outs Tab ── */}
+        {tab === 'Voice & Opt-Outs' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* AI Voice Transcriptions panel */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <Volume2 size={16} color="#dc2626" />
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>AI Voice Note Auto-Transcription</div>
+              </div>
+              <p style={{ fontSize: 12.5, color: '#6b7280', marginBottom: 16 }}>
+                Automatically process incoming customer voice notes and display their full text transcript in active conversation flows.
+              </p>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: '#fafafa', borderRadius: 10, border: '1px solid rgba(220,38,38,0.06)', marginBottom: 16 }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#1f2937' }}>Enable Whisper Auto-Transcription</div>
+                  <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 2 }}>Transcribes OGG, MP3 voice memos instantly.</div>
+                </div>
+                <Toggle 
+                  checked={voiceAutoTranscribe} 
+                  onChange={() => setVoiceAutoTranscribe(!voiceAutoTranscribe)} 
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Transcription Engine Quality</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {(['Standard', 'Premium Whisper-4o'] as const).map(acc => {
+                    const selected = voiceAccuracy === acc;
+                    return (
+                      <div 
+                        key={acc} 
+                        onClick={() => setVoiceAccuracy(acc)}
+                        style={{
+                          flex: 1, padding: '10px 12px', borderRadius: 9, cursor: 'pointer', textAlign: 'center',
+                          border: selected ? '2px solid #dc2626' : '1px solid rgba(220,38,38,0.08)',
+                          background: selected ? '#fef2f2' : '#fafafa',
+                          fontSize: 12.5, fontWeight: 700, color: selected ? '#dc2626' : '#4b5563',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        {acc}
+                      </div>
+                    );
+                  })}
+                </div>
+                <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 6 }}>
+                  Premium quality model provides multi-lingual recognition accuracy for Urdu, Arabic, English, and Roman text.
+                </p>
+              </div>
+            </div>
+
+            {/* Opt-Out Lead Management panel */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <UserX size={16} color="#dc2626" />
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Opt-Out Lead Management</div>
+              </div>
+              <p style={{ fontSize: 12.5, color: '#6b7280', marginBottom: 16 }}>
+                Configure automated keyword triggers that immediately flag customer numbers as unsubscribed to maintain spam compliance.
+              </p>
+
+              {/* Counter status badge */}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#fef2f2', border: '1px solid rgba(220,38,38,0.15)', color: '#dc2626', padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, marginBottom: 16 }}>
+                <ShieldCheck size={14} /> Active Opt-Out List: {optOutCount} Contacts Flagged
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Unsubscribe Keywords</label>
+                <input 
+                  type="text" 
+                  value={optOutKeywords} 
+                  onChange={e => setOptOutKeywords(e.target.value)} 
+                  style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fafafa', outline: 'none' }} 
+                />
+                <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>Separated by commas. Matches are case-insensitive.</p>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Auto-Response Output Message</label>
+                <textarea 
+                  rows={3} 
+                  value={optOutAutoReply} 
+                  onChange={e => setOptOutAutoReply(e.target.value)} 
+                  style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fafafa', outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.4 }} 
+                />
+                <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>The final automated text dispatched immediately upon opt-out match detection.</p>
+              </div>
+            </div>
+          </div>
         )}
+
+        {/* ── Usage Quotas Tab ── */}
+        {tab === 'Usage Quotas' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Quota Indicators */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16 }}>
+                <BarChart3 size={16} color="#dc2626" />
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Messaging Volume Quotas (Current Cycle)</div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {/* WA Quota */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
+                    <span>WhatsApp Business API Dispatches</span>
+                    <span style={{ color: '#dc2626' }}>6,450 / 10,000 Messages (64.5%)</span>
+                  </div>
+                  <div style={{ width: '100%', height: 7, background: '#f3f4f6', borderRadius: 10, overflow: 'hidden' }}>
+                    <div style={{ width: '64.5%', height: '100%', background: 'linear-gradient(90deg, #dc2626, #f59e0b)', borderRadius: 10 }} />
+                  </div>
+                </div>
+
+                {/* TikTok Quota */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
+                    <span>TikTok Business Query Requests</span>
+                    <span style={{ color: '#dc2626' }}>350 / 1,000 Calls (35%)</span>
+                  </div>
+                  <div style={{ width: '100%', height: 7, background: '#f3f4f6', borderRadius: 10, overflow: 'hidden' }}>
+                    <div style={{ width: '35%', height: '100%', background: '#dc2626', borderRadius: 10 }} />
+                  </div>
+                </div>
+
+                {/* Voice transcription Quota */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
+                    <span>Voice Note AI Transcriptions</span>
+                    <span style={{ color: '#dc2626' }}>185 / 500 Minutes (37%)</span>
+                  </div>
+                  <div style={{ width: '100%', height: 7, background: '#f3f4f6', borderRadius: 10, overflow: 'hidden' }}>
+                    <div style={{ width: '37%', height: '100%', background: '#dc2626', borderRadius: 10 }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Pricing Packages */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {[
+                { name: 'Starter Plan', price: '$49', pricePKR: 'PKR 13,600', current: false, features: ['WhatsApp Single Channel', '1,000 monthly messages', 'Standard voice transcription', 'Basic email support'] },
+                { name: 'Growth Plan', price: '$149', pricePKR: 'PKR 41,300', current: true, features: ['All Channels (WA + TikTok + IG)', '10,000 monthly messages', 'Premium Whisper transcribing', 'Instant human handoff controls', 'Priority WhatsApp support'] },
+                { name: 'Enterprise Hub', price: '$399', pricePKR: 'PKR 110,700', current: false, features: ['Unlimited Omni-Channels', 'White-labeled studio portal', 'Full webhook and custom API key limits', '24/7 dedicated support staff'] },
+              ].map(plan => (
+                <div 
+                  key={plan.name} 
+                  style={{ 
+                    background: '#fff', borderRadius: 14, padding: '20px', 
+                    border: plan.current ? '2.5px solid #dc2626' : '1px solid rgba(220,38,38,0.08)', 
+                    position: 'relative', boxShadow: '0 2px 10px rgba(0,0,0,0.01)'
+                  }}
+                >
+                  {plan.current && (
+                    <span style={{ position: 'absolute', top: -11, left: 20, background: '#dc2626', color: '#fff', fontSize: 10.5, fontWeight: 800, padding: '3px 10px', borderRadius: 20, boxShadow: '0 2px 6px rgba(220,38,38,0.2)' }}>
+                      Current Active Plan
+                    </span>
+                  )}
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: '#111827' }}>{plan.name}</div>
+                      <div style={{ fontSize: 11.5, color: '#9ca3af', marginTop: 1 }}>{plan.pricePKR}/month</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: '#dc2626' }}>{plan.price}<span style={{ fontSize: 12, fontWeight: 550, color: '#9ca3af' }}>/mo</span></div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px', marginBottom: 16 }}>
+                    {plan.features.map(f => (
+                      <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#4b5563', fontWeight: 550 }}>
+                        <Check size={12} color="#dc2626" strokeWidth={3} /> {f}
+                      </div>
+                    ))}
+                  </div>
+
+                  <button 
+                    disabled={plan.current}
+                    style={{ 
+                      width: '100%', padding: '9px', fontSize: 12.5, fontWeight: 700, borderRadius: 9, cursor: plan.current ? 'default' : 'pointer',
+                      background: plan.current ? '#f3f4f6' : 'linear-gradient(135deg, #dc2626, #b91c1c)', 
+                      color: plan.current ? '#9ca3af' : '#fff', 
+                      border: plan.current ? '1.5px solid #e5e7eb' : 'none',
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={e => { if(!plan.current) e.currentTarget.style.background = '#b91c1c'; }}
+                    onMouseLeave={e => { if(!plan.current) e.currentTarget.style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)'; }}
+                  >
+                    {plan.current ? 'Active Plan Details' : 'Upgrade Subscription'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
+
+      {/* Save Button for profile sections */}
+      {tab !== 'Usage Quotas' && (
+        <button 
+          onClick={handleSave} 
+          style={{ 
+            marginTop: 28, display: 'flex', alignItems: 'center', gap: 8, padding: '11px 26px', fontSize: 13.5, fontWeight: 700, 
+            background: saved ? '#10b981' : 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff', border: 'none', borderRadius: 10, 
+            cursor: 'pointer', boxShadow: '0 4px 14px rgba(220,38,38,0.25)', transition: 'background 0.15s' 
+          }}
+          onMouseEnter={e => { if(!saved) e.currentTarget.style.background = '#b91c1c'; }}
+          onMouseLeave={e => { if(!saved) e.currentTarget.style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)'; }}
+        >
+          {saved ? <><Check size={15} strokeWidth={3} /> Changes Saved</> : 'Save Changes'}
+        </button>
+      )}
     </div>
   );
 }
