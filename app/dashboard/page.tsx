@@ -151,42 +151,151 @@ interface Slot {
   provider: string;
 }
 
-const mockWeeklyCalendar: Record<string, Slot[]> = {
-  Mon: [
-    { time: '09:00 AM', client: 'Sara Ahmed', service: 'Regular Consultation', status: 'Booked', provider: 'Dr. Hassan' },
-    { time: '11:00 AM', client: 'Bilal Khan', service: 'Scaling & Polishing', status: 'Booked', provider: 'Dr. Hassan' },
-    { time: '02:30 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Dr. Hassan' },
-  ],
-  Tue: [
-    { time: '10:00 AM', client: 'Fatima Noor', service: 'Emergency Root Canal', status: 'Booked', provider: 'Dr. Hassan' },
-    { time: '03:00 PM', client: 'Aisha Butt', service: 'Orthodontic Checkup', status: 'Booked', provider: 'Dr. Hassan' },
-  ],
-  Wed: [
-    { time: '09:30 AM', client: 'Omar Sheikh', service: 'General Dental Checkup', status: 'Booked', provider: 'Dr. Hassan' },
-    { time: '11:30 AM', client: 'Hina Malik', service: 'Composite Filling', status: 'Booked', provider: 'Dr. Hassan' },
-    { time: '03:00 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Dr. Hassan' },
-  ],
-  Thu: [
-    { time: '09:00 AM', client: 'Aisha Butt', service: 'Scaling & Polishing', status: 'Booked', provider: 'Dr. Hassan' },
-    { time: '10:00 AM', client: 'Zaid Hassan', service: 'Teeth Whitening Consultation', status: 'Booked', provider: 'Dr. Hassan' },
-    { time: '11:00 AM', client: 'Sara Ahmed', service: 'Root Canal Therapy', status: 'Booked', provider: 'Dr. Hassan' },
-    { time: '12:00 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Hassan' },
-    { time: '01:00 PM', client: '', service: 'OPD Lunch Break ☕', status: 'Break', provider: '' },
-    { time: '02:00 PM', client: 'Bilal Khan', service: 'Composite Filling', status: 'Booked', provider: 'Dr. Hassan' },
-    { time: '03:00 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Hassan' },
-  ],
-  Fri: [
-    { time: '10:00 AM', client: 'Bilal Khan', service: 'Dental Consultation', status: 'Booked', provider: 'Dr. Hassan' },
-    { time: '01:00 PM', client: 'Fatima Noor', service: 'Full Checkup', status: 'Booked', provider: 'Dr. Hassan' },
-    { time: '03:30 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Dr. Hassan' },
-  ],
-  Sat: [
-    { time: '11:00 AM', client: 'Aisha Butt', service: 'Urgent Care scaling', status: 'Booked', provider: 'Dr. Hassan' },
-    { time: '01:00 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Dr. Hassan' },
-  ],
-  Sun: [
-    { time: '10:00 AM', client: '', service: 'Emergency Only Slot', status: 'Available', provider: 'On-Call Doc' },
-  ],
+const mockWeeklyCalendarsByNiche: Record<string, Record<string, Slot[]>> = {
+  restaurant: {
+    Mon: [
+      { time: '12:00 PM', client: 'Sara Ahmed', service: 'Table 4 (4 Pax)', status: 'Booked', provider: 'Clifton Branch' },
+      { time: '01:30 PM', client: 'Bilal Khan', service: 'Table 2 (2 Pax)', status: 'Booked', provider: 'Clifton Branch' },
+      { time: '07:00 PM', client: '', service: 'Table 5 (2 Pax) Available', status: 'Available', provider: 'Clifton Branch' },
+    ],
+    Tue: [
+      { time: '06:00 PM', client: 'Fatima Noor', service: 'Table 6 (8 Pax)', status: 'Booked', provider: 'Clifton Branch' },
+      { time: '08:30 PM', client: 'Omar Sheikh', service: 'Table 3 (4 Pax)', status: 'Booked', provider: 'Clifton Branch' },
+    ],
+    Wed: [
+      { time: '01:00 PM', client: 'Hina Malik', service: 'Table 1 (6 Pax)', status: 'Booked', provider: 'Clifton Branch' },
+      { time: '07:30 PM', client: '', service: 'Table 4 (4 Pax) Available', status: 'Available', provider: 'Clifton Branch' },
+    ],
+    Thu: [
+      { time: '12:00 PM', client: 'Sara Ahmed', service: 'Table 4 (4 Pax)', status: 'Booked', provider: 'Clifton Branch' },
+      { time: '01:30 PM', client: 'Bilal Khan', service: 'Table 2 (2 Pax)', status: 'Booked', provider: 'Clifton Branch' },
+      { time: '03:00 PM', client: '', service: 'Table 1 (6 Pax) Available', status: 'Available', provider: 'Clifton Branch' },
+      { time: '06:00 PM', client: 'Fatima Noor', service: 'Table 6 (8 Pax)', status: 'Booked', provider: 'Clifton Branch' },
+      { time: '08:00 PM', client: 'Aisha Butt', service: 'Table for 4 Guests', status: 'Booked', provider: 'Clifton Branch' },
+      { time: '09:30 PM', client: '', service: 'Available Booking Slot', status: 'Available', provider: 'Clifton Branch' },
+    ],
+    Fri: [
+      { time: '06:30 PM', client: 'Bilal Khan', service: 'Table 3 (2 Pax)', status: 'Booked', provider: 'Clifton Branch' },
+      { time: '08:00 PM', client: 'Maryam Ali', service: 'Table 2 (4 Pax)', status: 'Booked', provider: 'Clifton Branch' },
+    ],
+    Sat: [
+      { time: '07:00 PM', client: 'Aisha Butt', service: 'Table 1 (6 Pax)', status: 'Booked', provider: 'Clifton Branch' },
+      { time: '09:00 PM', client: '', service: 'Table 4 (4 Pax) Available', status: 'Available', provider: 'Clifton Branch' },
+    ],
+    Sun: [
+      { time: '01:00 PM', client: '', service: 'Available Booking Slot', status: 'Available', provider: 'Clifton Branch' },
+    ],
+  },
+  salon: {
+    Mon: [
+      { time: '09:00 AM', client: 'Sara Ahmed', service: 'Hair Highlights', status: 'Booked', provider: 'Stylist Sarah' },
+      { time: '11:00 AM', client: 'Bilal Khan', service: 'Manicure', status: 'Booked', provider: 'Stylist Sarah' },
+      { time: '02:30 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Stylist Sarah' },
+    ],
+    Tue: [
+      { time: '10:00 AM', client: 'Fatima Noor', service: 'Glow Facial', status: 'Booked', provider: 'Stylist Maria' },
+      { time: '03:00 PM', client: 'Aisha Butt', service: 'Hair Blowdry', status: 'Booked', provider: 'Stylist Alex' },
+    ],
+    Wed: [
+      { time: '09:30 AM', client: 'Omar Sheikh', service: 'Beard Grooming', status: 'Booked', provider: 'Stylist Alex' },
+      { time: '11:30 AM', client: 'Hina Malik', service: 'Pedicure', status: 'Booked', provider: 'Stylist Maria' },
+      { time: '03:00 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Stylist Sarah' },
+    ],
+    Thu: [
+      { time: '09:00 AM', client: 'Aisha Butt', service: 'Hair Highlights', status: 'Booked', provider: 'Stylist Sarah' },
+      { time: '10:30 AM', client: 'Zaid Hassan', service: 'Beard Grooming', status: 'Booked', provider: 'Stylist Alex' },
+      { time: '12:00 PM', client: 'Sara Ahmed', service: 'Glow Facial', status: 'Booked', provider: 'Stylist Maria' },
+      { time: '01:30 PM', client: '', service: 'Salon Lunch Break ☕', status: 'Break', provider: '' },
+      { time: '02:30 PM', client: 'Bilal Khan', service: 'Manicure & Pedicure', status: 'Booked', provider: 'Stylist Sarah' },
+      { time: '04:00 PM', client: '', service: 'Available Stylist Slot', status: 'Available', provider: 'Stylist Sarah' },
+    ],
+    Fri: [
+      { time: '10:00 AM', client: 'Bilal Khan', service: 'Hair Cut & Styling', status: 'Booked', provider: 'Stylist Sarah' },
+      { time: '01:00 PM', client: 'Fatima Noor', service: 'Glow Facial', status: 'Booked', provider: 'Stylist Maria' },
+      { time: '03:30 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Stylist Sarah' },
+    ],
+    Sat: [
+      { time: '11:00 AM', client: 'Aisha Butt', service: 'Bridal Makeup', status: 'Booked', provider: 'Stylist Maria' },
+      { time: '01:00 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Stylist Sarah' },
+    ],
+    Sun: [
+      { time: '10:00 AM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Stylist Sarah' },
+    ],
+  },
+  dental: {
+    Mon: [
+      { time: '09:00 AM', client: 'Sara Ahmed', service: 'Dental Consultation', status: 'Booked', provider: 'Dr. Hassan' },
+      { time: '11:00 AM', client: 'Bilal Khan', service: 'Scaling & Polishing', status: 'Booked', provider: 'Dr. Hassan' },
+      { time: '02:30 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Dr. Hassan' },
+    ],
+    Tue: [
+      { time: '10:00 AM', client: 'Fatima Noor', service: 'Emergency Root Canal', status: 'Booked', provider: 'Dr. Hassan' },
+      { time: '03:00 PM', client: 'Aisha Butt', service: 'Orthodontic Checkup', status: 'Booked', provider: 'Dr. Hassan' },
+    ],
+    Wed: [
+      { time: '09:30 AM', client: 'Omar Sheikh', service: 'General Dental Checkup', status: 'Booked', provider: 'Dr. Hassan' },
+      { time: '11:30 AM', client: 'Hina Malik', service: 'Composite Filling', status: 'Booked', provider: 'Dr. Hassan' },
+      { time: '03:00 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Dr. Hassan' },
+    ],
+    Thu: [
+      { time: '09:00 AM', client: 'Aisha Butt', service: 'Scaling & Polishing', status: 'Booked', provider: 'Dr. Hassan' },
+      { time: '10:00 AM', client: 'Zaid Hassan', service: 'Teeth Whitening Consultation', status: 'Booked', provider: 'Dr. Hassan' },
+      { time: '11:00 AM', client: 'Sara Ahmed', service: 'Root Canal Therapy', status: 'Booked', provider: 'Dr. Hassan' },
+      { time: '12:00 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Hassan' },
+      { time: '01:00 PM', client: '', service: 'OPD Lunch Break ☕', status: 'Break', provider: '' },
+      { time: '02:00 PM', client: 'Bilal Khan', service: 'Composite Filling', status: 'Booked', provider: 'Dr. Hassan' },
+      { time: '03:00 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Hassan' },
+    ],
+    Fri: [
+      { time: '10:00 AM', client: 'Bilal Khan', service: 'Dental Consultation', status: 'Booked', provider: 'Dr. Hassan' },
+      { time: '01:00 PM', client: 'Fatima Noor', service: 'Full Checkup', status: 'Booked', provider: 'Dr. Hassan' },
+      { time: '03:30 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Dr. Hassan' },
+    ],
+    Sat: [
+      { time: '11:00 AM', client: 'Aisha Butt', service: 'Urgent Care scaling', status: 'Booked', provider: 'Dr. Hassan' },
+      { time: '01:00 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Dr. Hassan' },
+    ],
+    Sun: [
+      { time: '10:00 AM', client: '', service: 'Emergency Only Slot', status: 'Available', provider: 'On-Call Doc' },
+    ],
+  },
+  clinic: {
+    Mon: [
+      { time: '09:00 AM', client: 'Sara Ahmed', service: 'General OPD', status: 'Booked', provider: 'Dr. Irfan' },
+      { time: '11:00 AM', client: 'Bilal Khan', service: 'Cardiology Visit', status: 'Booked', provider: 'Dr. Irfan' },
+      { time: '02:30 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Irfan' },
+    ],
+    Tue: [
+      { time: '10:00 AM', client: 'Fatima Noor', service: 'Pediatric Checkup', status: 'Booked', provider: 'Dr. Sarah' },
+      { time: '03:00 PM', client: 'Aisha Butt', service: 'Flu Consultation', status: 'Booked', provider: 'Dr. Irfan' },
+    ],
+    Wed: [
+      { time: '09:30 AM', client: 'Omar Sheikh', service: 'General Checkup', status: 'Booked', provider: 'Dr. Irfan' },
+      { time: '11:30 AM', client: 'Hina Malik', service: 'Blood Pressure Check', status: 'Booked', provider: 'Dr. Irfan' },
+      { time: '03:00 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Irfan' },
+    ],
+    Thu: [
+      { time: '09:00 AM', client: 'Aisha Butt', service: 'General OPD Checkup', status: 'Booked', provider: 'Dr. Irfan' },
+      { time: '10:00 AM', client: 'Zaid Hassan', service: 'Cardiology Consultation', status: 'Booked', provider: 'Dr. Irfan' },
+      { time: '11:00 AM', client: 'Sara Ahmed', service: 'Prescription Renewal', status: 'Booked', provider: 'Dr. Irfan' },
+      { time: '12:00 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Irfan' },
+      { time: '01:00 PM', client: '', service: 'OPD Lunch Break ☕', status: 'Break', provider: '' },
+      { time: '02:00 PM', client: 'Bilal Khan', service: 'Dermatology Consultation', status: 'Booked', provider: 'Dr. Sarah' },
+      { time: '03:00 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Irfan' },
+    ],
+    Fri: [
+      { time: '10:00 AM', client: 'Bilal Khan', service: 'OPD Consultation', status: 'Booked', provider: 'Dr. Irfan' },
+      { time: '01:00 PM', client: 'Fatima Noor', service: 'Skin Checkup', status: 'Booked', provider: 'Dr. Sarah' },
+      { time: '03:30 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Irfan' },
+    ],
+    Sat: [
+      { time: '11:00 AM', client: 'Aisha Butt', service: 'Vaccination Slot', status: 'Booked', provider: 'Dr. Sarah' },
+      { time: '01:00 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Irfan' },
+    ],
+    Sun: [
+      { time: '10:00 AM', client: '', service: 'On-Call Emergencies', status: 'Available', provider: 'On-Call Dr' },
+    ],
+  }
 };
 
 // ── Main Component ────────────────────────────────────────────
@@ -318,7 +427,7 @@ export default function DashboardPage() {
     }
   })();
 
-  const activeTimelineSlots = mockWeeklyCalendar[activeDay] || [];
+  const activeTimelineSlots = (mockWeeklyCalendarsByNiche[nicheId] || mockWeeklyCalendarsByNiche['dental'])[activeDay] || [];
 
   return (
     <div style={{ padding: '28px 28px 40px', minHeight: '100%', background: '#faf9f9' }}>
@@ -377,6 +486,113 @@ export default function DashboardPage() {
               label="Average Order Value" value="PKR 4,305.71"
               sub="Basket size across orders"
               icon={BarChart3} color={PURP} bg="#f5f3ff"
+            />
+          </>
+        ) : nicheId === 'restaurant' ? (
+          <>
+            <StatCard
+              label="Table Reservations Booked" value="42 Bookings"
+              sub="Scheduled reservations today"
+              icon={Calendar} color={RED} bg={RED_L}
+              trend="+14% vs yesterday" trendUp={true}
+            />
+            <StatCard
+              label="Table Reservation Capacity" value="82% Full"
+              sub="Table and dining capacity"
+              icon={Clock} color={BLUE} bg="#eff6ff"
+              trend="+5% vs last week" trendUp={true}
+            />
+            <StatCard
+              label="Loyal Repeat Diner Rate" value="76%"
+              sub="Return guest / diner index"
+              icon={Smile} color={AMB} bg="#fffbeb"
+              trend="+2% vs last month" trendUp={true}
+            />
+            <StatCard
+              label="Avg Dining Ticket Value" value="PKR 4,300"
+              sub="Average spending per dining table"
+              icon={BarChart3} color={PURP} bg="#f5f3ff"
+              trend="+12% from last month" trendUp={true}
+            />
+          </>
+        ) : nicheId === 'salon' ? (
+          <>
+            <StatCard
+              label="Salon Services Booked" value="34 Bookings"
+              sub="Beauty appointments scheduled today"
+              icon={Calendar} color={RED} bg={RED_L}
+              trend="+18% vs yesterday" trendUp={true}
+            />
+            <StatCard
+              label="Stylist / Seat Capacity" value="88% Full"
+              sub="Stylist seats booked today"
+              icon={Clock} color={BLUE} bg="#eff6ff"
+              trend="+5% resource limit" trendUp={true}
+            />
+            <StatCard
+              label="Loyal Repeat Client Rate" value="76%"
+              sub="Return salon client index"
+              icon={Smile} color={AMB} bg="#fffbeb"
+              trend="+4% vs last month" trendUp={true}
+            />
+            <StatCard
+              label="Avg Service Spend" value="PKR 3,500"
+              sub="Average billing value per ticket"
+              icon={BarChart3} color={PURP} bg="#f5f3ff"
+              trend="+8% from last month" trendUp={true}
+            />
+          </>
+        ) : nicheId === 'clinic' ? (
+          <>
+            <StatCard
+              label="OPD Patient Appointments" value="45 Patients"
+              sub="Scheduled patient checkups today"
+              icon={Calendar} color={RED} bg={RED_L}
+              trend="+8 patients" trendUp={true}
+            />
+            <StatCard
+              label="OPD Clinic Capacity" value="92% Booked"
+              sub="Doctor shift resource capacity"
+              icon={Clock} color={BLUE} bg="#eff6ff"
+              trend="+6% vs last week" trendUp={true}
+            />
+            <StatCard
+              label="Patient Satisfaction Rate" value="96.4%"
+              sub="Care rating and return index"
+              icon={Smile} color={AMB} bg="#fffbeb"
+              trend="+1.2% from last month" trendUp={true}
+            />
+            <StatCard
+              label="Avg Ticket Spend" value="PKR 2,800"
+              sub="Average consultation & lab fee spend"
+              icon={BarChart3} color={PURP} bg="#f5f3ff"
+            />
+          </>
+        ) : nicheId === 'dental' ? (
+          <>
+            <StatCard
+              label="OPD Dental Appointments" value="28 Patients"
+              sub="Patients booked today"
+              icon={Calendar} color={RED} bg={RED_L}
+              trend="+5 patients" trendUp={true}
+            />
+            <StatCard
+              label="Dental Clinic Capacity" value="85% Booked"
+              sub="Dentist seat and room capacity"
+              icon={Clock} color={BLUE} bg="#eff6ff"
+              trend="+5% vs last week" trendUp={true}
+            />
+            <StatCard
+              label="Patient Retention Rate" value="94.2%"
+              sub="Return patient index"
+              icon={Smile} color={AMB} bg="#fffbeb"
+              trend="+2% vs last month" trendUp={true}
+            />
+            <StatCard
+              label="Avg Treatment Cost" value="PKR 7,500"
+              sub="Average dental service spend"
+              icon={BarChart3} color={PURP} bg="#f5f3ff"
+              trend="+12% from last month" trendUp={true}
             />
           </>
         ) : niche.appointmentBased ? (
@@ -804,7 +1020,11 @@ export default function DashboardPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 250, overflowY: 'auto' }}>
               {activeTimelineSlots.length === 0 ? (
                 <div style={{ padding: '30px 0', textAlign: 'center', fontSize: 12.5, color: '#9ca3af' }}>
-                  No bookings scheduled for Sunday. Emergency only.
+                  {nicheId === 'restaurant'
+                    ? 'No reservations scheduled for Sunday. Closed today.'
+                    : nicheId === 'salon'
+                      ? 'No beauty appointments scheduled for Sunday. Closed today.'
+                      : 'No bookings scheduled for Sunday. Emergency only.'}
                 </div>
               ) : (
                 activeTimelineSlots.map((item, idx) => (
