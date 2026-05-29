@@ -11,7 +11,9 @@ export async function POST(request: Request) {
     if (process.env.CHAT_SERVICE_URL) {
       urlsToTry.push(process.env.CHAT_SERVICE_URL);
     }
-    // Railway private DNS (Port 8080 is Railway's default internal container port assignment)
+    // Railway official private DNS formats
+    urlsToTry.push('http://chat-service.private.railway.internal:8080/send');
+    urlsToTry.push('http://chat-service.private.railway.internal:3004/send');
     urlsToTry.push('http://chat-service:8080/send');
     urlsToTry.push('http://chat-service:3004/send');
     // Local developer fallback
