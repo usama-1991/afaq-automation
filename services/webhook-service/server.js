@@ -84,6 +84,25 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
 
   const tenantId = integration.tenant_id;
 
+  // 1b. Fetch full tenant record for niche context (used by n8n routing)
+  let tenantNiche = 'general';
+  let tenantBusinessName = '';
+  let tenantMetadata = {};
+  try {
+    const { data: tenantRecord } = await supabase
+      .from('tenants')
+      .select('niche, business_name, metadata')
+      .eq('id', tenantId)
+      .single();
+    if (tenantRecord) {
+      tenantNiche = tenantRecord.niche || 'general';
+      tenantBusinessName = tenantRecord.business_name || '';
+      tenantMetadata = tenantRecord.metadata || {};
+    }
+  } catch (e) {
+    fastify.log.warn(`[${platform}] Could not fetch tenant niche: ${e.message}`);
+  }
+
   // 2. Find or Create Conversation
   let { data: conversation, error: convError } = await supabase
     .from('conversations')
@@ -125,14 +144,16 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
 
   // 3. Insert Message & Update Counter
   fastify.log.info(`[${platform}] Inserting message and incrementing unread_count`);
-  const { error: msgError } = await supabase
+  const { data: savedMessage, error: msgError } = await supabase
     .from('messages')
     .insert({
       conversation_id: conversation.id,
       sender_type: 'customer',
       content: messageText,
       external_message_id: messageId
-    });
+    })
+    .select('id')
+    .single();
 
   if (msgError) {
     if (msgError.code === '23505') {
@@ -158,20 +179,31 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
 
   fastify.log.info(`[${platform}] Message inserted and counter updated to ${currentCount + 1}.`);
 
-  // 4. Trigger n8n Webhook for AI Agent Processing
+  // 4. Trigger n8n Webhook for AI Agent Processing (enriched with niche context)
   const n8nUrl = process.env.N8N_WEBHOOK_URL;
   if (n8nUrl) {
+    const n8nPayload = {
+      // Core identifiers
+      tenant_id: tenantId,
+      conversation_id: conversation.id,
+      message_id: savedMessage?.id || null,
+      // Customer context
+      customer_phone: customerId,
+      customer_name: customerName,
+      message_text: messageText,
+      platform: platform,
+      // Niche routing context (consumed by n8n Switch node)
+      niche: tenantNiche,
+      business_name: tenantBusinessName,
+      tenant_metadata: tenantMetadata,
+      // Timestamp
+      timestamp: new Date().toISOString(),
+    };
+    fastify.log.info(`[${platform}] Firing n8n webhook with niche="${tenantNiche}"`);
     fetch(n8nUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tenant_id: tenantId,
-        conversation_id: conversation.id,
-        customer_phone: customerId,
-        customer_name: customerName,
-        message: messageText,
-        platform: platform
-      })
+      body: JSON.stringify(n8nPayload)
     }).catch(err => fastify.log.error(`Failed to trigger n8n: ${err.message}`));
   }
 }

@@ -1,18 +1,19 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { 
   Check, RefreshCw, Bot, Plug, Settings, Sparkles, 
   Volume2, UserX, BarChart3, Upload, Key, ShieldCheck, 
   User, CreditCard, LayoutGrid, Sliders, MessageSquare, 
-  AlertCircle 
+  AlertCircle, Globe, BookOpen, Trash2, Loader2, ShoppingCart,
+  ExternalLink, Link2
 } from 'lucide-react';
 import { useNiche } from '@/context/NicheContext';
 import { niches } from '@/lib/niches';
 import { supabase } from '@/lib/supabase/client';
 
-const tabs = ['Business Profile', 'Channels & APIs', 'Voice & Opt-Outs', 'Usage Quotas'] as const;
+const tabs = ['Business Profile', 'Channels & APIs', 'AI Knowledge', 'eCommerce Platform', 'Voice & Opt-Outs', 'Usage Quotas'] as const;
 type Tab = typeof tabs[number];
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
@@ -104,6 +105,26 @@ function SettingsInner() {
   const [tiktokKey, setTiktokKey] = useState('tt-dev-••••••••••••x9A7');
   const [sheetKey, setSheetKey] = useState('AIza••••••••••••_M9');
 
+  // AI Knowledge Base state
+  interface KBEntry { id: string; kb_type: string; title: string; content: string; source_url?: string; is_active: boolean; created_at: string; }
+  const [kbEntries, setKbEntries] = useState<KBEntry[]>([]);
+  const [kbLoading, setKbLoading] = useState(false);
+  const [kbUrlInput, setKbUrlInput] = useState('');
+  const [kbScraping, setKbScraping] = useState(false);
+  const [kbCustomTitle, setKbCustomTitle] = useState('');
+  const [kbCustomContent, setKbCustomContent] = useState('');
+  const [tenantIdState, setTenantIdState] = useState<string | null>(null);
+
+  // eCommerce Platform state
+  const [ecomPlatform, setEcomPlatform] = useState<'Shopify' | 'WooCommerce' | 'None'>('None');
+  const [shopifyUrl, setShopifyUrl] = useState('');
+  const [shopifyToken, setShopifyToken] = useState('');
+  const [wcUrl, setWcUrl] = useState('');
+  const [wcKey, setWcKey] = useState('');
+  const [wcSecret, setWcSecret] = useState('');
+  const [ecomSaving, setEcomSaving] = useState(false);
+  const [ecomConnected, setEcomConnected] = useState(false);
+
   // Automation & Opt-Out settings
   const [voiceAutoTranscribe, setVoiceAutoTranscribe] = useState(true);
   const [voiceAccuracy, setVoiceAccuracy] = useState<'Standard' | 'Premium Whisper-4o'>('Premium Whisper-4o');
@@ -144,6 +165,7 @@ function SettingsInner() {
             .single();
 
           if (profile?.tenant_id) {
+            setTenantIdState(profile.tenant_id);
             const { data: tenant } = await supabase
               .from('tenants')
               .select('*')
@@ -154,6 +176,11 @@ function SettingsInner() {
               if (tenant.business_name) setBusinessName(tenant.business_name);
               if (tenant.business_phone) setWaNumber(tenant.business_phone);
             }
+
+            // Load knowledge base entries
+            fetchKnowledgeBase(profile.tenant_id);
+            // Load ecommerce credentials
+            fetchEcomCredentials(profile.tenant_id);
           }
         }
       } catch (err) {
@@ -162,6 +189,123 @@ function SettingsInner() {
     };
     fetchTenantSettings();
   }, []);
+
+  // KB Fetcher
+  const fetchKnowledgeBase = async (tid: string) => {
+    setKbLoading(true);
+    try {
+      const { data } = await supabase
+        .from('knowledge_base')
+        .select('*')
+        .eq('tenant_id', tid)
+        .order('created_at', { ascending: false });
+      if (data) setKbEntries(data);
+    } catch (e) { console.error(e); }
+    setKbLoading(false);
+  };
+
+  // KB: Scrape URL via Jina Reader
+  const handleScrapeUrl = async () => {
+    if (!kbUrlInput || !tenantIdState) return;
+    setKbScraping(true);
+    try {
+      const res = await fetch(`https://r.jina.ai/${kbUrlInput}`);
+      const text = await res.text();
+      const title = kbUrlInput.replace(/https?:\/\//, '').split('/')[0];
+      await supabase.from('knowledge_base').insert({
+        tenant_id: tenantIdState,
+        kb_type: 'url',
+        title: title,
+        content: text.slice(0, 8000),
+        source_url: kbUrlInput,
+        is_active: true,
+      });
+      setKbUrlInput('');
+      fetchKnowledgeBase(tenantIdState);
+    } catch (e: any) {
+      alert('Scrape failed: ' + e.message);
+    }
+    setKbScraping(false);
+  };
+
+  // KB: Add custom text instruction
+  const handleAddCustomKB = async () => {
+    if (!kbCustomTitle || !kbCustomContent || !tenantIdState) return;
+    await supabase.from('knowledge_base').insert({
+      tenant_id: tenantIdState,
+      kb_type: 'text',
+      title: kbCustomTitle,
+      content: kbCustomContent,
+      is_active: true,
+    });
+    setKbCustomTitle('');
+    setKbCustomContent('');
+    fetchKnowledgeBase(tenantIdState);
+  };
+
+  // KB: Delete entry
+  const handleDeleteKB = async (id: string) => {
+    await supabase.from('knowledge_base').delete().eq('id', id);
+    if (tenantIdState) fetchKnowledgeBase(tenantIdState);
+  };
+
+  // KB: Toggle active
+  const handleToggleKB = async (id: string, active: boolean) => {
+    await supabase.from('knowledge_base').update({ is_active: !active }).eq('id', id);
+    if (tenantIdState) fetchKnowledgeBase(tenantIdState);
+  };
+
+  // eCommerce credentials fetcher
+  const fetchEcomCredentials = async (tid: string) => {
+    try {
+      const { data } = await supabase
+        .from('integration_credentials')
+        .select('*')
+        .eq('tenant_id', tid)
+        .in('platform', ['shopify', 'woocommerce'])
+        .limit(1)
+        .maybeSingle();
+      if (data) {
+        setEcomConnected(true);
+        if (data.platform === 'shopify') {
+          setEcomPlatform('Shopify');
+          setShopifyUrl(data.credentials?.store_url || '');
+          setShopifyToken(data.credentials?.access_token ? '••••••••••••' : '');
+        } else if (data.platform === 'woocommerce') {
+          setEcomPlatform('WooCommerce');
+          setWcUrl(data.credentials?.site_url || '');
+          setWcKey(data.credentials?.consumer_key ? '••••••••••••' : '');
+          setWcSecret(data.credentials?.consumer_secret ? '••••••••••••' : '');
+        }
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  // eCommerce save
+  const handleSaveEcom = async () => {
+    if (!tenantIdState) return;
+    setEcomSaving(true);
+    try {
+      const platform = ecomPlatform.toLowerCase();
+      const credentials = ecomPlatform === 'Shopify'
+        ? { store_url: shopifyUrl, access_token: shopifyToken }
+        : { site_url: wcUrl, consumer_key: wcKey, consumer_secret: wcSecret };
+
+      await supabase.from('integration_credentials').upsert({
+        tenant_id: tenantIdState,
+        platform,
+        credentials,
+        is_active: true,
+      }, { onConflict: 'tenant_id,platform' });
+
+      setEcomConnected(true);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e: any) {
+      alert('Save failed: ' + e.message);
+    }
+    setEcomSaving(false);
+  };
 
   // Load custom simulated niche fields from localstorage
   useEffect(() => {
@@ -559,6 +703,283 @@ function SettingsInner() {
                   onChange={e => setSheetKey(e.target.value)} 
                   style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fafafa', outline: 'none' }} 
                 />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── AI Knowledge Tab ── */}
+        {tab === 'AI Knowledge' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* URL Scraper */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <Globe size={16} color="#dc2626" />
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Website URL Scraper</div>
+              </div>
+              <p style={{ fontSize: 12.5, color: '#6b7280', marginBottom: 16 }}>
+                Paste your business website URL. AutoFlow will crawl the page and import all text content into the AI knowledge base.
+              </p>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                <input
+                  value={kbUrlInput}
+                  onChange={e => setKbUrlInput(e.target.value)}
+                  placeholder="https://yourbusiness.com/about"
+                  style={{
+                    flex: 1, padding: '10px 12px', fontSize: 13,
+                    border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9,
+                    background: '#fafafa', fontFamily: 'inherit', outline: 'none',
+                  }}
+                  onFocus={e => { e.currentTarget.style.borderColor = '#dc2626'; }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'rgba(220,38,38,0.12)'; }}
+                />
+                <button
+                  onClick={handleScrapeUrl}
+                  disabled={kbScraping || !kbUrlInput}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '8px 18px', fontSize: 12.5, fontWeight: 700,
+                    background: kbScraping ? '#9ca3af' : 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                    color: '#fff', border: 'none', borderRadius: 9,
+                    cursor: kbScraping ? 'default' : 'pointer',
+                    boxShadow: '0 2px 6px rgba(220,38,38,0.2)',
+                  }}
+                >
+                  {kbScraping ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Scraping...</> : <><Link2 size={13} /> Scrape & Import</>}
+                </button>
+              </div>
+              <p style={{ fontSize: 11, color: '#9ca3af' }}>Powered by Jina AI Reader. Content is truncated to 8,000 characters per page.</p>
+            </div>
+
+            {/* Custom Instructions */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <BookOpen size={16} color="#dc2626" />
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Custom Business Instructions</div>
+              </div>
+              <p style={{ fontSize: 12.5, color: '#6b7280', marginBottom: 16 }}>
+                Write specific context, policies, or rules your AI agent must follow. Example: &quot;Never offer more than 10% discount&quot;, &quot;Our Clifton branch has free valet parking.&quot;
+              </p>
+              <div style={{ marginBottom: 12 }}>
+                <input
+                  value={kbCustomTitle}
+                  onChange={e => setKbCustomTitle(e.target.value)}
+                  placeholder="Title (e.g. Discount Policy, Branch Info)"
+                  style={{
+                    width: '100%', padding: '10px 12px', fontSize: 13,
+                    border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9,
+                    background: '#fafafa', fontFamily: 'inherit', outline: 'none', marginBottom: 8,
+                  }}
+                />
+                <textarea
+                  value={kbCustomContent}
+                  onChange={e => setKbCustomContent(e.target.value)}
+                  rows={4}
+                  placeholder="Enter your business instruction or context here..."
+                  style={{
+                    width: '100%', padding: '10px 12px', fontSize: 13,
+                    border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9,
+                    background: '#fafafa', fontFamily: 'inherit', outline: 'none',
+                    resize: 'vertical', lineHeight: 1.5,
+                  }}
+                />
+              </div>
+              <button
+                onClick={handleAddCustomKB}
+                disabled={!kbCustomTitle || !kbCustomContent}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '8px 18px', fontSize: 12.5, fontWeight: 700,
+                  background: (!kbCustomTitle || !kbCustomContent) ? '#e5e7eb' : 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                  color: (!kbCustomTitle || !kbCustomContent) ? '#9ca3af' : '#fff',
+                  border: 'none', borderRadius: 9,
+                  cursor: (!kbCustomTitle || !kbCustomContent) ? 'default' : 'pointer',
+                  boxShadow: '0 2px 6px rgba(220,38,38,0.15)',
+                }}
+              >
+                <Sparkles size={13} /> Add to Knowledge Base
+              </button>
+            </div>
+
+            {/* Knowledge Documents List */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <BookOpen size={16} color="#dc2626" />
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Active Knowledge Documents ({kbEntries.filter(e => e.is_active).length})</div>
+                </div>
+                {kbLoading && <Loader2 size={14} color="#dc2626" style={{ animation: 'spin 1s linear infinite' }} />}
+              </div>
+              {kbEntries.length === 0 ? (
+                <div style={{ padding: '24px 0', textAlign: 'center', color: '#9ca3af', fontSize: 12.5 }}>
+                  No knowledge entries yet. Scrape a URL or add custom instructions above.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {kbEntries.map(entry => (
+                    <div key={entry.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+                      background: entry.is_active ? '#fafafa' : '#f9fafb', borderRadius: 10,
+                      border: entry.is_active ? '1px solid rgba(220,38,38,0.08)' : '1px solid #e5e7eb',
+                      opacity: entry.is_active ? 1 : 0.6,
+                    }}>
+                      <div style={{
+                        width: 34, height: 34, borderRadius: 8,
+                        background: entry.kb_type === 'url' ? '#eff6ff' : entry.kb_type === 'pdf' ? '#fef3c7' : '#fef2f2',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 14, flexShrink: 0,
+                      }}>
+                        {entry.kb_type === 'url' ? '🌐' : entry.kb_type === 'pdf' ? '📄' : '✏️'}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {entry.title}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 1 }}>
+                          {entry.kb_type.toUpperCase()} · {entry.content?.length || 0} chars · {new Date(entry.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                        <button
+                          onClick={() => handleToggleKB(entry.id, entry.is_active)}
+                          style={{
+                            padding: '4px 10px', fontSize: 10.5, fontWeight: 600, borderRadius: 6,
+                            border: '1px solid rgba(220,38,38,0.15)', cursor: 'pointer',
+                            background: entry.is_active ? '#ecfdf5' : '#fff',
+                            color: entry.is_active ? '#065f46' : '#6b7280',
+                          }}
+                        >
+                          {entry.is_active ? 'Active' : 'Disabled'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteKB(entry.id)}
+                          style={{
+                            width: 28, height: 28, borderRadius: 6, border: '1px solid rgba(220,38,38,0.15)',
+                            background: '#fff', cursor: 'pointer', display: 'flex',
+                            alignItems: 'center', justifyContent: 'center',
+                          }}
+                        >
+                          <Trash2 size={12} color="#ef4444" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── eCommerce Platform Tab ── */}
+        {tab === 'eCommerce Platform' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Platform Selector */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <ShoppingCart size={16} color="#dc2626" />
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Connect Your Store</div>
+              </div>
+              <p style={{ fontSize: 12.5, color: '#6b7280', marginBottom: 16 }}>
+                Connect your eCommerce platform so the AI agent can look up orders, check inventory, and create new orders from WhatsApp conversations.
+              </p>
+
+              {/* Connection status */}
+              {ecomConnected && (
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  background: '#ecfdf5', border: '1px solid #bbf7d0', color: '#065f46',
+                  padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, marginBottom: 16,
+                }}>
+                  <Check size={13} strokeWidth={3} /> {ecomPlatform} Connected
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
+                {(['Shopify', 'WooCommerce', 'None'] as const).map(p => {
+                  const active = ecomPlatform === p;
+                  return (
+                    <div
+                      key={p}
+                      onClick={() => setEcomPlatform(p)}
+                      style={{
+                        padding: '14px 10px', borderRadius: 10, cursor: 'pointer',
+                        textAlign: 'center', position: 'relative',
+                        border: active ? '2px solid #dc2626' : '1.5px solid rgba(220,38,38,0.08)',
+                        background: active ? '#fef2f2' : '#fafafa',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {active && (
+                        <div style={{ position: 'absolute', top: 6, right: 6, width: 16, height: 16, borderRadius: '50%', background: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Check size={9} color="#fff" strokeWidth={3} />
+                        </div>
+                      )}
+                      <span style={{ fontSize: 22 }}>{p === 'Shopify' ? '🛍️' : p === 'WooCommerce' ? '🛒' : '⏸️'}</span>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: active ? '#991b1b' : '#374151', marginTop: 4 }}>{p === 'None' ? 'Not Connected' : p}</div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Shopify Fields */}
+              {ecomPlatform === 'Shopify' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <Field label="Shopify Store URL" value={shopifyUrl} onChange={setShopifyUrl} hint="e.g. mystorename.myshopify.com (no https://)" />
+                  <Field label="Admin API Access Token" value={shopifyToken} onChange={setShopifyToken} type="password" hint="From Shopify Admin → Apps → Develop Apps → Install → Reveal token once" />
+                  <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '12px 14px', fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>
+                    <strong>How to get your token:</strong> Shopify Admin → Settings → Apps → Develop apps → Create an app → Configure Admin API scopes (enable <code>read_orders</code>, <code>write_orders</code>, <code>read_products</code>, <code>read_inventory</code>, <code>read_customers</code>) → Install app → Reveal token.
+                  </div>
+                </div>
+              )}
+
+              {/* WooCommerce Fields */}
+              {ecomPlatform === 'WooCommerce' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <Field label="WordPress Site URL" value={wcUrl} onChange={setWcUrl} hint="e.g. https://mystore.com" />
+                  <Field label="Consumer Key" value={wcKey} onChange={setWcKey} type="password" hint="From WooCommerce → Settings → Advanced → REST API → Add Key" />
+                  <Field label="Consumer Secret" value={wcSecret} onChange={setWcSecret} type="password" />
+                  <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '12px 14px', fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>
+                    <strong>How to get your keys:</strong> WordPress Admin → WooCommerce → Settings → Advanced → REST API → Add Key → Description: &quot;AutoFlow&quot;, Permissions: Read/Write → Generate API Key.
+                  </div>
+                </div>
+              )}
+
+              {ecomPlatform !== 'None' && (
+                <button
+                  onClick={handleSaveEcom}
+                  disabled={ecomSaving}
+                  style={{
+                    marginTop: 16, display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '10px 22px', fontSize: 13, fontWeight: 700,
+                    background: ecomSaving ? '#9ca3af' : 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                    color: '#fff', border: 'none', borderRadius: 9,
+                    cursor: ecomSaving ? 'default' : 'pointer',
+                    boxShadow: '0 3px 10px rgba(220,38,38,0.2)',
+                  }}
+                >
+                  {ecomSaving ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Saving...</> : <><ShieldCheck size={14} /> Test & Save Connection</>}
+                </button>
+              )}
+            </div>
+
+            {/* n8n Integration Info */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <Sparkles size={16} color="#dc2626" />
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>How It Works</div>
+              </div>
+              <div style={{ fontSize: 12.5, color: '#6b7280', lineHeight: 1.7 }}>
+                <p style={{ marginBottom: 8 }}>Once connected, your AI agent will automatically:</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingLeft: 8 }}>
+                  {[
+                    '🔍 Look up order status when a customer asks "where is my order?"',
+                    '📦 Check live product inventory when asked about availability or sizes',
+                    '🛒 Create new orders in your store when a customer confirms a purchase via chat',
+                    '🏷️ Tag every WhatsApp-driven order as "source: autoflow_whatsapp" in your store',
+                  ].map((item, i) => (
+                    <div key={i} style={{ fontSize: 12.5, color: '#374151' }}>{item}</div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
