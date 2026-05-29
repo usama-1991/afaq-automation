@@ -236,7 +236,25 @@ function ConversationsInner() {
     setSending(true);
     const content = reply.trim();
     setReply('');
-    await supabase.from('messages').insert([{ conversation_id: selected.id, sender_type: 'agent', content }]);
+    
+    // Insert and select ID for direct dispatch trigger
+    const { data, error } = await supabase
+      .from('messages')
+      .insert([{ conversation_id: selected.id, sender_type: 'agent', content }])
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('Failed to save agent message:', error.message);
+    } else if (data?.id) {
+      // Trigger direct dispatch via secure API route proxy
+      fetch('/api/chat/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message_id: data.id })
+      }).catch(err => console.error('Failed to trigger direct dispatch proxy:', err));
+    }
+
     setSending(false);
   };
 
@@ -273,11 +291,26 @@ function ConversationsInner() {
 
       const formattedContent = `[Media: ${category}] ${file.name}|${fileUrl}`;
       
-      await supabase.from('messages').insert([{
-        conversation_id: selected.id,
-        sender_type: 'agent',
-        content: formattedContent
-      }]);
+      const { data, error } = await supabase
+        .from('messages')
+        .insert([{
+          conversation_id: selected.id,
+          sender_type: 'agent',
+          content: formattedContent
+        }])
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Failed to save media agent message:', error.message);
+      } else if (data?.id) {
+        // Trigger direct dispatch via secure API route proxy
+        fetch('/api/chat/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message_id: data.id })
+        }).catch(err => console.error('Failed to trigger media direct dispatch proxy:', err));
+      }
 
       try {
         const stored = localStorage.getItem('autoflow_media_library');
