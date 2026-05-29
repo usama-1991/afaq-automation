@@ -252,7 +252,16 @@ function ConversationsInner() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message_id: data.id })
-      }).catch(err => console.error('Failed to trigger direct dispatch proxy:', err));
+      })
+      .then(async res => {
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          console.error('Direct dispatch proxy failed:', errData.error || res.statusText);
+        } else {
+          console.log('Direct dispatch proxy succeeded:', await res.json().catch(() => ({})));
+        }
+      })
+      .catch(err => console.error('Failed to trigger direct dispatch proxy:', err));
     }
 
     setSending(false);
@@ -309,7 +318,16 @@ function ConversationsInner() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message_id: data.id })
-        }).catch(err => console.error('Failed to trigger media direct dispatch proxy:', err));
+        })
+        .then(async res => {
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            console.error('Media direct dispatch proxy failed:', errData.error || res.statusText);
+          } else {
+            console.log('Media direct dispatch proxy succeeded:', await res.json().catch(() => ({})));
+          }
+        })
+        .catch(err => console.error('Failed to trigger media direct dispatch proxy:', err));
       }
 
       try {
