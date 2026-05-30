@@ -197,7 +197,7 @@ async function dispatchOutboundMessage(message) {
 
       if (mediaInfo.isBase64) {
         // Upload media to Meta Attachments API first
-        const uploadUrl = `https://graph.facebook.com/v19.0/me/message_attachments?access_token=${accessToken}`;
+        const uploadUrl = `https://graph.facebook.com/v19.0/${externalPhoneId}/message_attachments?access_token=${accessToken}`;
         const buffer = Buffer.from(mediaInfo.base64Data, 'base64');
         const blob = new Blob([buffer], { type: mediaInfo.mimeType });
         
@@ -224,7 +224,7 @@ async function dispatchOutboundMessage(message) {
         fastify.log.info(`[${conv.platform}] Uploaded. ID: ${attachmentId}`);
 
         // Send the message using attachment_id
-        metaResponse = await fetch(`https://graph.facebook.com/v19.0/me/messages?access_token=${accessToken}`, {
+        metaResponse = await fetch(`https://graph.facebook.com/v19.0/${externalPhoneId}/messages?access_token=${accessToken}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -239,7 +239,7 @@ async function dispatchOutboundMessage(message) {
         });
       } else {
         // Hosted URL payload
-        metaResponse = await fetch(`https://graph.facebook.com/v19.0/me/messages?access_token=${accessToken}`, {
+        metaResponse = await fetch(`https://graph.facebook.com/v19.0/${externalPhoneId}/messages?access_token=${accessToken}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -255,7 +255,7 @@ async function dispatchOutboundMessage(message) {
       }
     } else {
       // Regular text
-      metaResponse = await fetch(`https://graph.facebook.com/v19.0/me/messages?access_token=${accessToken}`, {
+      metaResponse = await fetch(`https://graph.facebook.com/v19.0/${externalPhoneId}/messages?access_token=${accessToken}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
