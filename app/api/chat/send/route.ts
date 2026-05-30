@@ -9,7 +9,18 @@ export async function POST(request: Request) {
 
     const urlsToTry: string[] = [];
     if (process.env.CHAT_SERVICE_URL) {
-      urlsToTry.push(process.env.CHAT_SERVICE_URL);
+      let serviceUrl = process.env.CHAT_SERVICE_URL.trim();
+      if (serviceUrl) {
+        // Automatically prepend https:// if protocol is missing
+        if (!serviceUrl.startsWith('http://') && !serviceUrl.startsWith('https://')) {
+          serviceUrl = `https://${serviceUrl}`;
+        }
+        // Automatically append /send if missing
+        if (!serviceUrl.endsWith('/send')) {
+          serviceUrl = serviceUrl.endsWith('/') ? `${serviceUrl}send` : `${serviceUrl}/send`;
+        }
+        urlsToTry.push(serviceUrl);
+      }
     }
     // Railway official private DNS formats
     urlsToTry.push('http://chat-service.private.railway.internal:8080/send');
