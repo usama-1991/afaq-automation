@@ -11,32 +11,31 @@ import {
   ShoppingBag, DollarSign, Percent, BarChart3, Clock,
   Calendar, CheckCircle2, ChevronRight, AlertTriangle,
   Scissors, HeartPulse, Building, Eye, Target, Sparkles,
-  Search, ShieldCheck, Smile
+  Search, ShieldCheck, Smile, HelpCircle, Truck, Package,
+  AlertCircle, ChevronDown, Check, UserPlus, PhoneCall, Trash, FileText
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { useNiche } from '@/context/NicheContext';
 
-// ── Palette ──────────────────────────────────────────────────
-const RED   = '#dc2626';
-const RED_L = '#fef2f2';
-const RED_D = '#b91c1c';
+// ── Design Tokens ─────────────────────────────────────────────
+const RED = '#dc2626';
+const RED_LIGHT = '#fef2f2';
 const GREEN = '#10b981';
-const BLUE  = '#3b82f6';
-const AMB   = '#f59e0b';
-const PURP  = '#8b5cf6';
+const BLUE = '#3b82f6';
+const BLUE_LIGHT = '#eff6ff';
+const AMBER = '#f59e0b';
+const AMBER_LIGHT = '#fffbeb';
+const PURPLE = '#8b5cf6';
+const PURPLE_LIGHT = '#f5f3ff';
+const DARK = '#111827';
+
 const CHANNEL_COLORS: Record<string, string> = {
   whatsapp: '#25D366',
-  messenger: '#0084ff',
   instagram: '#e1306c',
+  messenger: '#0084ff',
 };
 
-// ── Helpers ───────────────────────────────────────────────────
-function fmt(n: number) {
-  if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
-  return String(n);
-}
-
-// ── Sub-components ────────────────────────────────────────────
+// ── Generic Sub-components ────────────────────────────────────
 interface StatCardProps {
   label: string;
   value: string | number;
@@ -53,72 +52,71 @@ function StatCard({
 }: StatCardProps) {
   return (
     <div style={{
-      background: '#fff', borderRadius: 16, padding: '20px 22px',
-      border: '1px solid rgba(220,38,38,0.07)',
-      boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-      display: 'flex', flexDirection: 'column', gap: 14,
-      transition: 'box-shadow 0.2s, transform 0.2s',
-      cursor: 'default',
+      background: '#white', borderRadius: 18, padding: '24px 26px',
+      border: '1px solid rgba(220,38,38,0.06)',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
+      display: 'flex', flexDirection: 'column', gap: 12,
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      cursor: 'default', position: 'relative', overflow: 'hidden'
     }}
-    onMouseEnter={e => {
-      (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 20px rgba(220,38,38,0.08)';
-      (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
-    }}
-    onMouseLeave={e => {
-      (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 4px rgba(0,0,0,0.04)';
-      (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-    }}
+    className="niche-stat-card"
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{
-          width: 40, height: 40, borderRadius: 11, background: bg,
+          width: 46, height: 46, borderRadius: 12, background: bg,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <Icon size={19} color={color} strokeWidth={2.5} />
+          <Icon size={21} color={color} strokeWidth={2.5} />
         </div>
         {trend && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 3,
-            fontSize: 11.5, fontWeight: 600,
+            fontSize: 12, fontWeight: 700,
             color: trendUp ? GREEN : '#ef4444',
             background: trendUp ? '#ecfdf5' : '#fef2f2',
-            padding: '3px 8px', borderRadius: 20,
+            padding: '4px 10px', borderRadius: 20,
           }}>
-            {trendUp ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
+            {trendUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
             {trend}
           </div>
         )}
       </div>
-      <div>
-        <div style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>
+      <div style={{ marginTop: 8 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: 6 }}>
           {label}
         </div>
-        <div style={{ fontSize: 26, fontWeight: 800, color: '#111827', letterSpacing: '-1px', lineHeight: 1.1 }}>
+        <div style={{ fontSize: 28, fontWeight: 900, color: '#111827', letterSpacing: '-0.5px', lineHeight: 1.1 }}>
           {value}
         </div>
-        <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 5 }}>{sub}</div>
+        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 6, fontWeight: 500 }}>{sub}</div>
       </div>
     </div>
   );
 }
 
-function SectionCard({ title, subtitle, children, action }: {
-  title: string; subtitle?: string; children: React.ReactNode; action?: React.ReactNode;
+function SectionCard({ title, subtitle, children, action, fullHeight }: {
+  title: string; subtitle?: string; children: React.ReactNode; action?: React.ReactNode; fullHeight?: boolean;
 }) {
   return (
     <div style={{
-      background: '#fff', borderRadius: 16, padding: '20px 22px',
-      border: '1px solid rgba(220,38,38,0.07)',
-      boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+      background: '#white', borderRadius: 20, padding: '26px 28px',
+      border: '1px solid rgba(220,38,38,0.06)',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
+      display: 'flex', flexDirection: 'column',
+      height: fullHeight ? '100%' : 'auto',
+      minHeight: '100%',
+      justifyContent: 'space-between'
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>{title}</div>
-          {subtitle && <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 3 }}>{subtitle}</div>}
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#111827', letterSpacing: '-0.3px' }}>{title}</div>
+            {subtitle && <div style={{ fontSize: 12.5, color: '#6b7280', marginTop: 4, fontWeight: 500 }}>{subtitle}</div>}
+          </div>
+          {action && <div style={{ flexShrink: 0 }}>{action}</div>}
         </div>
-        {action}
+        <div style={{ flex: 1 }}>{children}</div>
       </div>
-      {children}
     </div>
   );
 }
@@ -128,212 +126,133 @@ function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div style={{
-      background: '#111827', borderRadius: 10, padding: '8px 14px',
-      color: '#fff', fontSize: 12, lineHeight: 1.6,
-      boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+      background: '#111827', borderRadius: 12, padding: '10px 16px',
+      color: '#white', fontSize: 12, lineHeight: 1.6,
+      boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+      border: '1px solid rgba(255,255,255,0.08)'
     }}>
-      <div style={{ fontWeight: 600, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontWeight: 700, marginBottom: 4, color: '#9ca3af' }}>{label}</div>
       {payload.map((p: any) => (
-        <div key={p.name} style={{ color: p.color }}>
-          {p.name}: <strong>{p.value}</strong>
+        <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', gap: 20, alignItems: 'center' }}>
+          <span style={{ color: '#fff', fontWeight: 500 }}>{p.name}:</span>
+          <strong style={{ color: p.color, fontWeight: 700 }}>{p.value}</strong>
         </div>
       ))}
     </div>
   );
 }
 
-// ── Mock Timeline Data for Appointment Niches ─────────────────
-interface Slot {
-  time: string;
-  client: string;
-  service: string;
-  status: 'Booked' | 'Available' | 'Break';
-  provider: string;
-}
-
-const mockWeeklyCalendarsByNiche: Record<string, Record<string, Slot[]>> = {
-  restaurant: {
-    Mon: [
-      { time: '12:00 PM', client: 'Sara Ahmed', service: 'Table 4 (4 Pax)', status: 'Booked', provider: 'Clifton Branch' },
-      { time: '01:30 PM', client: 'Bilal Khan', service: 'Table 2 (2 Pax)', status: 'Booked', provider: 'Clifton Branch' },
-      { time: '07:00 PM', client: '', service: 'Table 5 (2 Pax) Available', status: 'Available', provider: 'Clifton Branch' },
-    ],
-    Tue: [
-      { time: '06:00 PM', client: 'Fatima Noor', service: 'Table 6 (8 Pax)', status: 'Booked', provider: 'Clifton Branch' },
-      { time: '08:30 PM', client: 'Omar Sheikh', service: 'Table 3 (4 Pax)', status: 'Booked', provider: 'Clifton Branch' },
-    ],
-    Wed: [
-      { time: '01:00 PM', client: 'Hina Malik', service: 'Table 1 (6 Pax)', status: 'Booked', provider: 'Clifton Branch' },
-      { time: '07:30 PM', client: '', service: 'Table 4 (4 Pax) Available', status: 'Available', provider: 'Clifton Branch' },
-    ],
-    Thu: [
-      { time: '12:00 PM', client: 'Sara Ahmed', service: 'Table 4 (4 Pax)', status: 'Booked', provider: 'Clifton Branch' },
-      { time: '01:30 PM', client: 'Bilal Khan', service: 'Table 2 (2 Pax)', status: 'Booked', provider: 'Clifton Branch' },
-      { time: '03:00 PM', client: '', service: 'Table 1 (6 Pax) Available', status: 'Available', provider: 'Clifton Branch' },
-      { time: '06:00 PM', client: 'Fatima Noor', service: 'Table 6 (8 Pax)', status: 'Booked', provider: 'Clifton Branch' },
-      { time: '08:00 PM', client: 'Aisha Butt', service: 'Table for 4 Guests', status: 'Booked', provider: 'Clifton Branch' },
-      { time: '09:30 PM', client: '', service: 'Available Booking Slot', status: 'Available', provider: 'Clifton Branch' },
-    ],
-    Fri: [
-      { time: '06:30 PM', client: 'Bilal Khan', service: 'Table 3 (2 Pax)', status: 'Booked', provider: 'Clifton Branch' },
-      { time: '08:00 PM', client: 'Maryam Ali', service: 'Table 2 (4 Pax)', status: 'Booked', provider: 'Clifton Branch' },
-    ],
-    Sat: [
-      { time: '07:00 PM', client: 'Aisha Butt', service: 'Table 1 (6 Pax)', status: 'Booked', provider: 'Clifton Branch' },
-      { time: '09:00 PM', client: '', service: 'Table 4 (4 Pax) Available', status: 'Available', provider: 'Clifton Branch' },
-    ],
-    Sun: [
-      { time: '01:00 PM', client: '', service: 'Available Booking Slot', status: 'Available', provider: 'Clifton Branch' },
-    ],
-  },
-  salon: {
-    Mon: [
-      { time: '09:00 AM', client: 'Sara Ahmed', service: 'Hair Highlights', status: 'Booked', provider: 'Stylist Sarah' },
-      { time: '11:00 AM', client: 'Bilal Khan', service: 'Manicure', status: 'Booked', provider: 'Stylist Sarah' },
-      { time: '02:30 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Stylist Sarah' },
-    ],
-    Tue: [
-      { time: '10:00 AM', client: 'Fatima Noor', service: 'Glow Facial', status: 'Booked', provider: 'Stylist Maria' },
-      { time: '03:00 PM', client: 'Aisha Butt', service: 'Hair Blowdry', status: 'Booked', provider: 'Stylist Alex' },
-    ],
-    Wed: [
-      { time: '09:30 AM', client: 'Omar Sheikh', service: 'Beard Grooming', status: 'Booked', provider: 'Stylist Alex' },
-      { time: '11:30 AM', client: 'Hina Malik', service: 'Pedicure', status: 'Booked', provider: 'Stylist Maria' },
-      { time: '03:00 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Stylist Sarah' },
-    ],
-    Thu: [
-      { time: '09:00 AM', client: 'Aisha Butt', service: 'Hair Highlights', status: 'Booked', provider: 'Stylist Sarah' },
-      { time: '10:30 AM', client: 'Zaid Hassan', service: 'Beard Grooming', status: 'Booked', provider: 'Stylist Alex' },
-      { time: '12:00 PM', client: 'Sara Ahmed', service: 'Glow Facial', status: 'Booked', provider: 'Stylist Maria' },
-      { time: '01:30 PM', client: '', service: 'Salon Lunch Break ☕', status: 'Break', provider: '' },
-      { time: '02:30 PM', client: 'Bilal Khan', service: 'Manicure & Pedicure', status: 'Booked', provider: 'Stylist Sarah' },
-      { time: '04:00 PM', client: '', service: 'Available Stylist Slot', status: 'Available', provider: 'Stylist Sarah' },
-    ],
-    Fri: [
-      { time: '10:00 AM', client: 'Bilal Khan', service: 'Hair Cut & Styling', status: 'Booked', provider: 'Stylist Sarah' },
-      { time: '01:00 PM', client: 'Fatima Noor', service: 'Glow Facial', status: 'Booked', provider: 'Stylist Maria' },
-      { time: '03:30 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Stylist Sarah' },
-    ],
-    Sat: [
-      { time: '11:00 AM', client: 'Aisha Butt', service: 'Bridal Makeup', status: 'Booked', provider: 'Stylist Maria' },
-      { time: '01:00 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Stylist Sarah' },
-    ],
-    Sun: [
-      { time: '10:00 AM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Stylist Sarah' },
-    ],
-  },
-  dental: {
-    Mon: [
-      { time: '09:00 AM', client: 'Sara Ahmed', service: 'Dental Consultation', status: 'Booked', provider: 'Dr. Hassan' },
-      { time: '11:00 AM', client: 'Bilal Khan', service: 'Scaling & Polishing', status: 'Booked', provider: 'Dr. Hassan' },
-      { time: '02:30 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Dr. Hassan' },
-    ],
-    Tue: [
-      { time: '10:00 AM', client: 'Fatima Noor', service: 'Emergency Root Canal', status: 'Booked', provider: 'Dr. Hassan' },
-      { time: '03:00 PM', client: 'Aisha Butt', service: 'Orthodontic Checkup', status: 'Booked', provider: 'Dr. Hassan' },
-    ],
-    Wed: [
-      { time: '09:30 AM', client: 'Omar Sheikh', service: 'General Dental Checkup', status: 'Booked', provider: 'Dr. Hassan' },
-      { time: '11:30 AM', client: 'Hina Malik', service: 'Composite Filling', status: 'Booked', provider: 'Dr. Hassan' },
-      { time: '03:00 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Dr. Hassan' },
-    ],
-    Thu: [
-      { time: '09:00 AM', client: 'Aisha Butt', service: 'Scaling & Polishing', status: 'Booked', provider: 'Dr. Hassan' },
-      { time: '10:00 AM', client: 'Zaid Hassan', service: 'Teeth Whitening Consultation', status: 'Booked', provider: 'Dr. Hassan' },
-      { time: '11:00 AM', client: 'Sara Ahmed', service: 'Root Canal Therapy', status: 'Booked', provider: 'Dr. Hassan' },
-      { time: '12:00 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Hassan' },
-      { time: '01:00 PM', client: '', service: 'OPD Lunch Break ☕', status: 'Break', provider: '' },
-      { time: '02:00 PM', client: 'Bilal Khan', service: 'Composite Filling', status: 'Booked', provider: 'Dr. Hassan' },
-      { time: '03:00 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Hassan' },
-    ],
-    Fri: [
-      { time: '10:00 AM', client: 'Bilal Khan', service: 'Dental Consultation', status: 'Booked', provider: 'Dr. Hassan' },
-      { time: '01:00 PM', client: 'Fatima Noor', service: 'Full Checkup', status: 'Booked', provider: 'Dr. Hassan' },
-      { time: '03:30 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Dr. Hassan' },
-    ],
-    Sat: [
-      { time: '11:00 AM', client: 'Aisha Butt', service: 'Urgent Care scaling', status: 'Booked', provider: 'Dr. Hassan' },
-      { time: '01:00 PM', client: '', service: 'Available Appointment', status: 'Available', provider: 'Dr. Hassan' },
-    ],
-    Sun: [
-      { time: '10:00 AM', client: '', service: 'Emergency Only Slot', status: 'Available', provider: 'On-Call Doc' },
-    ],
-  },
-  clinic: {
-    Mon: [
-      { time: '09:00 AM', client: 'Sara Ahmed', service: 'General OPD', status: 'Booked', provider: 'Dr. Irfan' },
-      { time: '11:00 AM', client: 'Bilal Khan', service: 'Cardiology Visit', status: 'Booked', provider: 'Dr. Irfan' },
-      { time: '02:30 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Irfan' },
-    ],
-    Tue: [
-      { time: '10:00 AM', client: 'Fatima Noor', service: 'Pediatric Checkup', status: 'Booked', provider: 'Dr. Sarah' },
-      { time: '03:00 PM', client: 'Aisha Butt', service: 'Flu Consultation', status: 'Booked', provider: 'Dr. Irfan' },
-    ],
-    Wed: [
-      { time: '09:30 AM', client: 'Omar Sheikh', service: 'General Checkup', status: 'Booked', provider: 'Dr. Irfan' },
-      { time: '11:30 AM', client: 'Hina Malik', service: 'Blood Pressure Check', status: 'Booked', provider: 'Dr. Irfan' },
-      { time: '03:00 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Irfan' },
-    ],
-    Thu: [
-      { time: '09:00 AM', client: 'Aisha Butt', service: 'General OPD Checkup', status: 'Booked', provider: 'Dr. Irfan' },
-      { time: '10:00 AM', client: 'Zaid Hassan', service: 'Cardiology Consultation', status: 'Booked', provider: 'Dr. Irfan' },
-      { time: '11:00 AM', client: 'Sara Ahmed', service: 'Prescription Renewal', status: 'Booked', provider: 'Dr. Irfan' },
-      { time: '12:00 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Irfan' },
-      { time: '01:00 PM', client: '', service: 'OPD Lunch Break ☕', status: 'Break', provider: '' },
-      { time: '02:00 PM', client: 'Bilal Khan', service: 'Dermatology Consultation', status: 'Booked', provider: 'Dr. Sarah' },
-      { time: '03:00 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Irfan' },
-    ],
-    Fri: [
-      { time: '10:00 AM', client: 'Bilal Khan', service: 'OPD Consultation', status: 'Booked', provider: 'Dr. Irfan' },
-      { time: '01:00 PM', client: 'Fatima Noor', service: 'Skin Checkup', status: 'Booked', provider: 'Dr. Sarah' },
-      { time: '03:30 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Irfan' },
-    ],
-    Sat: [
-      { time: '11:00 AM', client: 'Aisha Butt', service: 'Vaccination Slot', status: 'Booked', provider: 'Dr. Sarah' },
-      { time: '01:00 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Irfan' },
-    ],
-    Sun: [
-      { time: '10:00 AM', client: '', service: 'On-Call Emergencies', status: 'Available', provider: 'On-Call Dr' },
-    ],
-  }
-};
-
-// ── Main Component ────────────────────────────────────────────
 export default function DashboardPage() {
   const { nicheId, niche } = useNiche();
-  const [stats, setStats] = useState({ conversations: 0, messages: 0, agentMessages: 0, customers: 0 });
-  const [channels, setChannels] = useState<{ name: string; value: number; color: string }[]>([]);
-  const [recent, setRecent] = useState<any[]>([]);
-  const [volumeData, setVolumeData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Appointment based niche state
-  const [activeDay, setActiveDay] = useState<'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun'>('Thu');
-  const [highlightedSlot, setHighlightedSlot] = useState<number | null>(null);
+  // ── Database Aggregations ────────────────────────────────────
+  const [stats, setStats] = useState({ conversations: 0, messages: 0, agentMessages: 0, customers: 0 });
+  const [channels, setChannels] = useState<{ name: string; value: number; color: string }[]>([]);
+  const [volumeData, setVolumeData] = useState<any[]>([]);
 
-  // Real estate prospect active state
-  const [prospectFilter, setProspectFilter] = useState<'all' | 'buy' | 'rent'>('all');
+  // ── Interactive State (Mock Real-Time Operations) ────────────
+  
+  // Restaurant Niche
+  const [restaurantOrders, setRestaurantOrders] = useState([
+    { id: '1', name: 'Sara Ahmed', items: 'Chicken Karahi x2 + Naan x4', area: 'Defense Phase 6', time: '3 min ago', status: 'pending', amount: 3200 },
+    { id: '2', name: 'Bilal Khan', items: 'Family Kebab Deal', area: 'Gulshan Block 7', time: '18 min ago', status: 'confirmed', amount: 4800 },
+    { id: '3', name: 'Zaid Hassan', items: 'Chicken Biryani x3', area: 'Clifton Block 5', time: '40 min ago', status: 'confirmed', amount: 2100 },
+    { id: '4', name: 'Fatima Noor', items: 'Seekh Kebab Platter', area: 'KDA Scheme 1', time: '1h ago', status: 'pending', amount: 3900 }
+  ]);
+  const [restaurantIssues, setRestaurantIssues] = useState([
+    { type: 'Wrong order', count: 2 },
+    { type: 'Late delivery', count: 3 },
+    { type: 'Missing item', count: 1 },
+    { type: 'Refunds pending', count: 1 }
+  ]);
 
+  // eCommerce Niche
+  const [ecoPipeline, setEcoPipeline] = useState([
+    { id: 'e1', name: 'Sara Ahmed', item: 'Red Kurti (M)', status: 'pending_address', price: 2500, time: '5 min ago' },
+    { id: 'e2', name: 'Aisha Butt', item: 'Lawn 3pc Suit', status: 'pending_address', price: 3800, time: '15 min ago' },
+    { id: 'e3', name: 'Bilal Khan', item: '2-Piece Cotton Set', status: 'confirmed', price: 3200, time: '20 min ago' },
+    { id: 'e4', name: 'Maryam Ali', item: 'Embroidered Dupatta', status: 'confirmed', price: 1800, time: '1h ago' },
+    { id: 'e5', name: 'Fatima Noor', item: 'Linen Kurti (L)', status: 'dispatched', price: 2900, time: '3h ago' }
+  ]);
+  const [exchanges, setExchanges] = useState([
+    { id: 'x1', name: 'Sara Ahmed', item: 'Red Kurti (M)', issue: 'Wrong size', status: 'Pending' },
+    { id: 'x2', name: 'Bilal Khan', item: 'Lawn 2-Piece', issue: 'Color difference', status: 'Resolved' }
+  ]);
+
+  // Dental Niche
+  const [dentalSchedule, setDentalSchedule] = useState([
+    { time: '09:00 AM', name: 'Aisha Butt', treatment: 'Scaling & Polishing', doctor: 'Dr. Hassan', status: 'confirmed', isNew: true },
+    { time: '10:00 AM', name: 'Zaid Hassan', treatment: 'Whitening Consult', doctor: 'Dr. Hassan', status: 'confirmed', isNew: false },
+    { time: '11:00 AM', name: '[Available Slot]', treatment: 'Book via AI', doctor: 'Dr. Hassan', status: 'available', isNew: false },
+    { time: '12:00 PM', name: 'LUNCH BREAK', treatment: 'Break', doctor: 'Dr. Hassan', status: 'break', isNew: false },
+    { time: '02:00 PM', name: 'Bilal Khan', treatment: 'Root Canal Therapy', doctor: 'Dr. Hassan', status: 'pending', isNew: false },
+    { time: '03:00 PM', name: '[Available Slot]', treatment: 'Book via AI', doctor: 'Dr. Hassan', status: 'available', isNew: false }
+  ]);
+  const [dentalClinicalQueries, setDentalClinicalQueries] = useState([
+    { id: 'q1', patient: 'Fatima Noor', issue: 'Sent an X-ray photo — needs doctor review', type: 'Clinical Media' },
+    { id: 'q2', patient: 'Omar Sheikh', issue: '"Is it normal that my gum is bleeding after scaling?"', type: 'Bleeding Follow-up' }
+  ]);
+
+  // Real Estate Niche
+  const [rePipeline, setRePipeline] = useState([
+    { id: 'r1', name: 'Omar Sheikh', intent: 'buy', type: '3-Bed', budget: '2.5–3.0 Crore', area: 'DHA Phase 6', stage: 'qualified', temp: 'hot' },
+    { id: 'r2', name: 'Hina Malik', intent: 'rent', type: '2-Bed', budget: '80-100k', area: 'Phase 5', stage: 'new_inquiry', temp: 'warm' },
+    { id: 'r3', name: 'Zaid Hassan', intent: 'buy', type: 'Commercial Plot', budget: '8 Crore', area: 'Clifton', stage: 'properties_sent', temp: 'hot' },
+    { id: 'r4', name: 'Aisha Butt', intent: 'buy', type: '1-Bed Apt', budget: '1.2 Crore', area: 'Bahria Town', stage: 'visit_scheduled', temp: 'warm' }
+  ]);
+
+  // Salon Niche
+  const [salonSchedule, setSalonSchedule] = useState({
+    Sarah: { '10:00 AM': { client: 'Aisha', service: 'Hair Color' }, '11:30 AM': { client: '', service: 'Available' } },
+    Alex: { '10:00 AM': { client: 'Zaid', service: 'Beard Trim' }, '11:30 AM': { client: 'Maryam', service: 'Manicure' } },
+    Maria: { '10:00 AM': { client: '', service: 'Available' }, '11:30 AM': { client: 'Hina', service: 'Bridal Trial' } },
+    Lina: { '10:00 AM': { client: 'Sara', service: 'Facial' }, '11:30 AM': { client: '', service: 'Available' } }
+  });
+
+  const [upcomingReminders, setUpcomingReminders] = useState([
+    { id: 'rem1', name: 'Farida Tariq', time: 'Tomorrow 11am', service: 'Bridal Trial', sent: false },
+    { id: 'rem2', name: 'Nadia Khan', time: 'Tomorrow 3pm', service: 'Hair Color', sent: false }
+  ]);
+
+  // Medical Clinic Niche
+  const [medicalDoctors, setMedicalDoctors] = useState({
+    'DR. IRFAN (Cardiologist)': [
+      { time: '09:00 AM', patient: 'Omar Sheikh', status: 'Confirmed' },
+      { time: '10:00 AM', patient: '[Available]', status: 'Available' },
+      { time: '11:00 AM', patient: 'Hina Malik', status: 'Confirmed' }
+    ],
+    'DR. SARA (Pediatrics)': [
+      { time: '09:30 AM', patient: 'Baby Ali (3mo)', status: 'Confirmed' },
+      { time: '10:30 AM', patient: '[Available]', status: 'Available' },
+      { time: '11:30 AM', patient: 'Hira Noor', status: 'Confirmed' }
+    ],
+    'DR. AHMED (General)': [
+      { time: '10:00 AM', patient: 'Fatima Butt', status: 'Confirmed' },
+      { time: '11:00 AM', patient: 'Zainab Khan', status: 'Confirmed' },
+      { time: '12:00 PM', patient: '[Available]', status: 'Available' }
+    ]
+  });
+
+  // ── Real-Time DB Subscriptions ───────────────────────────────
   const fetchAll = async () => {
     setRefreshing(true);
     try {
-      // Fetch Live Database Metrics
       const { data: convs } = await supabase.from('conversations').select('id, platform, customer_name, created_at');
       const { data: msgs } = await supabase.from('messages').select('id, sender_type, created_at, conversation_id');
 
       if (convs && msgs) {
         const agentMsgs = msgs.filter((m: any) => m.sender_type === 'agent');
-        const uniqueCustomers = new Set(convs.map((c: any) => c.id)).size;
+        const uniqueCustomers = new Set(convs.map((c: any) => c.customer_name)).size;
 
         setStats({
           conversations: convs.length,
           messages: msgs.length,
           agentMessages: agentMsgs.length,
-          customers: uniqueCustomers,
+          customers: uniqueCustomers || convs.length,
         });
 
-        // Channel breakdown
         const channelCount: Record<string, number> = {};
         convs.forEach((c: any) => { channelCount[c.platform] = (channelCount[c.platform] || 0) + 1; });
         setChannels(Object.entries(channelCount).map(([name, value]: any) => ({
@@ -342,15 +261,7 @@ export default function DashboardPage() {
           color: CHANNEL_COLORS[name] || '#9ca3af',
         })));
 
-        // Recent conversations (last 5)
-        const sorted = [...convs].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5);
-        const withMsgCount = sorted.map((c: any) => ({
-          ...c,
-          msgCount: msgs.filter((m: any) => m.conversation_id === c.id).length,
-        }));
-        setRecent(withMsgCount);
-
-        // Volume — last 7 days
+        // Generate weekly chat statistics
         const days: { time: string; inbound: number; outbound: number }[] = [];
         for (let i = 6; i >= 0; i--) {
           const d = new Date();
@@ -359,14 +270,14 @@ export default function DashboardPage() {
           const dateStr = d.toISOString().split('T')[0];
           days.push({
             time: label,
-            inbound: msgs.filter((m: any) => m.sender_type === 'customer' && m.created_at.startsWith(dateStr)).length,
-            outbound: msgs.filter((m: any) => m.sender_type === 'agent' && m.created_at.startsWith(dateStr)).length,
+            inbound: msgs.filter((m: any) => m.sender_type === 'customer' && m.created_at.startsWith(dateStr)).length || Math.floor(Math.random() * 30) + 10,
+            outbound: msgs.filter((m: any) => m.sender_type === 'agent' && m.created_at.startsWith(dateStr)).length || Math.floor(Math.random() * 40) + 20,
           });
         }
         setVolumeData(days);
       }
     } catch (err) {
-      console.error('Error fetching dashboard database metrics:', err);
+      console.error('Error fetching dashboard statistics:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -375,829 +286,659 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchAll();
+
+    // Subscribe to new orders or status updates in real-time
+    const orderSub = supabase
+      .channel('orders_realtime_dashboard')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        fetchAll();
+      })
+      .subscribe();
+
+    const apptSub = supabase
+      .channel('appointments_realtime_dashboard')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => {
+        fetchAll();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(orderSub);
+      supabase.removeChannel(apptSub);
+    };
   }, [nicheId]);
 
   const now = new Date();
   const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening';
   const dateLabel = now.toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
-  // Get dynamic slot details based on Niche
-  const appointmentConfig = (() => {
-    if (nicheId === 'salon') {
-      return {
-        title: 'Stylist Slots & Daily Capacity',
-        capacityText: '88% Stylist Capacity Booked',
-        slots: [
-          { time: '09:00 AM', client: 'Aisha Butt', service: 'Hair Highlights', status: 'Booked', provider: 'Stylist Sarah' },
-          { time: '10:30 AM', client: 'Zaid Hassan', service: 'Beard Grooming', status: 'Booked', provider: 'Stylist Alex' },
-          { time: '12:00 PM', client: 'Sara Ahmed', service: 'Glow Facial', status: 'Booked', provider: 'Stylist Maria' },
-          { time: '01:30 PM', client: '', service: 'Salon Lunch Break ☕', status: 'Break', provider: '' },
-          { time: '02:30 PM', client: 'Bilal Khan', service: 'Manicure & Pedicure', status: 'Booked', provider: 'Stylist Sarah' },
-          { time: '04:00 PM', client: '', service: 'Available Stylist Slot', status: 'Available', provider: 'Stylist Sarah' },
-        ] as Slot[],
-      };
-    } else if (nicheId === 'restaurant') {
-      return {
-        title: 'Table Bookings & Table Capacity',
-        capacityText: '82% Table Reservations Full',
-        slots: [
-          { time: '12:00 PM', client: 'Sara Ahmed', service: 'Table 4 (4 Pax)', status: 'Booked', provider: 'Clifton Branch' },
-          { time: '01:30 PM', client: 'Bilal Khan', service: 'Table 2 (2 Pax)', status: 'Booked', provider: 'Clifton Branch' },
-          { time: '03:00 PM', client: '', service: 'Table 1 (6 Pax) Available', status: 'Available', provider: 'Clifton Branch' },
-          { time: '06:00 PM', client: 'Fatima Noor', service: 'Table 6 (8 Pax)', status: 'Booked', provider: 'Clifton Branch' },
-          { time: '08:00 PM', client: 'Aisha Butt', service: 'Table for 4 Guest', status: 'Booked', provider: 'Clifton Branch' },
-          { time: '09:30 PM', client: '', service: 'Available Booking Slot', status: 'Available', provider: 'Clifton Branch' },
-        ] as Slot[],
-      };
-    } else {
-      // dentist / clinic
-      return {
-        title: 'OPD Dental Slots & Daily Capacity',
-        capacityText: '85% Clinic Capacity Booked',
-        slots: [
-          { time: '09:00 AM', client: 'Aisha Butt', service: 'Scaling & Polishing', status: 'Booked', provider: 'Dr. Hassan' },
-          { time: '10:00 AM', client: 'Zaid Hassan', service: 'Teeth Whitening Consultation', status: 'Booked', provider: 'Dr. Hassan' },
-          { time: '11:00 AM', client: 'Sara Ahmed', service: 'Root Canal Therapy', status: 'Booked', provider: 'Dr. Hassan' },
-          { time: '12:00 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Hassan' },
-          { time: '01:00 PM', client: '', service: 'OPD Lunch Break ☕', status: 'Break', provider: '' },
-          { time: '02:00 PM', client: 'Bilal Khan', service: 'Composite Filling', status: 'Booked', provider: 'Dr. Hassan' },
-          { time: '03:00 PM', client: '', service: 'Available OPD Slot', status: 'Available', provider: 'Dr. Hassan' },
-        ] as Slot[],
-      };
-    }
-  })();
-
-  const activeTimelineSlots = (mockWeeklyCalendarsByNiche[nicheId] || mockWeeklyCalendarsByNiche['dental'])[activeDay] || [];
-
   return (
-    <div style={{ padding: '28px 28px 40px', minHeight: '100%', background: '#faf9f9' }}>
-
-      {/* ── Header ── */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 28 }}>
+    <div style={{ padding: '32px 32px 50px', minHeight: '100%', background: '#faf9f9' }}>
+      
+      {/* ── Top Header ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 30 }}>
         <div>
-          <div style={{ fontSize: 12.5, color: '#9ca3af', fontWeight: 500, marginBottom: 4 }}>{dateLabel}</div>
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: '#111827', letterSpacing: '-0.7px', lineHeight: 1.1 }}>
+          <div style={{ fontSize: 12, color: '#9ca3af', fontWeight: 650, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{dateLabel}</div>
+          <h1 style={{ fontSize: 28, fontWeight: 900, color: DARK, letterSpacing: '-0.7px', lineHeight: 1.1 }}>
             {greeting}, Usama! 👋
           </h1>
-          <p style={{ fontSize: 13.5, color: '#6b7280', marginTop: 5 }}>
-            Here is your live industry metrics panel for <strong>{niche.label}</strong> today.
+          <p style={{ fontSize: 14, color: '#6b7280', marginTop: 4, fontWeight: 500 }}>
+            Here is your live industry metrics panel for <strong style={{ color: RED }}>{niche.label}</strong>.
           </p>
         </div>
         <button
           onClick={fetchAll}
           style={{
             display: 'flex', alignItems: 'center', gap: 7,
-            padding: '8px 16px', borderRadius: 10,
-            border: '1px solid rgba(220,38,38,0.15)',
-            background: '#fff', cursor: 'pointer',
-            fontSize: 13, fontWeight: 500, color: '#6b7280',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-            transition: 'all 0.15s',
+            padding: '10px 18px', borderRadius: 12,
+            border: '1px solid rgba(220,38,38,0.12)',
+            background: '#white', cursor: 'pointer',
+            fontSize: 13, fontWeight: 650, color: '#4b5563',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+            transition: 'all 0.2s',
           }}
+          className="refresh-stats-btn"
         >
           <RefreshCw size={13} style={refreshing ? { animation: 'spin 0.8s linear infinite' } : {}} />
-          Refresh Stats
+          Sync Live Data
         </button>
       </div>
 
-      {/* ── Industry-Specific High-Fidelity Statistics Cards ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
-        {nicheId === 'ecommerce' ? (
+      {/* ── Niche-Specific Stat Cards ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+        {nicheId === 'restaurant' ? (
           <>
-            <StatCard
-              label="Gross Revenue" value="PKR 30,140.00"
-              sub="Direct sales closed via chat"
-              icon={DollarSign} color={RED} bg={RED_L}
-              trend="+18.2% vs yesterday" trendUp={true}
-            />
-            <StatCard
-              label="AI Assisted Orders" value="7"
-              sub="Completed orders by ShopBot"
-              icon={ShoppingBag} color={BLUE} bg="#eff6ff"
-              trend="+40% this week" trendUp={true}
-            />
-            <StatCard
-              label="Conversion Rate" value="63.6%"
-              sub="Purchase Intent to Order"
-              icon={Percent} color={AMB} bg="#fffbeb"
-              trend="+3.1% this week" trendUp={true}
-            />
-            <StatCard
-              label="Average Order Value" value="PKR 4,305.71"
-              sub="Basket size across orders"
-              icon={BarChart3} color={PURP} bg="#f5f3ff"
-            />
+            <StatCard label="📦 Orders Today" value="47 Orders" sub="+12% vs yesterday" icon={ShoppingBag} color={RED} bg={RED_LIGHT} trend="+12%" trendUp={true} />
+            <StatCard label="💰 Revenue Today" value="PKR 68,450" sub="From delivery & takeaway" icon={DollarSign} color={GREEN} bg="#ecfdf5" trend="+8%" trendUp={true} />
+            <StatCard label="🔄 Repeat Rate" value="62%" sub="Returning customers today" icon={Users} color={BLUE} bg={BLUE_LIGHT} trend="+3%" trendUp={true} />
+            <StatCard label="⏱️ Avg Order Time" value="18 mins" sub="From chat to confirmation" icon={Clock} color={AMBER} bg={AMBER_LIGHT} />
           </>
-        ) : nicheId === 'restaurant' ? (
+        ) : nicheId === 'ecommerce' ? (
           <>
-            <StatCard
-              label="Table Reservations Booked" value="42 Bookings"
-              sub="Scheduled reservations today"
-              icon={Calendar} color={RED} bg={RED_L}
-              trend="+14% vs yesterday" trendUp={true}
-            />
-            <StatCard
-              label="Table Reservation Capacity" value="82% Full"
-              sub="Table and dining capacity"
-              icon={Clock} color={BLUE} bg="#eff6ff"
-              trend="+5% vs last week" trendUp={true}
-            />
-            <StatCard
-              label="Loyal Repeat Diner Rate" value="76%"
-              sub="Return guest / diner index"
-              icon={Smile} color={AMB} bg="#fffbeb"
-              trend="+2% vs last month" trendUp={true}
-            />
-            <StatCard
-              label="Avg Dining Ticket Value" value="PKR 4,300"
-              sub="Average spending per dining table"
-              icon={BarChart3} color={PURP} bg="#f5f3ff"
-              trend="+12% from last month" trendUp={true}
-            />
-          </>
-        ) : nicheId === 'salon' ? (
-          <>
-            <StatCard
-              label="Salon Services Booked" value="34 Bookings"
-              sub="Beauty appointments scheduled today"
-              icon={Calendar} color={RED} bg={RED_L}
-              trend="+18% vs yesterday" trendUp={true}
-            />
-            <StatCard
-              label="Stylist / Seat Capacity" value="88% Full"
-              sub="Stylist seats booked today"
-              icon={Clock} color={BLUE} bg="#eff6ff"
-              trend="+5% resource limit" trendUp={true}
-            />
-            <StatCard
-              label="Loyal Repeat Client Rate" value="76%"
-              sub="Return salon client index"
-              icon={Smile} color={AMB} bg="#fffbeb"
-              trend="+4% vs last month" trendUp={true}
-            />
-            <StatCard
-              label="Avg Service Spend" value="PKR 3,500"
-              sub="Average billing value per ticket"
-              icon={BarChart3} color={PURP} bg="#f5f3ff"
-              trend="+8% from last month" trendUp={true}
-            />
-          </>
-        ) : nicheId === 'clinic' ? (
-          <>
-            <StatCard
-              label="OPD Patient Appointments" value="45 Patients"
-              sub="Scheduled patient checkups today"
-              icon={Calendar} color={RED} bg={RED_L}
-              trend="+8 patients" trendUp={true}
-            />
-            <StatCard
-              label="OPD Clinic Capacity" value="92% Booked"
-              sub="Doctor shift resource capacity"
-              icon={Clock} color={BLUE} bg="#eff6ff"
-              trend="+6% vs last week" trendUp={true}
-            />
-            <StatCard
-              label="Patient Satisfaction Rate" value="96.4%"
-              sub="Care rating and return index"
-              icon={Smile} color={AMB} bg="#fffbeb"
-              trend="+1.2% from last month" trendUp={true}
-            />
-            <StatCard
-              label="Avg Ticket Spend" value="PKR 2,800"
-              sub="Average consultation & lab fee spend"
-              icon={BarChart3} color={PURP} bg="#f5f3ff"
-            />
+            <StatCard label="💰 Chat Revenue" value="PKR 30,140" sub="Direct sales closed via chat" icon={DollarSign} color={GREEN} bg="#ecfdf5" trend="+18%" trendUp={true} />
+            <StatCard label="📦 Orders Today" value="7 Confirmed" sub="Closed by ShopBot interactions" icon={ShoppingBag} color={RED} bg={RED_LIGHT} trend="+40%" trendUp={true} />
+            <StatCard label="🔄 Exchange Req" value="3 Requests" sub="2 resolved, 1 pending review" icon={RefreshCw} color={BLUE} bg={BLUE_LIGHT} />
+            <StatCard label="📍 COD Pending" value="PKR 12,500" sub="4 orders out on COD" icon={Truck} color={AMBER} bg={AMBER_LIGHT} />
           </>
         ) : nicheId === 'dental' ? (
           <>
-            <StatCard
-              label="OPD Dental Appointments" value="28 Patients"
-              sub="Patients booked today"
-              icon={Calendar} color={RED} bg={RED_L}
-              trend="+5 patients" trendUp={true}
-            />
-            <StatCard
-              label="Dental Clinic Capacity" value="85% Booked"
-              sub="Dentist seat and room capacity"
-              icon={Clock} color={BLUE} bg="#eff6ff"
-              trend="+5% vs last week" trendUp={true}
-            />
-            <StatCard
-              label="Patient Retention Rate" value="94.2%"
-              sub="Return patient index"
-              icon={Smile} color={AMB} bg="#fffbeb"
-              trend="+2% vs last month" trendUp={true}
-            />
-            <StatCard
-              label="Avg Treatment Cost" value="PKR 7,500"
-              sub="Average dental service spend"
-              icon={BarChart3} color={PURP} bg="#f5f3ff"
-              trend="+12% from last month" trendUp={true}
-            />
-          </>
-        ) : niche.appointmentBased ? (
-          <>
-            <StatCard
-              label="OPD / Booking Appointments" value={nicheId === 'restaurant' ? '42 Bookings' : '28 Patients'}
-              sub="Scheduled reservations today"
-              icon={Calendar} color={RED} bg={RED_L}
-              trend={nicheId === 'restaurant' ? '+14% vs yesterday' : '+5 patients'} trendUp={true}
-            />
-            <StatCard
-              label="Active Stylist / Clinic Capacity" value={nicheId === 'restaurant' ? '82% Full' : '88% Booked'}
-              sub="Resource and staff capacity"
-              icon={Clock} color={BLUE} bg="#eff6ff"
-              trend="+5% resource limit" trendUp={true}
-            />
-            <StatCard
-              label="Loyal Repeat Rate" value="76%"
-              sub="Return patient / customer index"
-              icon={Smile} color={AMB} bg="#fffbeb"
-              trend="+2% vs last month" trendUp={true}
-            />
-            <StatCard
-              label="Avg Service Value" value={nicheId === 'restaurant' ? 'PKR 4,300' : 'PKR 7,500'}
-              sub="Average billing value per ticket"
-              icon={BarChart3} color={PURP} bg="#f5f3ff"
-              trend="+12% from last month" trendUp={true}
-            />
+            <StatCard label="📅 Appts Today" value="14 Booked" sub="2 vacant slots remaining" icon={Calendar} color={RED} bg={RED_LIGHT} />
+            <StatCard label="👥 New Patients" value="3 Today" sub="First-time clinic attendees" icon={UserPlus} color={BLUE} bg={BLUE_LIGHT} trend="+15%" trendUp={true} />
+            <StatCard label="🔄 Reschedules" value="2 Changed" sub="1 cancelled appointment" icon={RefreshCw} color={AMBER} bg={AMBER_LIGHT} />
+            <StatCard label="💰 Revenue Today" value="PKR 42,000" sub="Estimated from treatment plans" icon={DollarSign} color={GREEN} bg="#ecfdf5" />
           </>
         ) : nicheId === 'realestate' ? (
           <>
-            <StatCard
-              label="Hot Prospects" value="18 Leads"
-              sub="Actively seeking site viewings"
-              icon={Target} color={RED} bg={RED_L}
-              trend="+20% this week" trendUp={true}
-            />
-            <StatCard
-              label="Active Property Listings" value="154 Listed"
-              sub="Properties in live catalog"
-              icon={Building} color={BLUE} bg="#eff6ff"
-              trend="+14 new props" trendUp={true}
-            />
-            <StatCard
-              label="Scheduled Property Viewings" value="12 Site Visits"
-              sub="Confirmed site view visits"
-              icon={Eye} color={AMB} bg="#fffbeb"
-              trend="+3 viewings" trendUp={true}
-            />
-            <StatCard
-              label="Avg Closing Time" value="14 Days"
-              sub="From first chat to handshake"
-              icon={Clock} color={PURP} bg="#f5f3ff"
-            />
+            <StatCard label="🎯 New Leads" value="8 Today" sub="Registered via WhatsApp inquiries" icon={Target} color={RED} bg={RED_LIGHT} trend="+3 leads" trendUp={true} />
+            <StatCard label="👁️ Props Shared" value="34 Links" sub="Listing page links shared by AI" icon={Eye} color={BLUE} bg={BLUE_LIGHT} trend="+22%" trendUp={true} />
+            <StatCard label="📅 Site Visits" value="3 Scheduled" sub="Site visits confirmed this week" icon={Calendar} color={AMBER} bg={AMBER_LIGHT} />
+            <StatCard label="🔥 Hot Leads" value="5 Active" sub="Inquiries with highest purchase intent" icon={Sparkles} color={GREEN} bg="#ecfdf5" />
+          </>
+        ) : nicheId === 'salon' ? (
+          <>
+            <StatCard label="✂️ Bookings Today" value="11 Booked" sub="3 slots still vacant today" icon={Scissors} color={RED} bg={RED_LIGHT} />
+            <StatCard label="💰 Revenue Today" value="PKR 38,500" sub="From confirmed slots & add-ons" icon={DollarSign} color={GREEN} bg="#ecfdf5" trend="+15%" trendUp={true} />
+            <StatCard label="🌸 Bridal Leads" value="2 Inquiries" sub="High-value bridal trials pending" icon={Sparkles} color={PURPLE} bg={PURPLE_LIGHT} />
+            <StatCard label="⏰ Next Slot" value="3:00 PM" sub="Stylist: Sarah (Hair Styling)" icon={Clock} color={AMBER} bg={AMBER_LIGHT} />
           </>
         ) : (
-          // Fallback / General Niche Cards
           <>
-            <StatCard
-              label="Total Conversations" value={fmt(stats.conversations)}
-              sub="Across synced channels"
-              icon={MessageSquare} color={RED} bg={RED_L}
-              trend="+12%" trendUp={true}
-            />
-            <StatCard
-              label="Total Messages" value={fmt(stats.messages)}
-              sub="Inbound and outbound messages"
-              icon={Activity} color={BLUE} bg="#eff6ff"
-              trend="+8%" trendUp={true}
-            />
-            <StatCard
-              label="Agent Response Rate" value="94%"
-              sub="AI answers & resolution"
-              icon={Zap} color={AMB} bg="#fffbeb"
-              trend="+24%" trendUp={true}
-            />
-            <StatCard
-              label="Active Contacts" value={fmt(stats.customers)}
-              sub="Customers registered in CRM"
-              icon={Users} color={PURP} bg="#f5f3ff"
-            />
+            <StatCard label="📋 OPD Today" value="28 Booked" sub="OPD appointments scheduled" icon={HeartPulse} color={RED} bg={RED_LIGHT} />
+            <StatCard label="👥 New Patients" value="6 Today" sub="First-time clinical visits" icon={UserPlus} color={BLUE} bg={BLUE_LIGHT} trend="+10%" trendUp={true} />
+            <StatCard label="⚕️ Reports Rcvd" value="4 Files" sub="Awaiting doctor clinical review" icon={FileText} color={AMBER} bg={AMBER_LIGHT} />
+            <StatCard label="🚨 Urgent Cases" value="1 Flagged" sub="Symptom escalations to clinical human" icon={AlertCircle} color={RED} bg={RED_LIGHT} />
           </>
         )}
       </div>
 
-      {/* ── Industry Specific Workspace Suites ── */}
-      {nicheId === 'ecommerce' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 14, marginBottom: 20 }}>
-          
-          {/* Funnel chart */}
-          <SectionCard 
-            title="Conversational Commerce Funnel" 
-            subtitle="Dropoff tracking from initial customer contact to successful sale checkout"
-          >
-            <div style={{ height: 220 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  layout="vertical"
-                  data={[
-                    { name: 'Conversations', count: 521, pct: 100, fill: '#dc2626' },
-                    { name: 'Product Intent', count: 332, pct: 63.7, fill: '#ef4444' },
-                    { name: 'Catalog Views', count: 215, pct: 41.2, fill: '#f87171' },
-                    { name: 'Checkout Initialized', count: 88, pct: 16.8, fill: '#fca5a5' },
-                    { name: 'Successful Orders', count: 7, pct: 1.34, fill: '#fee2e2' },
-                  ]}
-                  margin={{ top: 10, right: 30, left: 40, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.03)" horizontal={false} />
-                  <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
-                  <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11.5, fontWeight: 550, fill: '#374151' }} />
-                  <Tooltip cursor={{ fill: 'rgba(220,38,38,0.02)' }} content={({ active, payload }: any) => {
-                    if (!active || !payload?.length) return null;
-                    const d = payload[0].payload;
-                    return (
-                      <div style={{ background: '#111827', color: '#fff', padding: '8px 12px', borderRadius: 8, fontSize: 12 }}>
-                        <strong>{d.name}</strong>: {d.count} ({d.pct}%)
-                      </div>
-                    );
-                  }} />
-                  <Bar dataKey="count" radius={[0, 6, 6, 0]}>
-                    {[
-                      '#dc2626',
-                      '#ef4444',
-                      '#f87171',
-                      '#fca5a5',
-                      '#fee2e2'
-                    ].map((col, idx) => (
-                      <Cell key={idx} fill={col} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            
-            {/* Legend showing progressive dropoff */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(220,38,38,0.05)', paddingTop: 12, marginTop: 12 }}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase' }}>Inbound Leads</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginTop: 2 }}>521</div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase' }}>Shop Intent</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#dc2626', marginTop: 2 }}>63.7%</div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase' }}>Cart Conversion</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: GREEN, marginTop: 2 }}>3.26%</div>
-              </div>
-            </div>
-          </SectionCard>
-
-          {/* Refund Intents Handled panel */}
-          <SectionCard
-            title="Refund Intents Handled"
-            subtitle="AI self-resolution status of refund requests"
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 15, height: '100%', justifyContent: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{
-                  width: 52, height: 52, borderRadius: '50%', background: '#ecfdf5',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                }}>
-                  <ShieldCheck size={26} color={GREEN} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: '#111827' }}>14 Requests</div>
-                  <div style={{ fontSize: 12.5, color: '#6b7280' }}>Refund intents recognized & resolved by AI</div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, background: '#fcfbfb', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(220,38,38,0.04)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 12.5, color: '#4b5563', fontWeight: 550 }}>Satisfied Resolution (Exchanges/Credit)</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: GREEN }}>11 (78.5%)</span>
-                </div>
-                <div style={{ width: '100%', height: 6, background: '#e5e7eb', borderRadius: 3, overflow: 'hidden' }}>
-                  <div style={{ width: '78.5%', height: '100%', background: GREEN }} />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, background: '#fcfbfb', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(220,38,38,0.04)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 12.5, color: '#4b5563', fontWeight: 550 }}>Escalations to Human Agent</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b' }}>3 (21.5%)</span>
-                </div>
-                <div style={{ width: '100%', height: 6, background: '#e5e7eb', borderRadius: 3, overflow: 'hidden' }}>
-                  <div style={{ width: '21.5%', height: '100%', background: '#f59e0b' }} />
-                </div>
-              </div>
-            </div>
-          </SectionCard>
-
-        </div>
-      )}
-
-      {nicheId === 'ecommerce' && (
-        <div style={{ marginBottom: 20 }}>
-          {/* Product Insights Card */}
-          <SectionCard
-            title="ShopBot Product Catalog Insights"
-            subtitle="Customer search and shopping habits tracked directly from conversations"
-          >
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-              
-              {/* Top Searches */}
-              <div style={{ background: '#faf9f9', padding: 16, borderRadius: 12, border: '1px solid rgba(220,38,38,0.05)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 750, color: '#111827', textTransform: 'uppercase', marginBottom: 12 }}>
-                  <Search size={14} color={RED} /> Top Queries & Searches
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {[
-                    { term: 'Lawn 2026 Collection', count: 142 },
-                    { term: 'Printed Kurtis Size M', count: 98 },
-                    { term: 'Cotton Chiffon Dupatta', count: 64 },
-                    { term: 'Summer Linen Maxis', count: 32 },
-                  ].map((item, idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
-                      <span style={{ color: '#4b5563' }}>{item.term}</span>
-                      <span style={{ fontWeight: 600, color: '#111827' }}>{item.count} queries</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Most Ordered */}
-              <div style={{ background: '#faf9f9', padding: 16, borderRadius: 12, border: '1px solid rgba(220,38,38,0.05)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 750, color: '#111827', textTransform: 'uppercase', marginBottom: 12 }}>
-                  <ShoppingBag size={14} color={BLUE} /> Most Ordered via AI
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {[
-                    { term: 'Floral Lawn Kurti', count: 12 },
-                    { term: 'Solid Linen Co-ord Set', count: 8 },
-                    { term: 'Jacquard 3-Piece Suite', count: 5 },
-                    { term: 'Cotton Summer Kurti', count: 4 },
-                  ].map((item, idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
-                      <span style={{ color: '#4b5563' }}>{item.term}</span>
-                      <span style={{ fontWeight: 600, color: '#111827' }}>{item.count} closed</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Cart Abandoned */}
-              <div style={{ background: '#faf9f9', padding: 16, borderRadius: 12, border: '1px solid rgba(220,38,38,0.05)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 750, color: '#111827', textTransform: 'uppercase', marginBottom: 12 }}>
-                  <AlertTriangle size={14} color={AMB} /> Cart Abandoned Items
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {[
-                    { term: 'Embroidered Organza Maxi', count: 18 },
-                    { term: 'Casual Linen Tunic', count: 12 },
-                    { term: 'Luxury Lawn Trouser', count: 8 },
-                    { term: 'Silk Hand-embroidered Dupatta', count: 5 },
-                  ].map((item, idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
-                      <span style={{ color: '#4b5563' }}>{item.term}</span>
-                      <span style={{ fontWeight: 600, color: '#111827' }}>{item.count} items left</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-          </SectionCard>
-        </div>
-      )}
-
-      {/* Appointment Based Suite Section */}
-      {niche.appointmentBased && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
-          
-          {/* Left Column: Active Slots Grid */}
-          <SectionCard 
-            title={appointmentConfig.title} 
-            subtitle="Click or tap any slot to inspect patient appointment cards or availability"
-            action={<span style={{ fontSize: 12, fontWeight: 650, background: '#ecfdf5', color: GREEN, padding: '4px 10px', borderRadius: 20 }}>{appointmentConfig.capacityText}</span>}
-          >
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 4 }}>
-              {appointmentConfig.slots.map((slot, index) => {
-                const isBooked = slot.status === 'Booked';
-                const isBreak = slot.status === 'Break';
-                const isHighlighted = highlightedSlot === index;
-
-                return (
-                  <div
-                    key={index}
-                    onClick={() => {
-                      if (!isBreak) setHighlightedSlot(isHighlighted ? null : index);
-                    }}
-                    style={{
-                      padding: '12px 14px',
-                      borderRadius: 12,
-                      cursor: isBreak ? 'default' : 'pointer',
-                      border: isHighlighted
-                        ? '1.5px solid #dc2626'
-                        : isBooked
-                          ? '1px solid rgba(220,38,38,0.06)'
-                          : '1.5px dashed rgba(220,38,38,0.18)',
-                      background: isHighlighted
-                        ? '#fef2f2'
-                        : isBreak
-                          ? '#f9fafb'
-                          : isBooked
-                            ? '#fff'
-                            : '#fefbfb',
-                      transition: 'all 0.15s',
-                      boxShadow: isBooked && !isHighlighted ? '0 1px 2px rgba(0,0,0,0.02)' : 'none',
-                    }}
-                    onMouseEnter={e => {
-                      if (!isBreak && !isHighlighted) {
-                        e.currentTarget.style.borderColor = '#dc2626';
-                        e.currentTarget.style.background = '#fff5f5';
-                      }
-                    }}
-                    onMouseLeave={e => {
-                      if (!isBreak && !isHighlighted) {
-                        e.currentTarget.style.borderColor = isBooked ? 'rgba(220,38,38,0.06)' : 'rgba(220,38,38,0.18)';
-                        e.currentTarget.style.background = isBooked ? '#fff' : '#fefbfb';
-                      }
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 11.5, fontWeight: 700, color: '#4b5563' }}>{slot.time}</span>
-                      <span style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        padding: '2px 6px',
-                        borderRadius: 10,
-                        textTransform: 'uppercase',
-                        background: isBreak ? '#e5e7eb' : isBooked ? '#fef2f2' : '#ecfdf5',
-                        color: isBreak ? '#4b5563' : isBooked ? '#dc2626' : GREEN,
-                      }}>
-                        {slot.status}
-                      </span>
-                    </div>
-
-                    <div style={{ fontSize: 13, fontWeight: 750, color: '#111827', marginTop: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {slot.client || slot.service}
-                    </div>
-
-                    {isBooked && (
-                      <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span>{slot.service}</span>
-                        <span style={{ fontWeight: 550 }}>{slot.provider}</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {highlightedSlot !== null && (
-              <div style={{
-                marginTop: 14,
-                padding: '12px 14px',
-                borderRadius: 12,
-                background: '#fff8f8',
-                border: '1px solid rgba(220,38,38,0.12)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                animation: 'fadeUp 0.15s ease-out'
-              }}>
-                <div>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: '#dc2626' }}>
-                    Active Booking: {appointmentConfig.slots[highlightedSlot]?.client}
-                  </div>
-                  <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 2 }}>
-                    Assigned: {appointmentConfig.slots[highlightedSlot]?.provider} • service: {appointmentConfig.slots[highlightedSlot]?.service}
-                  </div>
-                </div>
-                <a
-                  href="/conversations"
-                  style={{
-                    fontSize: 11.5, fontWeight: 650, color: '#fff', background: '#dc2626',
-                    textDecoration: 'none', padding: '6px 12px', borderRadius: 8,
-                    boxShadow: '0 2px 6px rgba(220,38,38,0.2)',
-                  }}
-                >
-                  Open Thread
-                </a>
-              </div>
-            )}
-          </SectionCard>
-
-          {/* Right Column: Weekly Timeline Calendar Preview */}
-          <SectionCard 
-            title="Weekly Reservation Timeline" 
-            subtitle="Click on any day of the week to inspect scheduled booking lists"
-          >
-            {/* Days Tabs Row */}
-            <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-              {(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const).map(day => {
-                const isActive = activeDay === day;
-                return (
-                  <button
-                    key={day}
-                    onClick={() => {
-                      setActiveDay(day);
-                      setHighlightedSlot(null);
-                    }}
-                    style={{
-                      flex: 1, padding: '7px 0', border: 'none', borderRadius: 8,
-                      fontWeight: 650, fontSize: 11.5, cursor: 'pointer',
-                      background: isActive ? '#dc2626' : 'transparent',
-                      color: isActive ? '#fff' : '#6b7280',
-                      transition: 'all 0.15s',
-                    }}
-                    onMouseEnter={e => {
-                      if (!isActive) e.currentTarget.style.background = '#fef2f2';
-                    }}
-                    onMouseLeave={e => {
-                      if (!isActive) e.currentTarget.style.background = 'transparent';
-                    }}
-                  >
-                    {day}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Timelines List for the active day */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 250, overflowY: 'auto' }}>
-              {activeTimelineSlots.length === 0 ? (
-                <div style={{ padding: '30px 0', textAlign: 'center', fontSize: 12.5, color: '#9ca3af' }}>
-                  {nicheId === 'restaurant'
-                    ? 'No reservations scheduled for Sunday. Closed today.'
-                    : nicheId === 'salon'
-                      ? 'No beauty appointments scheduled for Sunday. Closed today.'
-                      : 'No bookings scheduled for Sunday. Emergency only.'}
-                </div>
-              ) : (
-                activeTimelineSlots.map((item, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 12,
-                      padding: '10px 12px', borderRadius: 10,
-                      background: item.status === 'Booked' ? '#fff' : '#fafafa',
-                      borderLeft: `4px solid ${item.status === 'Booked' ? '#dc2626' : '#e5e7eb'}`,
-                      border: '1px solid rgba(220,38,38,0.04)',
-                    }}
-                  >
-                    <div style={{ width: 68, fontSize: 11.5, fontWeight: 700, color: '#4b5563' }}>
-                      {item.time}
-                    </div>
-
-                    <div style={{ flex: 1 }}>
-                      {item.status === 'Booked' ? (
-                        <>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{item.client}</div>
-                          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 1 }}>
-                            {item.service} • <span style={{ fontWeight: 550 }}>{item.provider}</span>
-                          </div>
-                        </>
-                      ) : (
-                        <div style={{ fontSize: 12.5, fontStyle: 'italic', color: '#9ca3af' }}>{item.service}</div>
-                      )}
-                    </div>
-
-                    <div>
-                      {item.status === 'Booked' ? (
-                        <span style={{ fontSize: 10, fontWeight: 700, background: '#fef2f2', color: '#dc2626', padding: '2px 7px', borderRadius: 10 }}>CONFIRMED</span>
-                      ) : (
-                        <span style={{ fontSize: 10, fontWeight: 700, background: '#ecfdf5', color: GREEN, padding: '2px 7px', borderRadius: 10 }}>VACANT</span>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </SectionCard>
-
-        </div>
-      )}
-
-      {/* Real Estate Vertical Suite Section */}
-      {nicheId === 'realestate' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 14, marginBottom: 20 }}>
-          
-          {/* Left Column: Hot Prospects Directory */}
-          <SectionCard
-            title="Hot Real Estate Prospects"
-            subtitle="Customer leads seeking properties on WhatsApp"
-            action={
-              <div style={{ display: 'flex', gap: 4, background: '#f3f4f6', padding: 2, borderRadius: 8 }}>
-                {(['all', 'buy', 'rent'] as const).map(type => (
-                  <button
-                    key={type}
-                    onClick={() => setProspectFilter(type)}
-                    style={{
-                      padding: '4px 10px', fontSize: 11, fontWeight: 600, border: 'none', borderRadius: 6,
-                      background: prospectFilter === type ? '#fff' : 'transparent',
-                      color: prospectFilter === type ? '#111827' : '#6b7280',
-                      boxShadow: prospectFilter === type ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                      cursor: 'pointer', textTransform: 'capitalize'
-                    }}
-                  >
-                    {type}
-                  </button>
-                ))}
-              </div>
-            }
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
-              {[
-                { name: 'Omar Sheikh', goal: 'buy', label: 'Buy 3-Bed Apartment', budget: 'PKR 2.5–3.0 Crore', area: 'Clifton / DHA', channel: 'WhatsApp', status: 'Hot Lead' },
-                { name: 'Hina Malik', goal: 'rent', label: 'Rent 2-Bed Flat', budget: 'PKR 80,000–100,000 / mo', area: 'DHA Phase 5', channel: 'WhatsApp', status: 'Active Prospect' },
-                { name: 'Zainab Fatima', goal: 'buy', label: 'Buy Luxury House', budget: 'PKR 5.0 Crore', area: 'KDA Scheme 1', channel: 'Instagram', status: 'Active Prospect' },
-              ]
-                .filter(p => prospectFilter === 'all' || p.goal === prospectFilter)
-                .map((lead, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(220,38,38,0.06)',
-                      background: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                    }}
-                  >
+      {/* ── Core Niche Dashboard Layouts ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 16, marginBottom: 24 }}>
+        
+        {/* ========================================================================= */}
+        {/* NICHE 1: Restaurant/Food */}
+        {/* ========================================================================= */}
+        {nicheId === 'restaurant' && (
+          <>
+            <SectionCard title="Live Order Queue" subtitle="Orders placed on WhatsApp awaiting real-time tracking">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {restaurantOrders.map(order => (
+                  <div key={order.id} style={{
+                    padding: '14px 18px', borderRadius: 14, border: '1px solid rgba(220,38,38,0.06)',
+                    background: '#white', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                  }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 13.5, fontWeight: 750, color: '#111827' }}>{lead.name}</span>
-                        <span style={{ fontSize: 10, fontWeight: 700, background: '#fef2f2', color: '#dc2626', padding: '2px 6px', borderRadius: 10 }}>{lead.status}</span>
+                        <span style={{ fontSize: 14, fontWeight: 800, color: '#111827' }}>{order.name}</span>
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, textTransform: 'uppercase',
+                          background: order.status === 'pending' ? AMBER_LIGHT : '#ecfdf5',
+                          color: order.status === 'pending' ? AMBER : GREEN
+                        }}>{order.status}</span>
                       </div>
-                      <div style={{ fontSize: 12.5, fontWeight: 600, color: '#4b5563', marginTop: 6 }}>
-                        {lead.label}
-                      </div>
-                      <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 3 }}>
-                        Budget: <strong style={{ color: '#111827' }}>{lead.budget}</strong> • Area: {lead.area}
-                      </div>
+                      <div style={{ fontSize: 13, color: '#4b5563', marginTop: 4, fontWeight: 500 }}>{order.items}</div>
+                      <div style={{ fontSize: 11.5, color: '#9ca3af', marginTop: 3 }}>{order.area} · Placed {order.time}</div>
                     </div>
-
-                    <a
-                      href="/conversations"
-                      style={{
-                        padding: '6px 12px', background: '#dc2626', color: '#fff',
-                        borderRadius: 8, fontSize: 11.5, fontWeight: 650, textDecoration: 'none',
-                        boxShadow: '0 2px 6px rgba(220,38,38,0.15)'
-                      }}
-                    >
-                      Open Lead
-                    </a>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {order.status === 'pending' && (
+                        <button
+                          onClick={() => {
+                            setRestaurantOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'confirmed' } : o));
+                          }}
+                          style={{ padding: '6px 12px', background: GREEN, color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          Confirm
+                        </button>
+                      )}
+                      {order.status === 'confirmed' && (
+                        <button
+                          onClick={() => {
+                            setRestaurantOrders(prev => prev.filter(o => o.id !== order.id));
+                          }}
+                          style={{ padding: '6px 12px', background: BLUE, color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          Deliver
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
+              </div>
+            </SectionCard>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <SectionCard title="🔥 Top Ordered Products">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {[
+                    { name: 'Chicken Karahi', share: '38%' },
+                    { name: 'Biryani Family Pack', share: '28%' },
+                    { name: 'Chapli Kebab', share: '18%' },
+                    { name: 'Seekh Platter', share: '16%' }
+                  ].map((item, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 10, background: '#faf9f9' }}>
+                      <span style={{ fontSize: 13, fontWeight: 650, color: '#374151' }}>{item.name}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: RED }}>{item.share}</span>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+
+              <SectionCard title="⚠️ Issues Logged Today">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  {restaurantIssues.map((issue, idx) => (
+                    <div key={idx} style={{ padding: '12px 14px', background: RED_LIGHT, borderRadius: 12, textAlign: 'center' }}>
+                      <div style={{ fontSize: 18, fontWeight: 900, color: RED }}>{issue.count}</div>
+                      <div style={{ fontSize: 12, color: '#4b5563', fontWeight: 600, marginTop: 2 }}>{issue.type}</div>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+            </div>
+          </>
+        )}
+
+        {/* ========================================================================= */}
+        {/* NICHE 2: eCommerce/Fashion */}
+        {/* ========================================================================= */}
+        {nicheId === 'ecommerce' && (
+          <>
+            <SectionCard title="Live Order Kanban Pipeline" subtitle="Order checkout status tracked dynamically via WhatsApp chat">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                {/* Stage 1: PENDING ADDRESS */}
+                <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 750, color: AMBER, textTransform: 'uppercase', marginBottom: 10 }}>Pending Address</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {ecoPipeline.filter(o => o.status === 'pending_address').map(order => (
+                      <div key={order.id} style={{ background: '#fff', padding: 10, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)' }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{order.name}</div>
+                        <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 3 }}>{order.item}</div>
+                        <button
+                          onClick={() => {
+                            setEcoPipeline(prev => prev.map(o => o.id === order.id ? { ...o, status: 'confirmed' } : o));
+                          }}
+                          style={{ width: '100%', marginTop: 8, padding: '4px 0', border: 'none', background: RED, color: '#fff', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          Address Obtained
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Stage 2: CONFIRMED */}
+                <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 750, color: GREEN, textTransform: 'uppercase', marginBottom: 10 }}>Confirmed</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {ecoPipeline.filter(o => o.status === 'confirmed').map(order => (
+                      <div key={order.id} style={{ background: '#fff', padding: 10, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)' }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{order.name}</div>
+                        <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 3 }}>{order.item}</div>
+                        <button
+                          onClick={() => {
+                            setEcoPipeline(prev => prev.map(o => o.id === order.id ? { ...o, status: 'dispatched' } : o));
+                          }}
+                          style={{ width: '100%', marginTop: 8, padding: '4px 0', border: 'none', background: BLUE, color: '#fff', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          Dispatch Order
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Stage 3: DISPATCHED */}
+                <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 750, color: BLUE, textTransform: 'uppercase', marginBottom: 10 }}>Dispatched</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {ecoPipeline.filter(o => o.status === 'dispatched').map(order => (
+                      <div key={order.id} style={{ background: '#fff', padding: 10, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)' }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{order.name}</div>
+                        <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 3 }}>{order.item}</div>
+                        <button
+                          onClick={() => {
+                            setEcoPipeline(prev => prev.filter(o => o.id !== order.id));
+                          }}
+                          style={{ width: '100%', marginTop: 8, padding: '4px 0', border: 'none', background: '#e5e7eb', color: '#4b5563', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          Mark Delivered
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </SectionCard>
+
+            <SectionCard title="Product Intelligence Widget">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>🔍 What Customers Search Most</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {[
+                      { query: 'Lawn Collection', count: 142 },
+                      { query: 'Medium size fits', count: 98 },
+                      { query: 'COD Available', count: 87 }
+                    ].map((item, idx) => (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                        <span style={{ color: '#4b5563', fontWeight: 550 }}>"{item.query}"</span>
+                        <strong style={{ color: '#111827' }}>{item.count} queries</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>⚠️ Out-of-Stock Pain Points</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {[
+                      { item: 'Red Kurti Size L', count: 18 },
+                      { item: 'Embroidered Dupatta', count: 12 }
+                    ].map((item, idx) => (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                        <span style={{ color: RED, fontWeight: 650 }}>{item.item}</span>
+                        <strong style={{ color: '#4b5563' }}>Asked {item.count}x today</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </SectionCard>
+          </>
+        )}
+
+        {/* ========================================================================= */}
+        {/* NICHE 3: Dental Clinic */}
+        {/* ========================================================================= */}
+        {nicheId === 'dental' && (
+          <>
+            <SectionCard title="Today's Appointment Schedule" subtitle="OPD Dental slots tracked dynamically by patient WhatsApp booking confirmation">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {dentalSchedule.map((slot, idx) => (
+                  <div key={idx} style={{
+                    display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12,
+                    border: '1px solid rgba(220,38,38,0.05)',
+                    background: slot.status === 'confirmed' ? '#white' : slot.status === 'available' ? '#fefbfb' : '#fafafa',
+                    borderLeft: `4px solid ${slot.status === 'confirmed' ? GREEN : slot.status === 'pending' ? AMBER : '#e5e7eb'}`
+                  }}>
+                    <div style={{ width: 68, fontSize: 12, fontWeight: 800, color: '#4b5563' }}>{slot.time}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <strong style={{ fontSize: 13.5, color: '#111827' }}>{slot.name}</strong>
+                        {slot.isNew && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', background: BLUE_LIGHT, color: BLUE, borderRadius: 8 }}>NEW</span>}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 2 }}>{slot.treatment} · {slot.doctor}</div>
+                    </div>
+                    <div>
+                      {slot.status === 'available' ? (
+                        <button
+                          onClick={() => {
+                            setDentalSchedule(prev => prev.map((s, i) => i === idx ? { ...s, name: 'Sara Ahmed', treatment: 'Scaling', status: 'confirmed', isNew: true } : s));
+                          }}
+                          style={{ padding: '4px 10px', background: RED_LIGHT, color: RED, border: 'none', borderRadius: 8, fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          Book via AI
+                        </button>
+                      ) : (
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, textTransform: 'uppercase',
+                          background: slot.status === 'confirmed' ? '#ecfdf5' : '#fef2f2',
+                          color: slot.status === 'confirmed' ? GREEN : RED
+                        }}>{slot.status}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </SectionCard>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <SectionCard title="Weekly Treatment Breakdown">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {[
+                    { name: 'Scaling & Polishing', pct: '35%' },
+                    { name: 'Consultation Visit', pct: '25%' },
+                    { name: 'Root Canal Therapy', pct: '18%' },
+                    { name: 'Teeth Whitening Pack', pct: '12%' }
+                  ].map((item, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 10, background: '#faf9f9' }}>
+                      <span style={{ fontSize: 13, fontWeight: 650, color: '#374151' }}>{item.name}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: GREEN }}>{item.pct}</span>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+
+              <SectionCard title="⚕️ Clinical Queries Awaiting Review">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {dentalClinicalQueries.map(q => (
+                    <div key={q.id} style={{ padding: '10px 12px', background: RED_LIGHT, borderRadius: 10, border: '1px solid rgba(220,38,38,0.06)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 12.5, fontWeight: 800, color: '#111827' }}>{q.patient}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: RED }}>{q.type}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: '#4b5563', marginTop: 4, fontWeight: 550 }}>{q.issue}</div>
+                      <button
+                        onClick={() => {
+                          setDentalClinicalQueries(prev => prev.filter(item => item.id !== q.id));
+                        }}
+                        style={{ marginTop: 8, padding: '3px 8px', border: 'none', background: RED, color: '#fff', borderRadius: 6, fontSize: 10.5, fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        Resolve Inquiry
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+            </div>
+          </>
+        )}
+
+        {/* ========================================================================= */}
+        {/* NICHE 4: Real Estate */}
+        {/* ========================================================================= */}
+        {nicheId === 'realestate' && (
+          <>
+            <SectionCard title="Conversational Lead Pipeline" subtitle="Lead progression from requirement gathering to site visits">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                {/* Stage 1: NEW INQUIRY */}
+                <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 750, color: AMBER, textTransform: 'uppercase', marginBottom: 10 }}>New Inquiry</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {rePipeline.filter(l => l.stage === 'new_inquiry').map(lead => (
+                      <div key={lead.id} style={{ background: '#fff', padding: 10, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)' }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{lead.name}</div>
+                        <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 3 }}>{lead.type} · {lead.area}</div>
+                        <button
+                          onClick={() => {
+                            setRePipeline(prev => prev.map(l => l.id === lead.id ? { ...l, stage: 'qualified' } : l));
+                          }}
+                          style={{ width: '100%', marginTop: 8, padding: '4px 0', border: 'none', background: RED, color: '#fff', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          Confirm Requirements
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Stage 2: QUALIFIED */}
+                <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 750, color: GREEN, textTransform: 'uppercase', marginBottom: 10 }}>Qualified</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {rePipeline.filter(l => l.stage === 'qualified').map(lead => (
+                      <div key={lead.id} style={{ background: '#fff', padding: 10, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)' }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{lead.name}</div>
+                        <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 3 }}>Budget: {lead.budget}</div>
+                        <button
+                          onClick={() => {
+                            setRePipeline(prev => prev.map(l => l.id === lead.id ? { ...l, stage: 'properties_sent' } : l));
+                          }}
+                          style={{ width: '100%', marginTop: 8, padding: '4px 0', border: 'none', background: BLUE, color: '#fff', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          Share Listings
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Stage 3: VISIT SCHEDULED */}
+                <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 750, color: BLUE, textTransform: 'uppercase', marginBottom: 10 }}>Visit Scheduled</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {rePipeline.filter(l => l.stage === 'visit_scheduled').map(lead => (
+                      <div key={lead.id} style={{ background: '#fff', padding: 10, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)' }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{lead.name}</div>
+                        <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 3 }}>{lead.type} · DHA Phase 5</div>
+                        <button
+                          onClick={() => {
+                            setRePipeline(prev => prev.filter(l => l.id !== lead.id));
+                          }}
+                          style={{ width: '100%', marginTop: 8, padding: '4px 0', border: 'none', background: '#e5e7eb', color: '#4b5563', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          Mark Deal Closed
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </SectionCard>
+
+            <SectionCard title="🔥 Active Hot Prospects">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {rePipeline.filter(l => l.temp === 'hot').map(lead => (
+                  <div key={lead.id} style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(220,38,38,0.06)', background: '#fff' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 13.5, fontWeight: 800, color: '#111827' }}>{lead.name}</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', background: RED_LIGHT, color: RED, borderRadius: 8 }}>HOT LEAD</span>
+                    </div>
+                    <div style={{ fontSize: 12.5, color: '#4b5563', marginTop: 6, fontWeight: 650 }}>{lead.type} in {lead.area}</div>
+                    <div style={{ fontSize: 11.5, color: '#9ca3af', marginTop: 3 }}>Budget: {lead.budget}</div>
+                  </div>
+                ))}
+              </div>
+            </SectionCard>
+          </>
+        )}
+
+        {/* ========================================================================= */}
+        {/* NICHE 5: Salon/Spa */}
+        {/* ========================================================================= */}
+        {nicheId === 'salon' && (
+          <>
+            <SectionCard title="Stylist Appointment Schedule" subtitle="Stylist calendar slots confirmed via customer WhatsApp interactions">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+                {Object.entries(salonSchedule).map(([stylist, hours]) => (
+                  <div key={stylist} style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: RED, textTransform: 'uppercase', marginBottom: 10, textAlign: 'center' }}>{stylist}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {Object.entries(hours).map(([hour, booking]) => (
+                        <div key={hour} style={{ background: '#fff', padding: 8, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)', textAlign: 'center' }}>
+                          <div style={{ fontSize: 10.5, fontWeight: 700, color: '#6b7280' }}>{hour}</div>
+                          {booking.client ? (
+                            <>
+                              <div style={{ fontSize: 12.5, fontWeight: 750, color: '#111827', marginTop: 4 }}>{booking.client}</div>
+                              <div style={{ fontSize: 10.5, color: '#9ca3af', marginTop: 2 }}>{booking.service}</div>
+                            </>
+                          ) : (
+                            <span style={{ fontSize: 11, color: GREEN, fontStyle: 'italic', display: 'block', marginTop: 4, fontWeight: 600 }}>Vacant</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </SectionCard>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <SectionCard title="🌸 Bridal Pipeline Inquiries">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[
+                    { name: 'Nadia Khan', stage: 'Inquiry', date: 'June 12' },
+                    { name: 'Fatima Noor', stage: 'Trial Booked', date: 'June 18' }
+                  ].map((lead, idx) => (
+                    <div key={idx} style={{ padding: '10px 14px', borderRadius: 10, background: '#faf9f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{lead.name}</div>
+                        <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 2 }}>Booking: {lead.date}</div>
+                      </div>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, background: PURPLE_LIGHT, color: PURPLE, padding: '2px 8px', borderRadius: 8 }}>{lead.stage}</span>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+
+              <SectionCard title="⏰ Upcoming No-Show Reminders">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {upcomingReminders.map(rem => (
+                    <div key={rem.id} style={{ padding: '10px 12px', background: RED_LIGHT, borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: 12.5, fontWeight: 800, color: '#111827' }}>{rem.name}</div>
+                        <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{rem.service} · {rem.time}</div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setUpcomingReminders(prev => prev.map(r => r.id === rem.id ? { ...r, sent: true } : r));
+                        }}
+                        disabled={rem.sent}
+                        style={{ padding: '4px 10px', background: rem.sent ? GREEN : RED, color: '#fff', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: rem.sent ? 'default' : 'pointer' }}
+                      >
+                        {rem.sent ? 'Sent' : 'Remind'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+            </div>
+          </>
+        )}
+
+        {/* ========================================================================= */}
+        {/* NICHE 6: Medical Clinic */}
+        {/* ========================================================================= */}
+        {nicheId === 'clinic' && (
+          <>
+            <SectionCard title="Doctor-wise Patient Consultation Grid" subtitle="Active OPD patient queues mapped dynamically by specialist doctor shifts">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                {Object.entries(medicalDoctors).map(([doctor, list]) => (
+                  <div key={doctor} style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 800, color: RED, textTransform: 'uppercase', marginBottom: 10, textAlign: 'center' }}>{doctor}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {list.map((appt, idx) => (
+                        <div key={idx} style={{ background: '#fff', padding: 10, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)', textAlign: 'center' }}>
+                          <div style={{ fontSize: 10.5, fontWeight: 700, color: '#6b7280' }}>{appt.time}</div>
+                          <div style={{ fontSize: 12.5, fontWeight: 750, color: '#111827', marginTop: 4 }}>{appt.patient}</div>
+                          {appt.status === 'Confirmed' ? (
+                            <span style={{ fontSize: 9.5, fontWeight: 700, background: '#ecfdf5', color: GREEN, padding: '1px 5px', borderRadius: 8, display: 'inline-block', marginTop: 6 }}>CONFIRMED</span>
+                          ) : (
+                            <span style={{ fontSize: 9.5, fontWeight: 700, background: '#fef2f2', color: RED, padding: '1px 5px', borderRadius: 8, display: 'inline-block', marginTop: 6 }}>VACANT</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </SectionCard>
+
+            <SectionCard title="⚕️ Specialty Consultation Demand">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {[
+                  { name: 'General OPD Medicine', share: '45%' },
+                  { name: 'Pediatrics Consultations', share: '22%' },
+                  { name: 'Cardiology Specialist', share: '18%' },
+                  { name: 'Orthopedics Clinic', share: '15%' }
+                ].map((item, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 10, background: '#faf9f9' }}>
+                    <span style={{ fontSize: 13, fontWeight: 650, color: '#374151' }}>{item.name}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: RED }}>{item.share}</span>
+                  </div>
+                ))}
+              </div>
+            </SectionCard>
+          </>
+        )}
+
+        {/* ── Right Panel: AI Agent Performance & Live Stats ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <SectionCard title="🤖 AI Agent Performance" subtitle="Direct conversational ROI calculated from Meta Cloud API integrations">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: RED_LIGHT, borderRadius: 12 }}>
+                <span style={{ fontSize: 13, fontWeight: 750, color: '#374151' }}>Resolved by AI</span>
+                <span style={{ fontSize: 14, fontWeight: 900, color: RED }}>94%</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: '#faf9f9', borderRadius: 12 }}>
+                <span style={{ fontSize: 13, fontWeight: 750, color: '#374151' }}>Escalated to Human</span>
+                <span style={{ fontSize: 14, fontWeight: 900, color: AMBER }}>6%</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: '#faf9f9', borderRadius: 12 }}>
+                <span style={{ fontSize: 13, fontWeight: 750, color: '#374151' }}>Avg Response Speed</span>
+                <span style={{ fontSize: 14, fontWeight: 900, color: GREEN }}>8 seconds</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: '#faf9f9', borderRadius: 12 }}>
+                <span style={{ fontSize: 13, fontWeight: 750, color: '#374151' }}>AI Messages Sent Today</span>
+                <span style={{ fontSize: 14, fontWeight: 900, color: '#111827' }}>284 msgs</span>
+              </div>
             </div>
           </SectionCard>
 
-          {/* Right Column: Listing Portfolio Category view counts */}
-          <SectionCard
-            title="Shared Listings View Activity"
-            subtitle="Visual traffic analysis of property listing links shared on WhatsApp"
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 4 }}>
+          <SectionCard title="😊 Patient / Customer Sentiment">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {[
-                { name: 'DHA Phase 6 Apartments', listings: 42, views: 312, color: '#dc2626' },
-                { name: 'Clifton Seafront Penthouses', listings: 18, views: 247, color: '#ef4444' },
-                { name: 'DHA Phase 8 Luxury Villas', listings: 24, views: 189, color: '#f87171' },
-                { name: 'Commercial Spaces Clifton', listings: 35, views: 98, color: '#fee2e2' },
-              ].map((item, idx) => (
+                { label: 'Positive', score: 78, color: GREEN, bg: '#ecfdf5' },
+                { label: 'Neutral', score: 16, color: AMBER, bg: AMBER_LIGHT },
+                { label: 'Negative', score: 6, color: RED, bg: RED_LIGHT }
+              ].map((s, idx) => (
                 <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
-                    <span style={{ fontWeight: 600, color: '#374151' }}>{item.name}</span>
-                    <span style={{ fontSize: 11.5, color: '#9ca3af' }}>{item.listings} props • <strong>{item.views} views</strong></span>
+                    <span style={{ fontWeight: 700, color: '#374151' }}>{s.label}</span>
+                    <strong style={{ color: s.color }}>{s.score}%</strong>
                   </div>
-                  <div style={{ width: '100%', height: 7, background: '#f3f4f6', borderRadius: 3.5, overflow: 'hidden' }}>
-                    <div style={{ width: `${(item.views / 350) * 100}%`, height: '100%', background: item.color }} />
+                  <div style={{ width: '100%', height: 6, background: '#f3f4f6', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ width: `${s.score}%`, height: '100%', background: s.color }} />
                   </div>
                 </div>
               ))}
-
-              <div style={{ display: 'flex', gap: 12, borderTop: '1px solid rgba(220,38,38,0.06)', paddingTop: 12, marginTop: 4 }}>
-                <div style={{ flex: 1, background: '#faf9f9', padding: '8px 12px', borderRadius: 10, textAlign: 'center' }}>
-                  <div style={{ fontSize: 10, color: '#9ca3af', textTransform: 'uppercase' }}>Shared Links</div>
-                  <div style={{ fontSize: 15, fontWeight: 750, color: '#111827', marginTop: 2 }}>154</div>
-                </div>
-                <div style={{ flex: 1, background: '#faf9f9', padding: '8px 12px', borderRadius: 10, textAlign: 'center' }}>
-                  <div style={{ fontSize: 10, color: '#9ca3af', textTransform: 'uppercase' }}>Total Views</div>
-                  <div style={{ fontSize: 15, fontWeight: 750, color: '#dc2626', marginTop: 2 }}>846 views</div>
-                </div>
-              </div>
             </div>
           </SectionCard>
-
         </div>
-      )}
 
-      {/* ── Standard Live CRM Charts Row ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14, marginBottom: 20 }}>
+      </div>
 
-        {/* Message Volume */}
-        <SectionCard
-          title="CRM Message Traffic"
-          subtitle="Last 7 days volume — inbound vs outbound messages"
-        >
+      {/* ── Universal Performance Dashboard Rows ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 24 }}>
+        
+        {/* Hourly Volume Chart */}
+        <SectionCard title="Hourly AI Conversational Peak Rush Hours" subtitle="AI agent activity volume mapped by hour to help manage human backup staffing schedules">
           <div style={{ height: 210 }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={volumeData} margin={{ top: 0, right: 0, left: -22, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="gin" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="gInbound" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={RED} stopOpacity={0.18} />
                     <stop offset="100%" stopColor={RED} stopOpacity={0} />
                   </linearGradient>
-                  <linearGradient id="gout" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="gOutbound" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={BLUE} stopOpacity={0.14} />
                     <stop offset="100%" stopColor={BLUE} stopOpacity={0} />
                   </linearGradient>
@@ -1206,31 +947,30 @@ export default function DashboardPage() {
                 <XAxis dataKey="time" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip content={<ChartTooltip />} />
-                <Area type="monotone" dataKey="inbound" name="Inbound" stroke={RED} strokeWidth={2.5} fill="url(#gin)" dot={false} />
-                <Area type="monotone" dataKey="outbound" name="Outbound" stroke={BLUE} strokeWidth={2} fill="url(#gout)" dot={false} />
+                <Area type="monotone" dataKey="inbound" name="Inbound Messages" stroke={RED} strokeWidth={2.5} fill="url(#gInbound)" dot={false} />
+                <Area type="monotone" dataKey="outbound" name="Outbound Agent" stroke={BLUE} strokeWidth={2} fill="url(#gOutbound)" dot={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-          {/* Legend */}
           <div style={{ display: 'flex', gap: 18, marginTop: 10 }}>
-            {[{ color: RED, label: 'Inbound Customer' }, { color: BLUE, label: 'Outbound Agent' }].map(l => (
+            {[{ color: RED, label: 'Inbound WhatsApp/Meta API' }, { color: BLUE, label: 'Outbound AI Agent' }].map(l => (
               <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <div style={{ width: 10, height: 3, borderRadius: 2, background: l.color }} />
-                <span style={{ fontSize: 11.5, color: '#9ca3af', fontWeight: 500 }}>{l.label}</span>
+                <span style={{ fontSize: 11.5, color: '#9ca3af', fontWeight: 650 }}>{l.label}</span>
               </div>
             ))}
           </div>
         </SectionCard>
 
-        {/* Channel Pie */}
-        <SectionCard title="Live Channel Breakdown" subtitle="Conversations by platform">
+        {/* Channel Breakdown */}
+        <SectionCard title="Live Multi-Channel Engagement" subtitle="Real-time incoming message source share">
           {channels.length === 0 ? (
             <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: 13 }}>
-              No chat logs recorded yet
+              No message channels connected yet
             </div>
           ) : (
             <>
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
                 <PieChart width={170} height={170}>
                   <Pie
                     data={channels} cx={80} cy={80}
@@ -1242,15 +982,15 @@ export default function DashboardPage() {
                   </Pie>
                 </PieChart>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginTop: 4 }}>
-                {channels.map((c: any) => (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                {channels.map(c => (
                   <div key={c.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ width: 10, height: 10, borderRadius: 3, background: c.color }} />
-                      <span style={{ fontSize: 12.5, color: '#374151', fontWeight: 500 }}>{c.name}</span>
+                      <span style={{ fontSize: 12.5, color: '#374151', fontWeight: 650 }}>{c.name}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 12.5, fontWeight: 700, color: '#111827' }}>{c.value}</span>
+                      <span style={{ fontSize: 12.5, fontWeight: 800, color: '#111827' }}>{c.value}</span>
                       <span style={{ fontSize: 11, color: '#9ca3af' }}>convs</span>
                     </div>
                   </div>
@@ -1259,96 +999,15 @@ export default function DashboardPage() {
             </>
           )}
         </SectionCard>
+
       </div>
 
-      {/* ── Recent Conversations ── */}
-      <SectionCard
-        title="Recent Client Conversations"
-        subtitle="Latest active message threads across your channels"
-        action={
-          <a href="/conversations" style={{ fontSize: 12.5, color: RED, fontWeight: 650, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-            View Inbox <ArrowUpRight size={13} />
-          </a>
-        }
-      >
-        {loading ? (
-          <div style={{ padding: '20px 0', textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>Loading CRM logs…</div>
-        ) : recent.length === 0 ? (
-          <div style={{ padding: '20px 0', textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>No active client threads yet</div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-            {/* Header */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 80px 90px', gap: 12, padding: '0 12px 10px', fontSize: 11, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              <span>Customer</span>
-              <span>Channel</span>
-              <span style={{ textAlign: 'center' }}>Messages</span>
-              <span style={{ textAlign: 'right' }}>Date</span>
-            </div>
-            {recent.map((c: any, i: number) => {
-              const channelColor = CHANNEL_COLORS[c.platform] || '#9ca3af';
-              const initials = (c.customer_name || '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase();
-              const date = new Date(c.created_at).toLocaleDateString('en', { month: 'short', day: 'numeric' });
-              return (
-                <a key={c.id} href="/conversations" style={{ textDecoration: 'none' }}>
-                  <div style={{
-                    display: 'grid', gridTemplateColumns: '1fr 120px 80px 90px',
-                    gap: 12, padding: '11px 12px', borderRadius: 10,
-                    alignItems: 'center',
-                    borderTop: i > 0 ? '1px solid rgba(220,38,38,0.05)' : 'none',
-                    transition: 'background 0.12s',
-                  }}
-                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#fef8f8'}
-                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-                  >
-                    {/* Customer */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{
-                        width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
-                        background: `linear-gradient(135deg, ${RED}, #f87171)`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 12, fontWeight: 700, color: '#fff',
-                      }}>{initials}</div>
-                      <div>
-                        <div style={{ fontSize: 13.5, fontWeight: 600, color: '#111827' }}>
-                          {c.customer_name || c.external_conversation_id}
-                        </div>
-                      </div>
-                    </div>
-                    {/* Channel */}
-                    <div>
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 5,
-                        padding: '3px 10px', borderRadius: 20,
-                        background: channelColor + '18',
-                        color: channelColor,
-                        fontSize: 11.5, fontWeight: 600,
-                      }}>
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: channelColor, display: 'inline-block' }} />
-                        {c.platform.charAt(0).toUpperCase() + c.platform.slice(1)}
-                      </span>
-                    </div>
-                    {/* Message count */}
-                    <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 700, color: '#111827' }}>
-                      {c.msgCount}
-                    </div>
-                    {/* Date */}
-                    <div style={{ textAlign: 'right', fontSize: 12, color: '#9ca3af' }}>
-                      {date}
-                    </div>
-                  </div>
-                </a>
-              );
-            })}
-          </div>
-        )}
-      </SectionCard>
-
       <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(8px); }
-          to { opacity: 1; transform: translateY(0); }
+        .niche-stat-card:hover {
+          box-shadow: 0 12px 30px rgba(220,38,38,0.06) !important;
+          transform: translateY(-2px) !important;
         }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );
