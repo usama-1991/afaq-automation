@@ -52,7 +52,7 @@ function StatCard({
 }: StatCardProps) {
   return (
     <div style={{
-      background: '#white', borderRadius: 18, padding: '24px 26px',
+      background: 'white', borderRadius: 18, padding: '24px 26px',
       border: '1px solid rgba(220,38,38,0.06)',
       boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
       display: 'flex', flexDirection: 'column', gap: 12,
@@ -99,7 +99,7 @@ function SectionCard({ title, subtitle, children, action, fullHeight }: {
 }) {
   return (
     <div style={{
-      background: '#white', borderRadius: 20, padding: '26px 28px',
+      background: 'white', borderRadius: 20, padding: '26px 28px',
       border: '1px solid rgba(220,38,38,0.06)',
       boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
       display: 'flex', flexDirection: 'column',
@@ -392,67 +392,485 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Core Niche Dashboard Layouts ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 16, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 24 }}>
         
-        {/* ========================================================================= */}
-        {/* NICHE 1: Restaurant/Food */}
-        {/* ========================================================================= */}
-        {nicheId === 'restaurant' && (
-          <>
-            <SectionCard title="Live Order Queue" subtitle="Orders placed on WhatsApp awaiting real-time tracking">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {restaurantOrders.map(order => (
-                  <div key={order.id} style={{
-                    padding: '14px 18px', borderRadius: 14, border: '1px solid rgba(220,38,38,0.06)',
-                    background: '#white', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                  }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 14, fontWeight: 800, color: '#111827' }}>{order.name}</span>
-                        <span style={{
-                          fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, textTransform: 'uppercase',
-                          background: order.status === 'pending' ? AMBER_LIGHT : '#ecfdf5',
-                          color: order.status === 'pending' ? AMBER : GREEN
-                        }}>{order.status}</span>
+        {/* Left Column: All Niche-Specific Workspace Cards */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          
+          {/* ========================================================================= */}
+          {/* NICHE 1: Restaurant/Food */}
+          {/* ========================================================================= */}
+          {nicheId === 'restaurant' && (
+            <>
+              <SectionCard title="Live Order Queue" subtitle="Orders placed on WhatsApp awaiting real-time tracking">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {restaurantOrders.map(order => (
+                    <div key={order.id} style={{
+                      padding: '14px 18px', borderRadius: 14, border: '1px solid rgba(220,38,38,0.06)',
+                      background: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                    }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 14, fontWeight: 800, color: '#111827' }}>{order.name}</span>
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, textTransform: 'uppercase',
+                            background: order.status === 'pending' ? AMBER_LIGHT : '#ecfdf5',
+                            color: order.status === 'pending' ? AMBER : GREEN
+                          }}>{order.status}</span>
+                        </div>
+                        <div style={{ fontSize: 13, color: '#4b5563', marginTop: 4, fontWeight: 500 }}>{order.items}</div>
+                        <div style={{ fontSize: 11.5, color: '#9ca3af', marginTop: 3 }}>{order.area} · Placed {order.time}</div>
                       </div>
-                      <div style={{ fontSize: 13, color: '#4b5563', marginTop: 4, fontWeight: 500 }}>{order.items}</div>
-                      <div style={{ fontSize: 11.5, color: '#9ca3af', marginTop: 3 }}>{order.area} · Placed {order.time}</div>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {order.status === 'pending' && (
+                          <button
+                            onClick={() => {
+                              setRestaurantOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'confirmed' } : o));
+                            }}
+                            style={{ padding: '6px 12px', background: GREEN, color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            Confirm
+                          </button>
+                        )}
+                        {order.status === 'confirmed' && (
+                          <button
+                            onClick={() => {
+                              setRestaurantOrders(prev => prev.filter(o => o.id !== order.id));
+                            }}
+                            style={{ padding: '6px 12px', background: BLUE, color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            Deliver
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      {order.status === 'pending' && (
-                        <button
-                          onClick={() => {
-                            setRestaurantOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'confirmed' } : o));
-                          }}
-                          style={{ padding: '6px 12px', background: GREEN, color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
-                        >
-                          Confirm
-                        </button>
-                      )}
-                      {order.status === 'confirmed' && (
-                        <button
-                          onClick={() => {
-                            setRestaurantOrders(prev => prev.filter(o => o.id !== order.id));
-                          }}
-                          style={{ padding: '6px 12px', background: BLUE, color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
-                        >
-                          Deliver
-                        </button>
-                      )}
+                  ))}
+                </div>
+              </SectionCard>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <SectionCard title="🔥 Top Ordered Products">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {[
+                      { name: 'Chicken Karahi', share: '38%' },
+                      { name: 'Biryani Family Pack', share: '28%' },
+                      { name: 'Chapli Kebab', share: '18%' },
+                      { name: 'Seekh Platter', share: '16%' }
+                    ].map((item, idx) => (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 10, background: '#faf9f9' }}>
+                        <span style={{ fontSize: 13, fontWeight: 650, color: '#374151' }}>{item.name}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: RED }}>{item.share}</span>
+                      </div>
+                    ))}
+                  </div>
+                </SectionCard>
+
+                <SectionCard title="⚠️ Issues Logged Today">
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    {restaurantIssues.map((issue, idx) => (
+                      <div key={idx} style={{ padding: '12px 14px', background: RED_LIGHT, borderRadius: 12, textAlign: 'center' }}>
+                        <div style={{ fontSize: 18, fontWeight: 900, color: RED }}>{issue.count}</div>
+                        <div style={{ fontSize: 12, color: '#4b5563', fontWeight: 600, marginTop: 2 }}>{issue.type}</div>
+                      </div>
+                    ))}
+                  </div>
+                </SectionCard>
+              </div>
+            </>
+          )}
+
+          {/* ========================================================================= */}
+          {/* NICHE 2: eCommerce/Fashion */}
+          {/* ========================================================================= */}
+          {nicheId === 'ecommerce' && (
+            <>
+              <SectionCard title="Live Order Kanban Pipeline" subtitle="Order checkout status tracked dynamically via WhatsApp chat">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                  {/* Stage 1: PENDING ADDRESS */}
+                  <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 750, color: AMBER, textTransform: 'uppercase', marginBottom: 10 }}>Pending Address</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {ecoPipeline.filter(o => o.status === 'pending_address').map(order => (
+                        <div key={order.id} style={{ background: '#fff', padding: 10, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)' }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{order.name}</div>
+                          <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 3 }}>{order.item}</div>
+                          <button
+                            onClick={() => {
+                              setEcoPipeline(prev => prev.map(o => o.id === order.id ? { ...o, status: 'confirmed' } : o));
+                            }}
+                            style={{ width: '100%', marginTop: 8, padding: '4px 0', border: 'none', background: RED, color: '#fff', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            Address Obtained
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
-            </SectionCard>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <SectionCard title="🔥 Top Ordered Products">
+                  {/* Stage 2: CONFIRMED */}
+                  <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 750, color: GREEN, textTransform: 'uppercase', marginBottom: 10 }}>Confirmed</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {ecoPipeline.filter(o => o.status === 'confirmed').map(order => (
+                        <div key={order.id} style={{ background: '#fff', padding: 10, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)' }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{order.name}</div>
+                          <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 3 }}>{order.item}</div>
+                          <button
+                            onClick={() => {
+                              setEcoPipeline(prev => prev.map(o => o.id === order.id ? { ...o, status: 'dispatched' } : o));
+                            }}
+                            style={{ width: '100%', marginTop: 8, padding: '4px 0', border: 'none', background: BLUE, color: '#fff', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            Dispatch Order
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Stage 3: DISPATCHED */}
+                  <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 750, color: BLUE, textTransform: 'uppercase', marginBottom: 10 }}>Dispatched</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {ecoPipeline.filter(o => o.status === 'dispatched').map(order => (
+                        <div key={order.id} style={{ background: '#fff', padding: 10, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)' }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{order.name}</div>
+                          <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 3 }}>{order.item}</div>
+                          <button
+                            onClick={() => {
+                              setEcoPipeline(prev => prev.filter(o => o.id !== order.id));
+                            }}
+                            style={{ width: '100%', marginTop: 8, padding: '4px 0', border: 'none', background: '#e5e7eb', color: '#4b5563', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            Mark Delivered
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </SectionCard>
+
+              <SectionCard title="Product Intelligence Widget">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>🔍 What Customers Search Most</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {[
+                        { query: 'Lawn Collection', count: 142 },
+                        { query: 'Medium size fits', count: 98 },
+                        { query: 'COD Available', count: 87 }
+                      ].map((item, idx) => (
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                          <span style={{ color: '#4b5563', fontWeight: 550 }}>"{item.query}"</span>
+                          <strong style={{ color: '#111827' }}>{item.count} queries</strong>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: 14 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>⚠️ Out-of-Stock Pain Points</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {[
+                        { item: 'Red Kurti Size L', count: 18 },
+                        { item: 'Embroidered Dupatta', count: 12 }
+                      ].map((item, idx) => (
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                          <span style={{ color: RED, fontWeight: 650 }}>{item.item}</span>
+                          <strong style={{ color: '#4b5563' }}>Asked {item.count}x today</strong>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </SectionCard>
+            </>
+          )}
+
+          {/* ========================================================================= */}
+          {/* NICHE 3: Dental Clinic */}
+          {/* ========================================================================= */}
+          {nicheId === 'dental' && (
+            <>
+              <SectionCard title="Today's Appointment Schedule" subtitle="OPD Dental slots tracked dynamically by patient WhatsApp booking confirmation">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {dentalSchedule.map((slot, idx) => (
+                    <div key={idx} style={{
+                      display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12,
+                      border: '1px solid rgba(220,38,38,0.05)',
+                      background: slot.status === 'confirmed' ? 'white' : slot.status === 'available' ? '#fefbfb' : '#fafafa',
+                      borderLeft: `4px solid ${slot.status === 'confirmed' ? GREEN : slot.status === 'pending' ? AMBER : '#e5e7eb'}`
+                    }}>
+                      <div style={{ width: 68, fontSize: 12, fontWeight: 800, color: '#4b5563' }}>{slot.time}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <strong style={{ fontSize: 13.5, color: '#111827' }}>{slot.name}</strong>
+                          {slot.isNew && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', background: BLUE_LIGHT, color: BLUE, borderRadius: 8 }}>NEW</span>}
+                        </div>
+                        <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 2 }}>{slot.treatment} · {slot.doctor}</div>
+                      </div>
+                      <div>
+                        {slot.status === 'available' ? (
+                          <button
+                            onClick={() => {
+                              setDentalSchedule(prev => prev.map((s, i) => i === idx ? { ...s, name: 'Sara Ahmed', treatment: 'Scaling', status: 'confirmed', isNew: true } : s));
+                            }}
+                            style={{ padding: '4px 10px', background: RED_LIGHT, color: RED, border: 'none', borderRadius: 8, fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            Book via AI
+                          </button>
+                        ) : (
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, textTransform: 'uppercase',
+                            background: slot.status === 'confirmed' ? '#ecfdf5' : '#fef2f2',
+                            color: slot.status === 'confirmed' ? GREEN : RED
+                          }}>{slot.status}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <SectionCard title="Weekly Treatment Breakdown">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {[
+                      { name: 'Scaling & Polishing', pct: '35%' },
+                      { name: 'Consultation Visit', pct: '25%' },
+                      { name: 'Root Canal Therapy', pct: '18%' },
+                      { name: 'Teeth Whitening Pack', pct: '12%' }
+                    ].map((item, idx) => (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 10, background: '#faf9f9' }}>
+                        <span style={{ fontSize: 13, fontWeight: 650, color: '#374151' }}>{item.name}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: GREEN }}>{item.pct}</span>
+                      </div>
+                    ))}
+                  </div>
+                </SectionCard>
+
+                <SectionCard title="⚕️ Clinical Queries Awaiting Review">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {dentalClinicalQueries.map(q => (
+                      <div key={q.id} style={{ padding: '10px 12px', background: RED_LIGHT, borderRadius: 10, border: '1px solid rgba(220,38,38,0.06)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: 12.5, fontWeight: 800, color: '#111827' }}>{q.patient}</span>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: RED }}>{q.type}</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: '#4b5563', marginTop: 4, fontWeight: 550 }}>{q.issue}</div>
+                        <button
+                          onClick={() => {
+                            setDentalClinicalQueries(prev => prev.filter(item => item.id !== q.id));
+                          }}
+                          style={{ marginTop: 8, padding: '3px 8px', border: 'none', background: RED, color: '#fff', borderRadius: 6, fontSize: 10.5, fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          Resolve Inquiry
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </SectionCard>
+              </div>
+            </>
+          )}
+
+          {/* ========================================================================= */}
+          {/* NICHE 4: Real Estate */}
+          {/* ========================================================================= */}
+          {nicheId === 'realestate' && (
+            <>
+              <SectionCard title="Conversational Lead Pipeline" subtitle="Lead progression from requirement gathering to site visits">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                  {/* Stage 1: NEW INQUIRY */}
+                  <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 750, color: AMBER, textTransform: 'uppercase', marginBottom: 10 }}>New Inquiry</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {rePipeline.filter(l => l.stage === 'new_inquiry').map(lead => (
+                        <div key={lead.id} style={{ background: '#fff', padding: 10, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)' }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{lead.name}</div>
+                          <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 3 }}>{lead.type} · {lead.area}</div>
+                          <button
+                            onClick={() => {
+                              setRePipeline(prev => prev.map(l => l.id === lead.id ? { ...l, stage: 'qualified' } : l));
+                            }}
+                            style={{ width: '100%', marginTop: 8, padding: '4px 0', border: 'none', background: RED, color: '#fff', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            Confirm Requirements
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Stage 2: QUALIFIED */}
+                  <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 750, color: GREEN, textTransform: 'uppercase', marginBottom: 10 }}>Qualified</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {rePipeline.filter(l => l.stage === 'qualified').map(lead => (
+                        <div key={lead.id} style={{ background: '#fff', padding: 10, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)' }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{lead.name}</div>
+                          <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 3 }}>Budget: {lead.budget}</div>
+                          <button
+                            onClick={() => {
+                              setRePipeline(prev => prev.map(l => l.id === lead.id ? { ...l, stage: 'properties_sent' } : l));
+                            }}
+                            style={{ width: '100%', marginTop: 8, padding: '4px 0', border: 'none', background: BLUE, color: '#fff', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            Share Listings
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Stage 3: VISIT SCHEDULED */}
+                  <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 750, color: BLUE, textTransform: 'uppercase', marginBottom: 10 }}>Visit Scheduled</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {rePipeline.filter(l => l.stage === 'visit_scheduled').map(lead => (
+                        <div key={lead.id} style={{ background: '#fff', padding: 10, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)' }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{lead.name}</div>
+                          <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 3 }}>{lead.type} · DHA Phase 5</div>
+                          <button
+                            onClick={() => {
+                              setRePipeline(prev => prev.filter(l => l.id !== lead.id));
+                            }}
+                            style={{ width: '100%', marginTop: 8, padding: '4px 0', border: 'none', background: '#e5e7eb', color: '#4b5563', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            Mark Deal Closed
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </SectionCard>
+
+              <SectionCard title="🔥 Active Hot Prospects">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {rePipeline.filter(l => l.temp === 'hot').map(lead => (
+                    <div key={lead.id} style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(220,38,38,0.06)', background: '#fff' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 13.5, fontWeight: 800, color: '#111827' }}>{lead.name}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', background: RED_LIGHT, color: RED, borderRadius: 8 }}>HOT LEAD</span>
+                      </div>
+                      <div style={{ fontSize: 12.5, color: '#4b5563', marginTop: 6, fontWeight: 650 }}>{lead.type} in {lead.area}</div>
+                      <div style={{ fontSize: 11.5, color: '#9ca3af', marginTop: 3 }}>Budget: {lead.budget}</div>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+            </>
+          )}
+
+          {/* ========================================================================= */}
+          {/* NICHE 5: Salon/Spa */}
+          {/* ========================================================================= */}
+          {nicheId === 'salon' && (
+            <>
+              <SectionCard title="Stylist Appointment Schedule" subtitle="Stylist calendar slots confirmed via customer WhatsApp interactions">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+                  {Object.entries(salonSchedule).map(([stylist, hours]) => (
+                    <div key={stylist} style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: RED, textTransform: 'uppercase', marginBottom: 10, textAlign: 'center' }}>{stylist}</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {Object.entries(hours).map(([hour, booking]) => (
+                          <div key={hour} style={{ background: '#fff', padding: 8, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)', textAlign: 'center' }}>
+                            <div style={{ fontSize: 10.5, fontWeight: 700, color: '#6b7280' }}>{hour}</div>
+                            {booking.client ? (
+                              <>
+                                <div style={{ fontSize: 12.5, fontWeight: 750, color: '#111827', marginTop: 4 }}>{booking.client}</div>
+                                <div style={{ fontSize: 10.5, color: '#9ca3af', marginTop: 2 }}>{booking.service}</div>
+                              </>
+                            ) : (
+                              <span style={{ fontSize: 11, color: GREEN, fontStyle: 'italic', display: 'block', marginTop: 4, fontWeight: 600 }}>Vacant</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <SectionCard title="🌸 Bridal Pipeline Inquiries">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {[
+                      { name: 'Nadia Khan', stage: 'Inquiry', date: 'June 12' },
+                      { name: 'Fatima Noor', stage: 'Trial Booked', date: 'June 18' }
+                    ].map((lead, idx) => (
+                      <div key={idx} style={{ padding: '10px 14px', borderRadius: 10, background: '#faf9f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{lead.name}</div>
+                          <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 2 }}>Booking: {lead.date}</div>
+                        </div>
+                        <span style={{ fontSize: 10.5, fontWeight: 700, background: PURPLE_LIGHT, color: PURPLE, padding: '2px 8px', borderRadius: 8 }}>{lead.stage}</span>
+                      </div>
+                    ))}
+                  </div>
+                </SectionCard>
+
+                <SectionCard title="⏰ Upcoming No-Show Reminders">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {upcomingReminders.map(rem => (
+                      <div key={rem.id} style={{ padding: '10px 12px', background: RED_LIGHT, borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontSize: 12.5, fontWeight: 800, color: '#111827' }}>{rem.name}</div>
+                          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{rem.service} · {rem.time}</div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setUpcomingReminders(prev => prev.map(r => r.id === rem.id ? { ...r, sent: true } : r));
+                          }}
+                          disabled={rem.sent}
+                          style={{ padding: '4px 10px', background: rem.sent ? GREEN : RED, color: '#fff', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: rem.sent ? 'default' : 'pointer' }}
+                        >
+                          {rem.sent ? 'Sent' : 'Remind'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </SectionCard>
+              </div>
+            </>
+          )}
+
+          {/* ========================================================================= */}
+          {/* NICHE 6: Medical Clinic */}
+          {/* ========================================================================= */}
+          {nicheId === 'clinic' && (
+            <>
+              <SectionCard title="Doctor-wise Patient Consultation Grid" subtitle="Active OPD patient queues mapped dynamically by specialist doctor shifts">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                  {Object.entries(medicalDoctors).map(([doctor, list]) => (
+                    <div key={doctor} style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
+                      <div style={{ fontSize: 11.5, fontWeight: 800, color: RED, textTransform: 'uppercase', marginBottom: 10, textAlign: 'center' }}>{doctor}</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {list.map((appt, idx) => (
+                          <div key={idx} style={{ background: '#fff', padding: 10, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)', textAlign: 'center' }}>
+                            <div style={{ fontSize: 10.5, fontWeight: 700, color: '#6b7280' }}>{appt.time}</div>
+                            <div style={{ fontSize: 12.5, fontWeight: 750, color: '#111827', marginTop: 4 }}>{appt.patient}</div>
+                            {appt.status === 'Confirmed' ? (
+                              <span style={{ fontSize: 9.5, fontWeight: 700, background: '#ecfdf5', color: GREEN, padding: '1px 5px', borderRadius: 8, display: 'inline-block', marginTop: 6 }}>CONFIRMED</span>
+                            ) : (
+                              <span style={{ fontSize: 9.5, fontWeight: 700, background: '#fef2f2', color: RED, padding: '1px 5px', borderRadius: 8, display: 'inline-block', marginTop: 6 }}>VACANT</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+
+              <SectionCard title="⚕️ Specialty Consultation Demand">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   {[
-                    { name: 'Chicken Karahi', share: '38%' },
-                    { name: 'Biryani Family Pack', share: '28%' },
-                    { name: 'Chapli Kebab', share: '18%' },
-                    { name: 'Seekh Platter', share: '16%' }
+                    { name: 'General OPD Medicine', share: '45%' },
+                    { name: 'Pediatrics Consultations', share: '22%' },
+                    { name: 'Cardiology Specialist', share: '18%' },
+                    { name: 'Orthopedics Clinic', share: '15%' }
                   ].map((item, idx) => (
                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 10, background: '#faf9f9' }}>
                       <span style={{ fontSize: 13, fontWeight: 650, color: '#374151' }}>{item.name}</span>
@@ -461,426 +879,14 @@ export default function DashboardPage() {
                   ))}
                 </div>
               </SectionCard>
+            </>
+          )}
 
-              <SectionCard title="⚠️ Issues Logged Today">
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  {restaurantIssues.map((issue, idx) => (
-                    <div key={idx} style={{ padding: '12px 14px', background: RED_LIGHT, borderRadius: 12, textAlign: 'center' }}>
-                      <div style={{ fontSize: 18, fontWeight: 900, color: RED }}>{issue.count}</div>
-                      <div style={{ fontSize: 12, color: '#4b5563', fontWeight: 600, marginTop: 2 }}>{issue.type}</div>
-                    </div>
-                  ))}
-                </div>
-              </SectionCard>
-            </div>
-          </>
-        )}
+        </div>
 
-        {/* ========================================================================= */}
-        {/* NICHE 2: eCommerce/Fashion */}
-        {/* ========================================================================= */}
-        {nicheId === 'ecommerce' && (
-          <>
-            <SectionCard title="Live Order Kanban Pipeline" subtitle="Order checkout status tracked dynamically via WhatsApp chat">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-                {/* Stage 1: PENDING ADDRESS */}
-                <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
-                  <div style={{ fontSize: 11.5, fontWeight: 750, color: AMBER, textTransform: 'uppercase', marginBottom: 10 }}>Pending Address</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {ecoPipeline.filter(o => o.status === 'pending_address').map(order => (
-                      <div key={order.id} style={{ background: '#fff', padding: 10, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)' }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{order.name}</div>
-                        <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 3 }}>{order.item}</div>
-                        <button
-                          onClick={() => {
-                            setEcoPipeline(prev => prev.map(o => o.id === order.id ? { ...o, status: 'confirmed' } : o));
-                          }}
-                          style={{ width: '100%', marginTop: 8, padding: '4px 0', border: 'none', background: RED, color: '#fff', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
-                        >
-                          Address Obtained
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Stage 2: CONFIRMED */}
-                <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
-                  <div style={{ fontSize: 11.5, fontWeight: 750, color: GREEN, textTransform: 'uppercase', marginBottom: 10 }}>Confirmed</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {ecoPipeline.filter(o => o.status === 'confirmed').map(order => (
-                      <div key={order.id} style={{ background: '#fff', padding: 10, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)' }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{order.name}</div>
-                        <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 3 }}>{order.item}</div>
-                        <button
-                          onClick={() => {
-                            setEcoPipeline(prev => prev.map(o => o.id === order.id ? { ...o, status: 'dispatched' } : o));
-                          }}
-                          style={{ width: '100%', marginTop: 8, padding: '4px 0', border: 'none', background: BLUE, color: '#fff', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
-                        >
-                          Dispatch Order
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Stage 3: DISPATCHED */}
-                <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
-                  <div style={{ fontSize: 11.5, fontWeight: 750, color: BLUE, textTransform: 'uppercase', marginBottom: 10 }}>Dispatched</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {ecoPipeline.filter(o => o.status === 'dispatched').map(order => (
-                      <div key={order.id} style={{ background: '#fff', padding: 10, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)' }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{order.name}</div>
-                        <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 3 }}>{order.item}</div>
-                        <button
-                          onClick={() => {
-                            setEcoPipeline(prev => prev.filter(o => o.id !== order.id));
-                          }}
-                          style={{ width: '100%', marginTop: 8, padding: '4px 0', border: 'none', background: '#e5e7eb', color: '#4b5563', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
-                        >
-                          Mark Delivered
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </SectionCard>
-
-            <SectionCard title="Product Intelligence Widget">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>🔍 What Customers Search Most</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {[
-                      { query: 'Lawn Collection', count: 142 },
-                      { query: 'Medium size fits', count: 98 },
-                      { query: 'COD Available', count: 87 }
-                    ].map((item, idx) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                        <span style={{ color: '#4b5563', fontWeight: 550 }}>"{item.query}"</span>
-                        <strong style={{ color: '#111827' }}>{item.count} queries</strong>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div style={{ borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: 14 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>⚠️ Out-of-Stock Pain Points</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {[
-                      { item: 'Red Kurti Size L', count: 18 },
-                      { item: 'Embroidered Dupatta', count: 12 }
-                    ].map((item, idx) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                        <span style={{ color: RED, fontWeight: 650 }}>{item.item}</span>
-                        <strong style={{ color: '#4b5563' }}>Asked {item.count}x today</strong>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </SectionCard>
-          </>
-        )}
-
-        {/* ========================================================================= */}
-        {/* NICHE 3: Dental Clinic */}
-        {/* ========================================================================= */}
-        {nicheId === 'dental' && (
-          <>
-            <SectionCard title="Today's Appointment Schedule" subtitle="OPD Dental slots tracked dynamically by patient WhatsApp booking confirmation">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {dentalSchedule.map((slot, idx) => (
-                  <div key={idx} style={{
-                    display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12,
-                    border: '1px solid rgba(220,38,38,0.05)',
-                    background: slot.status === 'confirmed' ? '#white' : slot.status === 'available' ? '#fefbfb' : '#fafafa',
-                    borderLeft: `4px solid ${slot.status === 'confirmed' ? GREEN : slot.status === 'pending' ? AMBER : '#e5e7eb'}`
-                  }}>
-                    <div style={{ width: 68, fontSize: 12, fontWeight: 800, color: '#4b5563' }}>{slot.time}</div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <strong style={{ fontSize: 13.5, color: '#111827' }}>{slot.name}</strong>
-                        {slot.isNew && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', background: BLUE_LIGHT, color: BLUE, borderRadius: 8 }}>NEW</span>}
-                      </div>
-                      <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 2 }}>{slot.treatment} · {slot.doctor}</div>
-                    </div>
-                    <div>
-                      {slot.status === 'available' ? (
-                        <button
-                          onClick={() => {
-                            setDentalSchedule(prev => prev.map((s, i) => i === idx ? { ...s, name: 'Sara Ahmed', treatment: 'Scaling', status: 'confirmed', isNew: true } : s));
-                          }}
-                          style={{ padding: '4px 10px', background: RED_LIGHT, color: RED, border: 'none', borderRadius: 8, fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}
-                        >
-                          Book via AI
-                        </button>
-                      ) : (
-                        <span style={{
-                          fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, textTransform: 'uppercase',
-                          background: slot.status === 'confirmed' ? '#ecfdf5' : '#fef2f2',
-                          color: slot.status === 'confirmed' ? GREEN : RED
-                        }}>{slot.status}</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </SectionCard>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <SectionCard title="Weekly Treatment Breakdown">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {[
-                    { name: 'Scaling & Polishing', pct: '35%' },
-                    { name: 'Consultation Visit', pct: '25%' },
-                    { name: 'Root Canal Therapy', pct: '18%' },
-                    { name: 'Teeth Whitening Pack', pct: '12%' }
-                  ].map((item, idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 10, background: '#faf9f9' }}>
-                      <span style={{ fontSize: 13, fontWeight: 650, color: '#374151' }}>{item.name}</span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: GREEN }}>{item.pct}</span>
-                    </div>
-                  ))}
-                </div>
-              </SectionCard>
-
-              <SectionCard title="⚕️ Clinical Queries Awaiting Review">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {dentalClinicalQueries.map(q => (
-                    <div key={q.id} style={{ padding: '10px 12px', background: RED_LIGHT, borderRadius: 10, border: '1px solid rgba(220,38,38,0.06)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: 12.5, fontWeight: 800, color: '#111827' }}>{q.patient}</span>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: RED }}>{q.type}</span>
-                      </div>
-                      <div style={{ fontSize: 12, color: '#4b5563', marginTop: 4, fontWeight: 550 }}>{q.issue}</div>
-                      <button
-                        onClick={() => {
-                          setDentalClinicalQueries(prev => prev.filter(item => item.id !== q.id));
-                        }}
-                        style={{ marginTop: 8, padding: '3px 8px', border: 'none', background: RED, color: '#fff', borderRadius: 6, fontSize: 10.5, fontWeight: 700, cursor: 'pointer' }}
-                      >
-                        Resolve Inquiry
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </SectionCard>
-            </div>
-          </>
-        )}
-
-        {/* ========================================================================= */}
-        {/* NICHE 4: Real Estate */}
-        {/* ========================================================================= */}
-        {nicheId === 'realestate' && (
-          <>
-            <SectionCard title="Conversational Lead Pipeline" subtitle="Lead progression from requirement gathering to site visits">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-                {/* Stage 1: NEW INQUIRY */}
-                <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
-                  <div style={{ fontSize: 11.5, fontWeight: 750, color: AMBER, textTransform: 'uppercase', marginBottom: 10 }}>New Inquiry</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {rePipeline.filter(l => l.stage === 'new_inquiry').map(lead => (
-                      <div key={lead.id} style={{ background: '#fff', padding: 10, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)' }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{lead.name}</div>
-                        <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 3 }}>{lead.type} · {lead.area}</div>
-                        <button
-                          onClick={() => {
-                            setRePipeline(prev => prev.map(l => l.id === lead.id ? { ...l, stage: 'qualified' } : l));
-                          }}
-                          style={{ width: '100%', marginTop: 8, padding: '4px 0', border: 'none', background: RED, color: '#fff', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
-                        >
-                          Confirm Requirements
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Stage 2: QUALIFIED */}
-                <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
-                  <div style={{ fontSize: 11.5, fontWeight: 750, color: GREEN, textTransform: 'uppercase', marginBottom: 10 }}>Qualified</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {rePipeline.filter(l => l.stage === 'qualified').map(lead => (
-                      <div key={lead.id} style={{ background: '#fff', padding: 10, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)' }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{lead.name}</div>
-                        <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 3 }}>Budget: {lead.budget}</div>
-                        <button
-                          onClick={() => {
-                            setRePipeline(prev => prev.map(l => l.id === lead.id ? { ...l, stage: 'properties_sent' } : l));
-                          }}
-                          style={{ width: '100%', marginTop: 8, padding: '4px 0', border: 'none', background: BLUE, color: '#fff', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
-                        >
-                          Share Listings
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Stage 3: VISIT SCHEDULED */}
-                <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
-                  <div style={{ fontSize: 11.5, fontWeight: 750, color: BLUE, textTransform: 'uppercase', marginBottom: 10 }}>Visit Scheduled</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {rePipeline.filter(l => l.stage === 'visit_scheduled').map(lead => (
-                      <div key={lead.id} style={{ background: '#fff', padding: 10, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)' }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{lead.name}</div>
-                        <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 3 }}>{lead.type} · DHA Phase 5</div>
-                        <button
-                          onClick={() => {
-                            setRePipeline(prev => prev.filter(l => l.id !== lead.id));
-                          }}
-                          style={{ width: '100%', marginTop: 8, padding: '4px 0', border: 'none', background: '#e5e7eb', color: '#4b5563', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
-                        >
-                          Mark Deal Closed
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </SectionCard>
-
-            <SectionCard title="🔥 Active Hot Prospects">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {rePipeline.filter(l => l.temp === 'hot').map(lead => (
-                  <div key={lead.id} style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(220,38,38,0.06)', background: '#fff' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 13.5, fontWeight: 800, color: '#111827' }}>{lead.name}</span>
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', background: RED_LIGHT, color: RED, borderRadius: 8 }}>HOT LEAD</span>
-                    </div>
-                    <div style={{ fontSize: 12.5, color: '#4b5563', marginTop: 6, fontWeight: 650 }}>{lead.type} in {lead.area}</div>
-                    <div style={{ fontSize: 11.5, color: '#9ca3af', marginTop: 3 }}>Budget: {lead.budget}</div>
-                  </div>
-                ))}
-              </div>
-            </SectionCard>
-          </>
-        )}
-
-        {/* ========================================================================= */}
-        {/* NICHE 5: Salon/Spa */}
-        {/* ========================================================================= */}
-        {nicheId === 'salon' && (
-          <>
-            <SectionCard title="Stylist Appointment Schedule" subtitle="Stylist calendar slots confirmed via customer WhatsApp interactions">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
-                {Object.entries(salonSchedule).map(([stylist, hours]) => (
-                  <div key={stylist} style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: RED, textTransform: 'uppercase', marginBottom: 10, textAlign: 'center' }}>{stylist}</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {Object.entries(hours).map(([hour, booking]) => (
-                        <div key={hour} style={{ background: '#fff', padding: 8, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)', textAlign: 'center' }}>
-                          <div style={{ fontSize: 10.5, fontWeight: 700, color: '#6b7280' }}>{hour}</div>
-                          {booking.client ? (
-                            <>
-                              <div style={{ fontSize: 12.5, fontWeight: 750, color: '#111827', marginTop: 4 }}>{booking.client}</div>
-                              <div style={{ fontSize: 10.5, color: '#9ca3af', marginTop: 2 }}>{booking.service}</div>
-                            </>
-                          ) : (
-                            <span style={{ fontSize: 11, color: GREEN, fontStyle: 'italic', display: 'block', marginTop: 4, fontWeight: 600 }}>Vacant</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </SectionCard>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <SectionCard title="🌸 Bridal Pipeline Inquiries">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {[
-                    { name: 'Nadia Khan', stage: 'Inquiry', date: 'June 12' },
-                    { name: 'Fatima Noor', stage: 'Trial Booked', date: 'June 18' }
-                  ].map((lead, idx) => (
-                    <div key={idx} style={{ padding: '10px 14px', borderRadius: 10, background: '#faf9f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{lead.name}</div>
-                        <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 2 }}>Booking: {lead.date}</div>
-                      </div>
-                      <span style={{ fontSize: 10.5, fontWeight: 700, background: PURPLE_LIGHT, color: PURPLE, padding: '2px 8px', borderRadius: 8 }}>{lead.stage}</span>
-                    </div>
-                  ))}
-                </div>
-              </SectionCard>
-
-              <SectionCard title="⏰ Upcoming No-Show Reminders">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {upcomingReminders.map(rem => (
-                    <div key={rem.id} style={{ padding: '10px 12px', background: RED_LIGHT, borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ fontSize: 12.5, fontWeight: 800, color: '#111827' }}>{rem.name}</div>
-                        <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{rem.service} · {rem.time}</div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setUpcomingReminders(prev => prev.map(r => r.id === rem.id ? { ...r, sent: true } : r));
-                        }}
-                        disabled={rem.sent}
-                        style={{ padding: '4px 10px', background: rem.sent ? GREEN : RED, color: '#fff', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: rem.sent ? 'default' : 'pointer' }}
-                      >
-                        {rem.sent ? 'Sent' : 'Remind'}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </SectionCard>
-            </div>
-          </>
-        )}
-
-        {/* ========================================================================= */}
-        {/* NICHE 6: Medical Clinic */}
-        {/* ========================================================================= */}
-        {nicheId === 'clinic' && (
-          <>
-            <SectionCard title="Doctor-wise Patient Consultation Grid" subtitle="Active OPD patient queues mapped dynamically by specialist doctor shifts">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-                {Object.entries(medicalDoctors).map(([doctor, list]) => (
-                  <div key={doctor} style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 800, color: RED, textTransform: 'uppercase', marginBottom: 10, textAlign: 'center' }}>{doctor}</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {list.map((appt, idx) => (
-                        <div key={idx} style={{ background: '#fff', padding: 10, borderRadius: 8, border: '1px solid rgba(0,0,0,0.03)', textAlign: 'center' }}>
-                          <div style={{ fontSize: 10.5, fontWeight: 700, color: '#6b7280' }}>{appt.time}</div>
-                          <div style={{ fontSize: 12.5, fontWeight: 750, color: '#111827', marginTop: 4 }}>{appt.patient}</div>
-                          {appt.status === 'Confirmed' ? (
-                            <span style={{ fontSize: 9.5, fontWeight: 700, background: '#ecfdf5', color: GREEN, padding: '1px 5px', borderRadius: 8, display: 'inline-block', marginTop: 6 }}>CONFIRMED</span>
-                          ) : (
-                            <span style={{ fontSize: 9.5, fontWeight: 700, background: '#fef2f2', color: RED, padding: '1px 5px', borderRadius: 8, display: 'inline-block', marginTop: 6 }}>VACANT</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </SectionCard>
-
-            <SectionCard title="⚕️ Specialty Consultation Demand">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {[
-                  { name: 'General OPD Medicine', share: '45%' },
-                  { name: 'Pediatrics Consultations', share: '22%' },
-                  { name: 'Cardiology Specialist', share: '18%' },
-                  { name: 'Orthopedics Clinic', share: '15%' }
-                ].map((item, idx) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 10, background: '#faf9f9' }}>
-                    <span style={{ fontSize: 13, fontWeight: 650, color: '#374151' }}>{item.name}</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: RED }}>{item.share}</span>
-                  </div>
-                ))}
-              </div>
-            </SectionCard>
-          </>
-        )}
-
-        {/* ── Right Panel: AI Agent Performance & Live Stats ── */}
+        {/* Right Column: Universal AI & Sentiment Stats */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          
           <SectionCard title="🤖 AI Agent Performance" subtitle="Direct conversational ROI calculated from Meta Cloud API integrations">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: RED_LIGHT, borderRadius: 12 }}>
@@ -921,6 +927,7 @@ export default function DashboardPage() {
               ))}
             </div>
           </SectionCard>
+
         </div>
 
       </div>
