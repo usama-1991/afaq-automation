@@ -108,6 +108,7 @@ function SettingsInner() {
   // AI Knowledge Base state
   interface KBEntry { id: string; kb_type: string; title: string; content: string; source_url?: string; is_active: boolean; created_at: string; }
   const [kbEntries, setKbEntries] = useState<KBEntry[]>([]);
+  const [kbExpandedId, setKbExpandedId] = useState<string | null>(null);
   const [kbLoading, setKbLoading] = useState(false);
   const [kbUrlInput, setKbUrlInput] = useState('');
   const [kbScraping, setKbScraping] = useState(false);
@@ -818,50 +819,100 @@ function SettingsInner() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {kbEntries.map(entry => (
                     <div key={entry.id} style={{
-                      display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-                      background: entry.is_active ? '#fafafa' : '#f9fafb', borderRadius: 10,
+                      borderRadius: 10,
                       border: entry.is_active ? '1px solid rgba(220,38,38,0.08)' : '1px solid #e5e7eb',
+                      background: entry.is_active ? '#fafafa' : '#f9fafb',
                       opacity: entry.is_active ? 1 : 0.6,
+                      overflow: 'hidden',
                     }}>
-                      <div style={{
-                        width: 34, height: 34, borderRadius: 8,
-                        background: entry.kb_type === 'url' ? '#eff6ff' : entry.kb_type === 'pdf' ? '#fef3c7' : '#fef2f2',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 14, flexShrink: 0,
-                      }}>
-                        {entry.kb_type === 'url' ? '🌐' : entry.kb_type === 'pdf' ? '📄' : '✏️'}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {entry.title}
+                      {/* Header row */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px' }}>
+                        <div style={{
+                          width: 34, height: 34, borderRadius: 8,
+                          background: entry.kb_type === 'url' ? '#eff6ff' : entry.kb_type === 'pdf' ? '#fef3c7' : '#fef2f2',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 14, flexShrink: 0,
+                        }}>
+                          {entry.kb_type === 'url' ? '🌐' : entry.kb_type === 'pdf' ? '📄' : '✏️'}
                         </div>
-                        <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 1 }}>
-                          {entry.kb_type.toUpperCase()} · {entry.content?.length || 0} chars · {new Date(entry.created_at).toLocaleDateString()}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {entry.title}
+                          </div>
+                          <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 1 }}>
+                            {entry.kb_type.toUpperCase()} · {entry.content?.length || 0} chars · {new Date(entry.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+                          {/* View Content toggle */}
+                          {entry.content && (
+                            <button
+                              onClick={() => setKbExpandedId(kbExpandedId === entry.id ? null : entry.id)}
+                              style={{
+                                padding: '4px 10px', fontSize: 10.5, fontWeight: 600, borderRadius: 6,
+                                border: '1px solid rgba(59,130,246,0.2)', cursor: 'pointer',
+                                background: kbExpandedId === entry.id ? '#eff6ff' : '#fff',
+                                color: '#3b82f6', display: 'flex', alignItems: 'center', gap: 4,
+                              }}
+                            >
+                              {kbExpandedId === entry.id ? '▲ Hide' : '▼ View'}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleToggleKB(entry.id, entry.is_active)}
+                            style={{
+                              padding: '4px 10px', fontSize: 10.5, fontWeight: 600, borderRadius: 6,
+                              border: '1px solid rgba(220,38,38,0.15)', cursor: 'pointer',
+                              background: entry.is_active ? '#ecfdf5' : '#fff',
+                              color: entry.is_active ? '#065f46' : '#6b7280',
+                            }}
+                          >
+                            {entry.is_active ? 'Active' : 'Disabled'}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteKB(entry.id)}
+                            style={{
+                              width: 28, height: 28, borderRadius: 6, border: '1px solid rgba(220,38,38,0.15)',
+                              background: '#fff', cursor: 'pointer', display: 'flex',
+                              alignItems: 'center', justifyContent: 'center',
+                            }}
+                          >
+                            <Trash2 size={12} color="#ef4444" />
+                          </button>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                        <button
-                          onClick={() => handleToggleKB(entry.id, entry.is_active)}
-                          style={{
-                            padding: '4px 10px', fontSize: 10.5, fontWeight: 600, borderRadius: 6,
-                            border: '1px solid rgba(220,38,38,0.15)', cursor: 'pointer',
-                            background: entry.is_active ? '#ecfdf5' : '#fff',
-                            color: entry.is_active ? '#065f46' : '#6b7280',
-                          }}
-                        >
-                          {entry.is_active ? 'Active' : 'Disabled'}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteKB(entry.id)}
-                          style={{
-                            width: 28, height: 28, borderRadius: 6, border: '1px solid rgba(220,38,38,0.15)',
-                            background: '#fff', cursor: 'pointer', display: 'flex',
-                            alignItems: 'center', justifyContent: 'center',
-                          }}
-                        >
-                          <Trash2 size={12} color="#ef4444" />
-                        </button>
-                      </div>
+                      {/* Expandable content preview */}
+                      {kbExpandedId === entry.id && entry.content && (
+                        <div style={{
+                          borderTop: '1px solid rgba(220,38,38,0.06)',
+                          padding: '14px 16px',
+                          background: '#fff',
+                        }}>
+                          {entry.source_url && (
+                            <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{ fontSize: 10.5, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase' }}>Source:</span>
+                              <a href={entry.source_url} target="_blank" rel="noreferrer"
+                                style={{ fontSize: 11, color: '#3b82f6', textDecoration: 'underline', wordBreak: 'break-all' }}>
+                                {entry.source_url}
+                              </a>
+                            </div>
+                          )}
+                          <div style={{
+                            fontSize: 11.5, color: '#374151', lineHeight: 1.7,
+                            whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                            maxHeight: 320, overflowY: 'auto',
+                            background: '#f9fafb', borderRadius: 8,
+                            padding: '12px 14px',
+                            border: '1px solid #e5e7eb',
+                            fontFamily: 'monospace',
+                          }}>
+                            {entry.content}
+                          </div>
+                          <div style={{ marginTop: 8, fontSize: 10.5, color: '#9ca3af' }}>
+                            Showing all {entry.content.length.toLocaleString()} characters stored in Supabase knowledge_base table
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

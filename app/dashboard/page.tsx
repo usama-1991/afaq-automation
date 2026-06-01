@@ -176,6 +176,53 @@ export default function DashboardPage() {
     { id: 'e4', name: 'Maryam Ali', item: 'Embroidered Dupatta', status: 'confirmed', price: 1800, time: '1h ago' },
     { id: 'e5', name: 'Fatima Noor', item: 'Linen Kurti (L)', status: 'dispatched', price: 2900, time: '3h ago' }
   ]);
+
+  // WooCommerce live orders state
+  const [wcOrders, setWcOrders] = useState<any[]>([]);
+  const [wcConnected, setWcConnected] = useState(false);
+  const [wcLoading, setWcLoading] = useState(false);
+  const [wcStoreName, setWcStoreName] = useState('');
+
+  const fetchWooCommerceOrders = async () => {
+    setWcLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase.from('users').select('tenant_id').eq('id', user.id).single();
+      if (!profile?.tenant_id) return;
+
+      const { data: cred } = await supabase
+        .from('integration_credentials')
+        .select('credentials')
+        .eq('tenant_id', profile.tenant_id)
+        .eq('platform', 'woocommerce')
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (!cred?.credentials) return;
+
+      const { site_url, consumer_key, consumer_secret } = cred.credentials;
+      if (!site_url || !consumer_key || !consumer_secret) return;
+
+      const base = site_url.replace(/\/$/, '');
+      setWcStoreName(base.replace(/https?:\/\//, '').split('/')[0]);
+
+      const auth = btoa(`${consumer_key}:${consumer_secret}`);
+      const res = await fetch(`${base}/wp-json/wc/v3/orders?per_page=10&orderby=date&order=desc`, {
+        headers: { 'Authorization': `Basic ${auth}` }
+      });
+
+      if (!res.ok) throw new Error('WooCommerce API error: ' + res.status);
+      const orders = await res.json();
+      setWcOrders(orders);
+      setWcConnected(true);
+    } catch (e) {
+      console.error('[dashboard] WooCommerce fetch failed:', e);
+      setWcConnected(false);
+    } finally {
+      setWcLoading(false);
+    }
+  };
   const [exchanges, setExchanges] = useState([
     { id: 'x1', name: 'Sara Ahmed', item: 'Red Kurti (M)', issue: 'Wrong size', status: 'Pending' },
     { id: 'x2', name: 'Bilal Khan', item: 'Lawn 2-Piece', issue: 'Color difference', status: 'Resolved' }
@@ -286,6 +333,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchAll();
+    // Fetch WooCommerce live orders when in eCommerce niche
+    if (nicheId === 'ecommerce') fetchWooCommerceOrders();
 
     // Subscribe to new orders or status updates in real-time
     const orderSub = supabase
@@ -484,6 +533,73 @@ export default function DashboardPage() {
           {/* ========================================================================= */}
           {nicheId === 'ecommerce' && (
             <>
+              {/* ── WooCommerce Live Orders Banner ── */}
+              {wcConnected && (
+                <SectionCard
+                  title="🛒 Live WooCommerce Orders"
+                  subtitle={`Real-time orders pulled from ${wcStoreName}`}
+                  action={
+                    <button
+                      onClick={fetchWooCommerceOrders}
+                      style={{ padding: '5px 12px', fontSize: 11.5, fontWeight: 700, borderRadius: 8, border: '1px solid rgba(220,38,38,0.15)', background: wcLoading ? '#fef2f2' : '#fff', color: RED, cursor: 'pointer' }}
+                    >
+                      {wcLoading ? '⟳ Refreshing…' : '↻ Refresh'}
+                    </button>
+                  }
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {wcOrders.length === 0 && !wcLoading && (
+                      <div style={{ color: '#9ca3af', fontSize: 13, textAlign: 'center', padding: '12px 0' }}>No recent WooCommerce orders found.</div>
+                    )}
+                    {wcOrders.slice(0, 8).map((order: any) => {
+                      const statusColor: Record<string, string> = {
+                        pending: AMBER, processing: BLUE, completed: GREEN,
+                        cancelled: '#ef4444', refunded: '#8b5cf6', 'on-hold': '#6b7280'
+                      };
+                      const sc = statusColor[order.status] || '#6b7280';
+                      const scBg = order.status === 'completed' ? '#ecfdf5' : order.status === 'processing' ? BLUE_LIGHT : order.status === 'pending' ? AMBER_LIGHT : '#f9fafb';
+                      return (
+                        <div key={order.id} style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          padding: '11px 14px', borderRadius: 12,
+                          background: 'white', border: '1px solid rgba(220,38,38,0.06)',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div style={{ width: 36, height: 36, borderRadius: 9, background: scBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>
+                              🛍️
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>
+                                #{order.number} — {order.billing?.first_name} {order.billing?.last_name}
+                              </div>
+                              <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 2 }}>
+                                {order.line_items?.slice(0, 2).map((i: any) => i.name).join(', ')}
+                                {order.line_items?.length > 2 ? ` +${order.line_items.length - 2} more` : ''}
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <div style={{ fontSize: 14, fontWeight: 800, color: '#111827' }}>
+                              {order.currency} {parseFloat(order.total).toLocaleString()}
+                            </div>
+                            <div style={{
+                              fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 8,
+                              background: scBg, color: sc, textTransform: 'uppercase', marginTop: 3, display: 'inline-block'
+                            }}>
+                              {order.status}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </SectionCard>
+              )}
+              {!wcConnected && !wcLoading && (
+                <div style={{ padding: '14px 18px', borderRadius: 14, background: AMBER_LIGHT, border: '1px solid rgba(245,158,11,0.2)', fontSize: 13, color: '#92400e', fontWeight: 500 }}>
+                  ⚠️ <strong>WooCommerce not connected.</strong> Go to Settings → eCommerce Platform to link your WooCommerce store. Orders will appear here automatically.
+                </div>
+              )}
               <SectionCard title="Live Order Kanban Pipeline" subtitle="Order checkout status tracked dynamically via WhatsApp chat">
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
                   {/* Stage 1: PENDING ADDRESS */}
