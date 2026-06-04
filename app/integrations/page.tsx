@@ -54,7 +54,7 @@ export default function IntegrationsPage() {
   const total = allIntegrations.flatMap(g => g.items).length;
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 860 }}>
+    <div className="integrations-page-wrap" style={{ padding: '24px 28px', maxWidth: 860 }}>
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111827', letterSpacing: '-0.5px', marginBottom: 4 }}>Integrations</h1>

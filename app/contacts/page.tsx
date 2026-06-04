@@ -471,10 +471,9 @@ export default function ContactsPage() {
   };
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 98px)' }}>
+    <div className="split-pane-root" style={{ display: 'flex', height: 'calc(100vh - 98px)' }}>
       
-      {/* Left panel: contact list & segmentation */}
-      <div style={{ width: 310, background: '#fff', borderRight: '1px solid rgba(220,38,38,0.08)', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+      <div className="split-left-panel" style={{ width: 310, background: '#fff', borderRight: '1px solid rgba(220,38,38,0.08)', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
         
         {/* Contacts Header & Add button */}
         <div style={{ padding: '18px 16px 12px' }}>
@@ -631,10 +630,10 @@ export default function ContactsPage() {
 
       {/* Right panel: contact details */}
       {selected ? (
-        <div style={{ flex: 1, background: '#fff5f5', overflowY: 'auto' }}>
+        <div className="split-right-panel" style={{ flex: 1, background: '#fff5f5', overflowY: 'auto' }}>
           
           {/* Top profile view */}
-          <div style={{ background: '#fff', borderBottom: '1px solid rgba(220,38,38,0.1)', padding: '24px 28px' }}>
+          <div className="contact-profile-header" style={{ background: '#fff', borderBottom: '1px solid rgba(220,38,38,0.1)', padding: '24px 28px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
               <div style={{ 
                 width: 58, height: 58, borderRadius: '50%', 
@@ -666,7 +665,7 @@ export default function ContactsPage() {
                   ))}
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div className="contact-profile-actions" style={{ display: 'flex', gap: 8 }}>
                 <button
                   disabled={selected.optedOut}
                   onClick={() => router.push(`/conversations?conversation=${selected.id}`)}
@@ -692,7 +691,7 @@ export default function ContactsPage() {
             </div>
           </div>
 
-          <div style={{ padding: '24px 28px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div className="contacts-detail-grid" style={{ padding: '24px 28px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             
             {/* Contact details */}
             <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(220,38,38,0.06)', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>

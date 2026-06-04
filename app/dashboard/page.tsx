@@ -338,7 +338,7 @@ export default function DashboardPage() {
       <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 30 }}>
         <div>
           <div style={{ fontSize: 12, color: '#9ca3af', fontWeight: 650, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{dateLabel}</div>
-          <h1 style={{ fontSize: 28, fontWeight: 900, color: DARK, letterSpacing: '-0.7px', lineHeight: 1.1 }}>
+          <h1 className="dashboard-greeting" style={{ fontSize: 28, fontWeight: 900, color: DARK, letterSpacing: '-0.7px', lineHeight: 1.1 }}>
             {greeting}{displayName ? `,${displayName}` : ''} 👋
           </h1>
           <p style={{ fontSize: 14, color: '#6b7280', marginTop: 4, fontWeight: 500 }}>

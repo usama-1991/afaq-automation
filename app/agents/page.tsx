@@ -290,10 +290,9 @@ export default function AgentsPage() {
   };
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 98px)', background: '#fcfcfc' }}>
+    <div className="split-pane-root" style={{ display: 'flex', height: 'calc(100vh - 98px)', background: '#fcfcfc' }}>
       
-      {/* ── LEFT TABBED SIDEBAR ── */}
-      <div style={{ 
+      <div className="split-left-panel" style={{ 
         width: 290, background: '#fff', 
         borderRight: '1px solid rgba(220,38,38,0.08)', 
         display: 'flex', flexDirection: 'column', flexShrink: 0 
@@ -446,14 +445,13 @@ export default function AgentsPage() {
         </div>
       </div>
 
-      {/* ── RIGHT MAIN CONFIG PANEL ── */}
-      <div style={{ flex: 1, overflowY: 'auto', background: '#faf9f9' }}>
+      <div className="split-right-panel" style={{ flex: 1, overflowY: 'auto', background: '#faf9f9' }}>
         
         {/* AI CONFIG VIEW */}
         {activeTab === 'ai' && (
           <div>
             {/* Top sticky action header */}
-            <div style={{ 
+            <div className="agents-action-header" style={{ 
               background: '#fff', borderBottom: '1px solid rgba(220,38,38,0.06)', 
               padding: '16px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
               position: 'sticky', top: 0, zIndex: 10 
@@ -464,7 +462,7 @@ export default function AgentsPage() {
                 </div>
                 <h2 style={{ fontSize: 17, fontWeight: 700, color: '#111827', letterSpacing: '-0.3px' }}>AI Copilot Config</h2>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div className="agents-header-btns" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: '#f9fafb', borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)' }}>
                   <span style={{ fontSize: 11.5, fontWeight: 600, color: paused ? '#ef4444' : '#10b981' }}>{paused ? 'PAUSED' : 'ACTIVE'}</span>
                   <Toggle checked={!paused} onChange={() => setPaused(!paused)} />
@@ -483,13 +481,12 @@ export default function AgentsPage() {
               </div>
             </div>
 
-            {/* Scrollable details */}
-            <div style={{ padding: '28px', maxWidth: 840 }}>
+            <div className="agents-config-panel" style={{ padding: '28px', maxWidth: 840 }}>
               
               {/* Identity */}
               <div style={{ background: '#fff', borderRadius: 14, padding: '24px', marginBottom: 18, border: '1px solid rgba(220,38,38,0.06)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
                 <SectionHeader icon="🤖" label="Agent Identity" />
-                <div style={{ display: 'flex', gap: 28 }}>
+                <div className="agents-identity-row" style={{ display: 'flex', gap: 28 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
                     <div style={{ 
                       width: 80, height: 80, borderRadius: '50%', 
@@ -526,7 +523,7 @@ export default function AgentsPage() {
               {/* Channels */}
               <div style={{ background: '#fff', borderRadius: 14, padding: '24px', marginBottom: 18, border: '1px solid rgba(220,38,38,0.06)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
                 <SectionHeader icon="📡" label="Active Channels" />
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                <div className="agents-channels-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
                   {[
                     { id: 'whatsapp', label: 'WhatsApp', icon: '💬', color: '#25D366' },
                     { id: 'instagram', label: 'Instagram', icon: '📸', color: '#E1306C' },
@@ -574,7 +571,7 @@ export default function AgentsPage() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div className="agents-donts-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   {/* Do's */}
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
@@ -637,7 +634,7 @@ export default function AgentsPage() {
               <div style={{ background: '#fff', borderRadius: 14, padding: '24px', marginBottom: 18, border: '1px solid rgba(220,38,38,0.06)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
                 <SectionHeader icon="🎙️" label="Voice AI Configuration (WhatsApp Audio Messages)" />
                 <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 12 }}>Supported Languages & AI Voices</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div className="agents-voice-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                   {languages.map(lang => {
                     const on = !!selectedLangs[lang];
                     return (

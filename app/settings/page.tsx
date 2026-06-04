@@ -384,7 +384,7 @@ function SettingsInner() {
   };
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 1000 }}>
+    <div className="settings-page-wrap" style={{ padding: '24px 28px', maxWidth: 1000 }}>
       {/* Page Header */}
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
@@ -407,13 +407,14 @@ function SettingsInner() {
       </div>
 
       {/* Modern Red-Themed Tabs */}
-      <div style={{ display: 'flex', gap: 2, borderBottom: '1px solid rgba(220,38,38,0.08)', marginBottom: 28 }}>
+      <div className="settings-tab-bar" style={{ display: 'flex', gap: 2, borderBottom: '1px solid rgba(220,38,38,0.08)', marginBottom: 28 }}>
         {tabs.map(t => {
           const active = tab === t;
           return (
             <button 
               key={t} 
-              onClick={() => setTab(t)} 
+              onClick={() => setTab(t)}
+              className="settings-tab-btn"
               style={{
                 padding: '10px 20px', fontSize: 13,
                 fontWeight: active ? 700 : 500,
@@ -447,7 +448,7 @@ function SettingsInner() {
                 Updating your niche recalibrates the AI model, matching tone, custom system instructions, and analytics counters.
               </p>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+              <div className="settings-niche-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                 {niches.map(n => {
                   const selected = niche.id === n.id;
                   return (
@@ -627,7 +628,7 @@ function SettingsInner() {
                   <Sparkles size={14} color="#dc2626" />
                   <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151' }}>OpenAI Copilot Secret Key</label>
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div className="settings-api-row" style={{ display: 'flex', gap: 8 }}>
                   <input 
                     type="password" 
                     value={openaiKey} 
@@ -654,7 +655,7 @@ function SettingsInner() {
               </div>
 
               {/* WhatsApp IDs grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="settings-wa-ids-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Meta Phone Number ID</label>
                   <input 

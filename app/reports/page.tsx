@@ -202,10 +202,9 @@ export default function ReportsPage() {
   };
 
   return (
-    <div style={{ padding: '28px', background: '#faf9f9', minHeight: 'calc(100vh - 98px)' }}>
+    <div className="reports-page-wrap" style={{ padding: '28px', background: '#faf9f9', minHeight: 'calc(100vh - 98px)' }}>
       
-      {/* ── HEADER NAVIGATION ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+      <div className="reports-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 800, color: '#111827', letterSpacing: '-0.4px', margin: 0 }}>
             Reports & Analytics
@@ -215,7 +214,7 @@ export default function ReportsPage() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div className="reports-time-controls" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           
           {/* Time range controller */}
           <div style={{ display: 'flex', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 3 }}>
@@ -259,8 +258,7 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {/* ── KEY PERFORMANCE STATS ROW ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
+      <div className="reports-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
         
         {[
           { label: 'Conversations Active', val: activeConvosCount.toString(), delta: '+12.4%', up: true, subtitle: 'Across all active channels', icon: MessageSquare },
@@ -292,8 +290,7 @@ export default function ReportsPage() {
 
       </div>
 
-      {/* ── MAIN CHARTS DIVISION GRID ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24, marginBottom: 28 }}>
+      <div className="reports-main-grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24, marginBottom: 28 }}>
         
         {/* SVG Message Flow Area Chart */}
         <div style={{ background: '#fff', borderRadius: 14, border: '1px solid rgba(220,38,38,0.06)', padding: '24px', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
@@ -394,8 +391,8 @@ export default function ReportsPage() {
         <h3 style={{ fontSize: 14.5, fontWeight: 800, color: '#111827', marginBottom: 4 }}>Human Staff Performance Rating</h3>
         <p style={{ fontSize: 11.5, color: '#9ca3af', marginBottom: 20 }}>Active capacity, resolution performance, and customer satisfaction index</p>
 
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <div className="mobile-table-scroll">
+          <table className="reports-agent-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid rgba(220,38,38,0.04)', background: '#faf9f9' }}>
                 <th style={{ padding: '12px 18px', fontSize: 11, fontWeight: 750, color: '#4b5563', textTransform: 'uppercase' }}>Staff Name</th>

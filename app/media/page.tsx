@@ -159,9 +159,9 @@ export default function MediaPage() {
   });
 
   return (
-    <div style={{ padding: '28px', background: '#faf9f9', minHeight: 'calc(100vh - 98px)' }}>
+    <div className="media-page-wrap" style={{ padding: '28px', background: '#faf9f9', minHeight: 'calc(100vh - 98px)' }}>
       
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+      <div className="media-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 800, color: '#111827', letterSpacing: '-0.4px', margin: 0 }}>
             Media Library Vault
@@ -218,11 +218,9 @@ export default function MediaPage() {
         </span>
       </div>
 
-      {/* ── SEGMENT CONTROLS & SEARCH BAR ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+      <div className="media-controls-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         
-        {/* Category tabs */}
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div className="media-tabs-row" style={{ display: 'flex', gap: 6 }}>
           {[
             { id: 'All', label: 'All Assets', icon: Folder },
             { id: 'Images', label: 'Images', icon: ImageIcon },
@@ -251,8 +249,7 @@ export default function MediaPage() {
           })}
         </div>
 
-        {/* Search */}
-        <div style={{ position: 'relative', width: 260 }}>
+        <div className="media-search-box" style={{ position: 'relative', width: 260 }}>
           <Search size={14} color="#9ca3af" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
           <input 
             type="text" 
@@ -269,7 +266,7 @@ export default function MediaPage() {
 
       {/* ── CARD VISUAL GRID ── */}
       {filteredMedia.length > 0 ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+        <div className="media-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
           {filteredMedia.map(file => {
             const isImage = file.category === 'Images';
             const isDoc = file.category === 'Documents';
@@ -379,7 +376,7 @@ export default function MediaPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 9999
         }}>
-          <div style={{
+          <div className="media-modal-box" style={{
             background: '#fff', width: 440, borderRadius: 14,
             padding: '20px 24px', border: '1px solid rgba(220,38,38,0.1)',
             boxShadow: '0 15px 45px rgba(0,0,0,0.2)'

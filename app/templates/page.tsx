@@ -130,10 +130,9 @@ export default function TemplatesPage() {
   });
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 98px)', background: '#faf9f9' }}>
+    <div className="split-pane-root" style={{ display: 'flex', height: 'calc(100vh - 98px)', background: '#faf9f9' }}>
       
-      {/* ── LEFT TEMPLATES DIRECTORY LIST ── */}
-      <div style={{ 
+      <div className="split-left-panel" style={{ 
         width: 320, background: '#fff', 
         borderRight: '1px solid rgba(220,38,38,0.08)', 
         display: 'flex', flexDirection: 'column', flexShrink: 0 
@@ -254,13 +253,11 @@ export default function TemplatesPage() {
         </div>
       </div>
 
-      {/* ── RIGHT TEMPLATE VISUAL PREVIEW & MOCK SIMULATOR PANEL ── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '28px', background: '#faf9f9' }}>
+      <div className="split-right-panel" style={{ flex: 1, overflowY: 'auto', padding: '28px', background: '#faf9f9' }}>
         {selectedTemplate ? (
           <div style={{ maxWidth: 780, margin: '0 auto' }}>
             
-            {/* Header Title Controls */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+            <div className="templates-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
               <div>
                 <span style={{ 
                   fontSize: 11, background: '#fef2f2', color: '#dc2626', 
@@ -277,7 +274,7 @@ export default function TemplatesPage() {
                 </p>
               </div>
 
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div className="templates-header-actions" style={{ display: 'flex', gap: 8 }}>
                 <button 
                   onClick={() => copyToClipboard(selectedTemplate.bodyText)}
                   style={{
@@ -303,8 +300,7 @@ export default function TemplatesPage() {
               </div>
             </div>
 
-            {/* Content Layout Divider Split */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 310px', gap: 28, alignItems: 'start' }}>
+              <div className="template-detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 310px', gap: 28, alignItems: 'start' }}>
               
               {/* Structural Details Panel */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -468,7 +464,7 @@ export default function TemplatesPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 9999
         }}>
-          <div style={{
+          <div className="template-modal-box" style={{
             background: '#fff', width: 620, borderRadius: 16,
             padding: '24px 28px', border: '1px solid rgba(220,38,38,0.1)',
             boxShadow: '0 15px 45px rgba(0,0,0,0.2)',
@@ -488,7 +484,7 @@ export default function TemplatesPage() {
             {/* Form */}
             <form onSubmit={handleCreateTemplate} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div className="template-modal-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Template Name</label>
                   <input 
@@ -572,7 +568,7 @@ export default function TemplatesPage() {
               </div>
 
               {buttonCount > 0 && (
-                <div style={{ 
+                <div className="template-btn-config-grid" style={{ 
                   background: '#fdfcfc', padding: '12px 14px', borderRadius: 8, 
                   border: '1px dashed rgba(220,38,38,0.15)', display: 'grid', 
                   gridTemplateColumns: '130px 140px 1fr', gap: 10 

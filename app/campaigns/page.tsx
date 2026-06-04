@@ -119,10 +119,9 @@ export default function CampaignsPage() {
   const readRate = totalDelivered > 0 ? Math.round((totalRead / totalDelivered) * 100) : 0;
 
   return (
-    <div style={{ padding: '28px', background: '#faf9f9', minHeight: 'calc(100vh - 98px)' }}>
+    <div className="campaigns-page-wrap" style={{ padding: '28px', background: '#faf9f9', minHeight: 'calc(100vh - 98px)' }}>
       
-      {/* ── STUNNING STATS CARDS GRID ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+      <div className="campaigns-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 800, color: '#111827', letterSpacing: '-0.4px', margin: 0 }}>
             Campaign Broadcasting
@@ -146,7 +145,7 @@ export default function CampaignsPage() {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
+      <div className="campaigns-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
         
         {/* Total Sent */}
         <div style={{ background: '#fff', border: '1px solid rgba(220,38,38,0.06)', borderRadius: 14, padding: '20px 24px', boxShadow: '0 2px 8px rgba(0,0,0,0.01)' }}>
@@ -220,7 +219,7 @@ export default function CampaignsPage() {
           </span>
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
+        <div className="campaigns-table-wrap" style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ background: '#faf9f9', borderBottom: '1px solid rgba(220,38,38,0.04)' }}>
@@ -310,7 +309,7 @@ export default function CampaignsPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 9999
         }}>
-          <div style={{
+          <div className="campaign-modal-box" style={{
             background: '#fff', width: 560, borderRadius: 16,
             padding: '24px 28px', border: '1px solid rgba(220,38,38,0.1)',
             boxShadow: '0 15px 45px rgba(0,0,0,0.2)',
@@ -339,7 +338,7 @@ export default function CampaignsPage() {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="campaign-modal-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div>
                   <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 6 }}>Select Approved Template</label>
                   <select 
