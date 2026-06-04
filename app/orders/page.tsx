@@ -181,10 +181,10 @@ export default function OrdersPage() {
             const color = getStatusColor(status);
             
             let primaryInfo = '';
-            if (isEcommerce) primaryInfo = \`PKR \${item.order_amount || 0}\`;
-            if (isRestaurant) primaryInfo = \`PKR \${item.total_amount || 0} • \${item.order_type || 'Delivery'}\`;
-            if (isAppointment) primaryInfo = \`\${item.treatment_type || 'Consultation'}\`;
-            if (isRealEstate) primaryInfo = \`\${item.property_type || 'Property'} • \${item.intent || 'Buy'}\`;
+            if (isEcommerce) primaryInfo = `PKR ${item.order_amount || 0}`;
+            if (isRestaurant) primaryInfo = `PKR ${item.total_amount || 0} • ${item.order_type || 'Delivery'}`;
+            if (isAppointment) primaryInfo = `${item.treatment_type || 'Consultation'}`;
+            if (isRealEstate) primaryInfo = `${item.property_type || 'Property'} • ${item.intent || 'Buy'}`;
 
             return (
               <div 
@@ -243,7 +243,7 @@ export default function OrdersPage() {
                     fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 12, 
                     background: getStatusColor(selected.status || selected.stage).bg, 
                     color: getStatusColor(selected.status || selected.stage).text,
-                    border: \`1px solid \${getStatusColor(selected.status || selected.stage).text}30\`
+                    border: `1px solid ${getStatusColor(selected.status || selected.stage).text}30`
                   }}>
                     {(selected.status || selected.stage || 'PENDING').replace('_', ' ').toUpperCase()}
                   </span>
@@ -314,7 +314,7 @@ export default function OrdersPage() {
                       selected.items.map((item: any, idx: number) => (
                         <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: idx !== selected.items.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
                           <span style={{ fontSize: 13, color: '#374151', fontWeight: 500 }}>{item.qty || 1}x {item.name || item.title || 'Item'}</span>
-                          <span style={{ fontSize: 13, color: '#111', fontWeight: 600 }}>{item.price ? \`PKR \${item.price}\` : ''}</span>
+                          <span style={{ fontSize: 13, color: '#111', fontWeight: 600 }}>{item.price ? `PKR ${item.price}` : ''}</span>
                         </div>
                       ))
                     ) : (
