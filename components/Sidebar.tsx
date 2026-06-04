@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, MessageSquare, Users, Bot, Plug, Settings, LogOut, FileText, Megaphone, Folder, BarChart3, Menu, X } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Users, Bot, Plug, Settings, LogOut, FileText, Megaphone, Folder, BarChart3, Menu, X, ShoppingBag } from 'lucide-react';
 import { useNiche } from '@/context/NicheContext';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
@@ -11,6 +11,7 @@ const nav = [
   { href: '/dashboard',     icon: LayoutDashboard, label: 'Overview' },
   { href: '/conversations', icon: MessageSquare,   label: 'Chats' },
   { href: '/contacts',      icon: Users,           label: 'Contacts' },
+  { href: '/orders',        icon: ShoppingBag,     label: 'Orders' },
   { href: '/campaigns',     icon: Megaphone,       label: 'Campaigns' },
   { href: '/agents',        icon: Bot,             label: 'AI Agents' },
   { href: '/templates',     icon: FileText,        label: 'Templates' },

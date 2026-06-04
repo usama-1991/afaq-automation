@@ -55,6 +55,8 @@ services:
       - META_APP_SECRET=${META_APP_SECRET}
       - META_WEBHOOK_VERIFY_TOKEN=${META_WEBHOOK_VERIFY_TOKEN}
       - META_ACCESS_TOKEN=${META_ACCESS_TOKEN}
+      - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
+      - N8N_API_KEY=${N8N_API_KEY}
     volumes:
       - ./services/webhook-service:/usr/src/app
 

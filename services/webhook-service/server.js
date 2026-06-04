@@ -202,7 +202,10 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
     fastify.log.info(`[${platform}] Firing n8n webhook with niche="${tenantNiche}"`);
     fetch(n8nUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.N8N_API_KEY || ''
+      },
       body: JSON.stringify(n8nPayload)
     }).catch(err => fastify.log.error(`Failed to trigger n8n: ${err.message}`));
   }
