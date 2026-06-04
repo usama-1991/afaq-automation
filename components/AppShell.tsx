@@ -227,24 +227,32 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <TopBanner />
       <div style={{ display: 'flex', flex: 1 }}>
         <Sidebar />
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, marginLeft: 64, position: 'relative' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, marginLeft: 'var(--sidebar-w)', position: 'relative' }}>
           
           {/* Unified Sticky Header Bar */}
           <header style={{
             height: 60, background: '#fff', borderBottom: '1px solid rgba(220,38,38,0.08)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '0 28px', position: 'sticky', top: 38, zIndex: 40,
+            padding: '0 16px', position: 'sticky', top: 38, zIndex: 40,
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {/* Mobile logo */}
+              <div className="mobile-only" style={{
+                width: 30, height: 30, borderRadius: 8,
+                background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 14, color: '#fff', fontWeight: 800, flexShrink: 0,
+              }}>A</div>
               <div style={{
-                background: '#fef2f2', padding: '5px 12px', borderRadius: 8,
+                background: '#fef2f2', padding: '4px 10px', borderRadius: 8,
                 border: '1px solid rgba(220,38,38,0.15)',
-                fontSize: 13, fontWeight: 700, color: '#dc2626',
+                fontSize: 12, fontWeight: 700, color: '#dc2626',
+                whiteSpace: 'nowrap',
               }}>
-                {niche?.label || 'General'} Niche
+                {niche?.label || 'General'}
               </div>
-              <div style={{ fontSize: 14.5, fontWeight: 700, color: '#1f2937', letterSpacing: '-0.3px' }}>
+              <div className="desktop-only" style={{ fontSize: 14.5, fontWeight: 700, color: '#1f2937', letterSpacing: '-0.3px' }}>
                 AutoFlow Studio <span style={{ fontSize: 11.5, color: '#dc2626', fontWeight: 600 }}>(Admin)</span>
               </div>
             </div>
@@ -271,11 +279,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 }}>
                   {initials}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <div className="desktop-only" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                   <span style={{ fontSize: 13, fontWeight: 600, color: '#1f2937', lineHeight: 1.2 }}>{userName}</span>
                   <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 500 }}>{userEmail.length > 20 ? userEmail.slice(0, 17) + '...' : userEmail}</span>
                 </div>
-                <ChevronDown size={14} color="#9ca3af" style={{ transform: showDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+                <ChevronDown className="desktop-only" size={14} color="#9ca3af" style={{ transform: showDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
               </div>
 
               {/* GORGEOUS GLASSMORPHIC RED DROP-DOWN MENU */}
@@ -355,11 +363,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </header>
           
           {/* Main Content Area */}
-          <main style={{
-            flex: 1,
-            background: '#faf9f9',
-            overflowY: 'auto',
-          }}>
+          <main
+            className="main-content-area"
+            style={{
+              flex: 1,
+              background: '#faf9f9',
+              overflowY: 'auto',
+            }}
+          >
             {children}
           </main>
         </div>
@@ -368,6 +379,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(8px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @media (max-width: 767px) {
+          .desktop-only { display: none !important; }
+        }
+        @media (min-width: 768px) {
+          .mobile-only { display: none !important; }
         }
       `}</style>
     </div>

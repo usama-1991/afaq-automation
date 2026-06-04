@@ -152,30 +152,14 @@ export default function DashboardPage() {
   const [channels, setChannels] = useState<{ name: string; value: number; color: string }[]>([]);
   const [volumeData, setVolumeData] = useState<any[]>([]);
 
-  // ── Interactive State (Mock Real-Time Operations) ────────────
-  
+  // ── Interactive State (Live Data Only) ────────────────────────
+
   // Restaurant Niche
-  const [restaurantOrders, setRestaurantOrders] = useState([
-    { id: '1', name: 'Sara Ahmed', items: 'Chicken Karahi x2 + Naan x4', area: 'Defense Phase 6', time: '3 min ago', status: 'pending', amount: 3200 },
-    { id: '2', name: 'Bilal Khan', items: 'Family Kebab Deal', area: 'Gulshan Block 7', time: '18 min ago', status: 'confirmed', amount: 4800 },
-    { id: '3', name: 'Zaid Hassan', items: 'Chicken Biryani x3', area: 'Clifton Block 5', time: '40 min ago', status: 'confirmed', amount: 2100 },
-    { id: '4', name: 'Fatima Noor', items: 'Seekh Kebab Platter', area: 'KDA Scheme 1', time: '1h ago', status: 'pending', amount: 3900 }
-  ]);
-  const [restaurantIssues, setRestaurantIssues] = useState([
-    { type: 'Wrong order', count: 2 },
-    { type: 'Late delivery', count: 3 },
-    { type: 'Missing item', count: 1 },
-    { type: 'Refunds pending', count: 1 }
-  ]);
+  const [restaurantOrders, setRestaurantOrders] = useState<any[]>([]);
+  const [restaurantIssues, setRestaurantIssues] = useState<{ type: string; count: number }[]>([]);
 
   // eCommerce Niche
-  const [ecoPipeline, setEcoPipeline] = useState([
-    { id: 'e1', name: 'Sara Ahmed', item: 'Red Kurti (M)', status: 'pending_address', price: 2500, time: '5 min ago' },
-    { id: 'e2', name: 'Aisha Butt', item: 'Lawn 3pc Suit', status: 'pending_address', price: 3800, time: '15 min ago' },
-    { id: 'e3', name: 'Bilal Khan', item: '2-Piece Cotton Set', status: 'confirmed', price: 3200, time: '20 min ago' },
-    { id: 'e4', name: 'Maryam Ali', item: 'Embroidered Dupatta', status: 'confirmed', price: 1800, time: '1h ago' },
-    { id: 'e5', name: 'Fatima Noor', item: 'Linen Kurti (L)', status: 'dispatched', price: 2900, time: '3h ago' }
-  ]);
+  const [ecoPipeline, setEcoPipeline] = useState<any[]>([]);
 
   // WooCommerce live orders state
   const [wcOrders, setWcOrders] = useState<any[]>([]);
@@ -223,70 +207,38 @@ export default function DashboardPage() {
       setWcLoading(false);
     }
   };
-  const [exchanges, setExchanges] = useState([
-    { id: 'x1', name: 'Sara Ahmed', item: 'Red Kurti (M)', issue: 'Wrong size', status: 'Pending' },
-    { id: 'x2', name: 'Bilal Khan', item: 'Lawn 2-Piece', issue: 'Color difference', status: 'Resolved' }
-  ]);
+  const [exchanges, setExchanges] = useState<any[]>([]);
 
   // Dental Niche
-  const [dentalSchedule, setDentalSchedule] = useState([
-    { time: '09:00 AM', name: 'Aisha Butt', treatment: 'Scaling & Polishing', doctor: 'Dr. Hassan', status: 'confirmed', isNew: true },
-    { time: '10:00 AM', name: 'Zaid Hassan', treatment: 'Whitening Consult', doctor: 'Dr. Hassan', status: 'confirmed', isNew: false },
-    { time: '11:00 AM', name: '[Available Slot]', treatment: 'Book via AI', doctor: 'Dr. Hassan', status: 'available', isNew: false },
-    { time: '12:00 PM', name: 'LUNCH BREAK', treatment: 'Break', doctor: 'Dr. Hassan', status: 'break', isNew: false },
-    { time: '02:00 PM', name: 'Bilal Khan', treatment: 'Root Canal Therapy', doctor: 'Dr. Hassan', status: 'pending', isNew: false },
-    { time: '03:00 PM', name: '[Available Slot]', treatment: 'Book via AI', doctor: 'Dr. Hassan', status: 'available', isNew: false }
-  ]);
-  const [dentalClinicalQueries, setDentalClinicalQueries] = useState([
-    { id: 'q1', patient: 'Fatima Noor', issue: 'Sent an X-ray photo — needs doctor review', type: 'Clinical Media' },
-    { id: 'q2', patient: 'Omar Sheikh', issue: '"Is it normal that my gum is bleeding after scaling?"', type: 'Bleeding Follow-up' }
-  ]);
+  const [dentalSchedule, setDentalSchedule] = useState<any[]>([]);
+  const [dentalClinicalQueries, setDentalClinicalQueries] = useState<any[]>([]);
 
   // Real Estate Niche
-  const [rePipeline, setRePipeline] = useState([
-    { id: 'r1', name: 'Omar Sheikh', intent: 'buy', type: '3-Bed', budget: '2.5–3.0 Crore', area: 'DHA Phase 6', stage: 'qualified', temp: 'hot' },
-    { id: 'r2', name: 'Hina Malik', intent: 'rent', type: '2-Bed', budget: '80-100k', area: 'Phase 5', stage: 'new_inquiry', temp: 'warm' },
-    { id: 'r3', name: 'Zaid Hassan', intent: 'buy', type: 'Commercial Plot', budget: '8 Crore', area: 'Clifton', stage: 'properties_sent', temp: 'hot' },
-    { id: 'r4', name: 'Aisha Butt', intent: 'buy', type: '1-Bed Apt', budget: '1.2 Crore', area: 'Bahria Town', stage: 'visit_scheduled', temp: 'warm' }
-  ]);
+  const [rePipeline, setRePipeline] = useState<any[]>([]);
 
   // Salon Niche
-  const [salonSchedule, setSalonSchedule] = useState({
-    Sarah: { '10:00 AM': { client: 'Aisha', service: 'Hair Color' }, '11:30 AM': { client: '', service: 'Available' } },
-    Alex: { '10:00 AM': { client: 'Zaid', service: 'Beard Trim' }, '11:30 AM': { client: 'Maryam', service: 'Manicure' } },
-    Maria: { '10:00 AM': { client: '', service: 'Available' }, '11:30 AM': { client: 'Hina', service: 'Bridal Trial' } },
-    Lina: { '10:00 AM': { client: 'Sara', service: 'Facial' }, '11:30 AM': { client: '', service: 'Available' } }
-  });
-
-  const [upcomingReminders, setUpcomingReminders] = useState([
-    { id: 'rem1', name: 'Farida Tariq', time: 'Tomorrow 11am', service: 'Bridal Trial', sent: false },
-    { id: 'rem2', name: 'Nadia Khan', time: 'Tomorrow 3pm', service: 'Hair Color', sent: false }
-  ]);
+  const [salonSchedule, setSalonSchedule] = useState<Record<string, Record<string, { client: string; service: string }>>>({});
+  const [upcomingReminders, setUpcomingReminders] = useState<any[]>([]);
 
   // Medical Clinic Niche
-  const [medicalDoctors, setMedicalDoctors] = useState({
-    'DR. IRFAN (Cardiologist)': [
-      { time: '09:00 AM', patient: 'Omar Sheikh', status: 'Confirmed' },
-      { time: '10:00 AM', patient: '[Available]', status: 'Available' },
-      { time: '11:00 AM', patient: 'Hina Malik', status: 'Confirmed' }
-    ],
-    'DR. SARA (Pediatrics)': [
-      { time: '09:30 AM', patient: 'Baby Ali (3mo)', status: 'Confirmed' },
-      { time: '10:30 AM', patient: '[Available]', status: 'Available' },
-      { time: '11:30 AM', patient: 'Hira Noor', status: 'Confirmed' }
-    ],
-    'DR. AHMED (General)': [
-      { time: '10:00 AM', patient: 'Fatima Butt', status: 'Confirmed' },
-      { time: '11:00 AM', patient: 'Zainab Khan', status: 'Confirmed' },
-      { time: '12:00 PM', patient: '[Available]', status: 'Available' }
-    ]
-  });
+  const [medicalDoctors, setMedicalDoctors] = useState<Record<string, { time: string; patient: string; status: string }[]>>({});
+
+  // ── Computed AI Stats (from real DB data) ─────────────────────
+  const [aiStats, setAiStats] = useState({ resolvedPct: 0, escalatedPct: 0, avgResponseSec: 0, aiMsgsToday: 0 });
+  const [userDisplayName, setUserDisplayName] = useState('');
 
   // ── Real-Time DB Subscriptions ───────────────────────────────
   const fetchAll = async () => {
     setRefreshing(true);
     try {
-      const { data: convs } = await supabase.from('conversations').select('id, platform, customer_name, created_at');
+      // Fetch user display name
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase.from('users').select('full_name, name').eq('id', user.id).maybeSingle();
+        setUserDisplayName(profile?.full_name || profile?.name || user.email?.split('@')[0] || '');
+      }
+
+      const { data: convs } = await supabase.from('conversations').select('id, platform, customer_name, status, created_at');
       const { data: msgs } = await supabase.from('messages').select('id, sender_type, created_at, conversation_id');
 
       if (convs && msgs) {
@@ -300,6 +252,16 @@ export default function DashboardPage() {
           customers: uniqueCustomers || convs.length,
         });
 
+        // Compute AI Agent Performance from real data
+        const todayStr = new Date().toISOString().split('T')[0];
+        const aiMsgsToday = agentMsgs.filter((m: any) => m.created_at?.startsWith(todayStr)).length;
+        const resolvedConvs = convs.filter((c: any) => c.status === 'resolved').length;
+        const escalatedConvs = convs.filter((c: any) => c.status === 'escalated').length;
+        const handledConvs = resolvedConvs + escalatedConvs;
+        const resolvedPct = handledConvs > 0 ? Math.round((resolvedConvs / handledConvs) * 100) : 0;
+        const escalatedPct = handledConvs > 0 ? Math.round((escalatedConvs / handledConvs) * 100) : 0;
+        setAiStats({ resolvedPct, escalatedPct, avgResponseSec: 0, aiMsgsToday });
+
         const channelCount: Record<string, number> = {};
         convs.forEach((c: any) => { channelCount[c.platform] = (channelCount[c.platform] || 0) + 1; });
         setChannels(Object.entries(channelCount).map(([name, value]: any) => ({
@@ -308,7 +270,7 @@ export default function DashboardPage() {
           color: CHANNEL_COLORS[name] || '#9ca3af',
         })));
 
-        // Generate weekly chat statistics
+        // Generate weekly chat volume from real data
         const days: { time: string; inbound: number; outbound: number }[] = [];
         for (let i = 6; i >= 0; i--) {
           const d = new Date();
@@ -317,8 +279,8 @@ export default function DashboardPage() {
           const dateStr = d.toISOString().split('T')[0];
           days.push({
             time: label,
-            inbound: msgs.filter((m: any) => m.sender_type === 'customer' && m.created_at.startsWith(dateStr)).length || Math.floor(Math.random() * 30) + 10,
-            outbound: msgs.filter((m: any) => m.sender_type === 'agent' && m.created_at.startsWith(dateStr)).length || Math.floor(Math.random() * 40) + 20,
+            inbound: msgs.filter((m: any) => m.sender_type === 'customer' && m.created_at?.startsWith(dateStr)).length,
+            outbound: msgs.filter((m: any) => m.sender_type === 'agent' && m.created_at?.startsWith(dateStr)).length,
           });
         }
         setVolumeData(days);
@@ -360,16 +322,24 @@ export default function DashboardPage() {
   const now = new Date();
   const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening';
   const dateLabel = now.toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const displayName = userDisplayName ? ` ${userDisplayName}` : '';
+
+  // Derived live stat values
+  const todayWcRevenue = wcOrders.filter((o: any) => o.status === 'processing' || o.status === 'completed').reduce((sum: number, o: any) => sum + parseFloat(o.total || 0), 0);
+  const todayWcOrdersConfirmed = wcOrders.filter((o: any) => o.status === 'processing' || o.status === 'completed').length;
+  const todayWcOnHold = wcOrders.filter((o: any) => o.status === 'on-hold').length;
+  const todayWcCodPending = wcOrders.filter((o: any) => o.status === 'pending').reduce((sum: number, o: any) => sum + parseFloat(o.total || 0), 0);
+  const wcCurrency = wcOrders[0]?.currency || 'PKR';
 
   return (
-    <div style={{ padding: '32px 32px 50px', minHeight: '100%', background: '#faf9f9' }}>
+    <div className="dashboard-page-wrap" style={{ padding: '32px 32px 50px', minHeight: '100%', background: '#faf9f9' }}>
       
       {/* ── Top Header ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 30 }}>
+      <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 30 }}>
         <div>
           <div style={{ fontSize: 12, color: '#9ca3af', fontWeight: 650, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{dateLabel}</div>
           <h1 style={{ fontSize: 28, fontWeight: 900, color: DARK, letterSpacing: '-0.7px', lineHeight: 1.1 }}>
-            {greeting}, Usama! 👋
+            {greeting}{displayName ? `,${displayName}` : ''} 👋
           </h1>
           <p style={{ fontSize: 14, color: '#6b7280', marginTop: 4, fontWeight: 500 }}>
             Here is your live industry metrics panel for <strong style={{ color: RED }}>{niche.label}</strong>.
@@ -394,54 +364,54 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Niche-Specific Stat Cards ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+      <div className="stat-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
         {nicheId === 'restaurant' ? (
           <>
-            <StatCard label="📦 Orders Today" value="47 Orders" sub="+12% vs yesterday" icon={ShoppingBag} color={RED} bg={RED_LIGHT} trend="+12%" trendUp={true} />
-            <StatCard label="💰 Revenue Today" value="PKR 68,450" sub="From delivery & takeaway" icon={DollarSign} color={GREEN} bg="#ecfdf5" trend="+8%" trendUp={true} />
-            <StatCard label="🔄 Repeat Rate" value="62%" sub="Returning customers today" icon={Users} color={BLUE} bg={BLUE_LIGHT} trend="+3%" trendUp={true} />
-            <StatCard label="⏱️ Avg Order Time" value="18 mins" sub="From chat to confirmation" icon={Clock} color={AMBER} bg={AMBER_LIGHT} />
+            <StatCard label="📦 Orders Today" value={restaurantOrders.length > 0 ? `${restaurantOrders.length} Orders` : '—'} sub="WhatsApp orders in queue" icon={ShoppingBag} color={RED} bg={RED_LIGHT} />
+            <StatCard label="💰 Conversations" value={stats.conversations || '—'} sub="Total active chats" icon={DollarSign} color={GREEN} bg="#ecfdf5" />
+            <StatCard label="🔄 Repeat Customers" value={stats.customers > 0 ? stats.customers : '—'} sub="Unique customers tracked" icon={Users} color={BLUE} bg={BLUE_LIGHT} />
+            <StatCard label="⏱️ AI Messages" value={stats.agentMessages || '—'} sub="Sent by AI agent total" icon={Clock} color={AMBER} bg={AMBER_LIGHT} />
           </>
         ) : nicheId === 'ecommerce' ? (
           <>
-            <StatCard label="💰 Chat Revenue" value="PKR 30,140" sub="Direct sales closed via chat" icon={DollarSign} color={GREEN} bg="#ecfdf5" trend="+18%" trendUp={true} />
-            <StatCard label="📦 Orders Today" value="7 Confirmed" sub="Closed by ShopBot interactions" icon={ShoppingBag} color={RED} bg={RED_LIGHT} trend="+40%" trendUp={true} />
-            <StatCard label="🔄 Exchange Req" value="3 Requests" sub="2 resolved, 1 pending review" icon={RefreshCw} color={BLUE} bg={BLUE_LIGHT} />
-            <StatCard label="📍 COD Pending" value="PKR 12,500" sub="4 orders out on COD" icon={Truck} color={AMBER} bg={AMBER_LIGHT} />
+            <StatCard label="💰 WC Revenue" value={wcConnected && todayWcRevenue > 0 ? `${wcCurrency} ${todayWcRevenue.toLocaleString()}` : wcLoading ? 'Loading…' : '—'} sub={wcConnected ? 'Processing + completed orders' : 'Connect WooCommerce in Settings'} icon={DollarSign} color={GREEN} bg="#ecfdf5" />
+            <StatCard label="📦 Orders Today" value={wcConnected ? (todayWcOrdersConfirmed > 0 ? `${todayWcOrdersConfirmed} Confirmed` : 'No orders') : '—'} sub={wcConnected ? 'Processing & completed' : 'WooCommerce not connected'} icon={ShoppingBag} color={RED} bg={RED_LIGHT} />
+            <StatCard label="🔄 Exchange Req" value={exchanges.length > 0 ? `${exchanges.length} Requests` : '—'} sub={exchanges.length > 0 ? `${exchanges.filter((e:any) => e.status === 'Resolved').length} resolved` : 'No exchanges logged'} icon={RefreshCw} color={BLUE} bg={BLUE_LIGHT} />
+            <StatCard label="📍 COD Pending" value={wcConnected && todayWcOnHold > 0 ? `${wcCurrency} ${todayWcCodPending.toLocaleString()}` : '—'} sub={wcConnected ? `${todayWcOnHold} orders on-hold/COD` : 'Connect WooCommerce in Settings'} icon={Truck} color={AMBER} bg={AMBER_LIGHT} />
           </>
         ) : nicheId === 'dental' ? (
           <>
-            <StatCard label="📅 Appts Today" value="14 Booked" sub="2 vacant slots remaining" icon={Calendar} color={RED} bg={RED_LIGHT} />
-            <StatCard label="👥 New Patients" value="3 Today" sub="First-time clinic attendees" icon={UserPlus} color={BLUE} bg={BLUE_LIGHT} trend="+15%" trendUp={true} />
-            <StatCard label="🔄 Reschedules" value="2 Changed" sub="1 cancelled appointment" icon={RefreshCw} color={AMBER} bg={AMBER_LIGHT} />
-            <StatCard label="💰 Revenue Today" value="PKR 42,000" sub="Estimated from treatment plans" icon={DollarSign} color={GREEN} bg="#ecfdf5" />
+            <StatCard label="📅 Appts Today" value={dentalSchedule.filter((s:any) => s.status === 'confirmed' || s.status === 'pending').length > 0 ? `${dentalSchedule.filter((s:any) => s.status === 'confirmed' || s.status === 'pending').length} Booked` : '—'} sub="Confirmed dental slots" icon={Calendar} color={RED} bg={RED_LIGHT} />
+            <StatCard label="👥 Conversations" value={stats.conversations || '—'} sub="Patient chats via WhatsApp" icon={UserPlus} color={BLUE} bg={BLUE_LIGHT} />
+            <StatCard label="🔄 Available Slots" value={dentalSchedule.filter((s:any) => s.status === 'available').length > 0 ? `${dentalSchedule.filter((s:any) => s.status === 'available').length} Open` : '—'} sub="Book via AI agent" icon={RefreshCw} color={AMBER} bg={AMBER_LIGHT} />
+            <StatCard label="🤖 AI Responses" value={stats.agentMessages || '—'} sub="Total AI messages sent" icon={DollarSign} color={GREEN} bg="#ecfdf5" />
           </>
         ) : nicheId === 'realestate' ? (
           <>
-            <StatCard label="🎯 New Leads" value="8 Today" sub="Registered via WhatsApp inquiries" icon={Target} color={RED} bg={RED_LIGHT} trend="+3 leads" trendUp={true} />
-            <StatCard label="👁️ Props Shared" value="34 Links" sub="Listing page links shared by AI" icon={Eye} color={BLUE} bg={BLUE_LIGHT} trend="+22%" trendUp={true} />
-            <StatCard label="📅 Site Visits" value="3 Scheduled" sub="Site visits confirmed this week" icon={Calendar} color={AMBER} bg={AMBER_LIGHT} />
-            <StatCard label="🔥 Hot Leads" value="5 Active" sub="Inquiries with highest purchase intent" icon={Sparkles} color={GREEN} bg="#ecfdf5" />
+            <StatCard label="🎯 Active Leads" value={rePipeline.length > 0 ? rePipeline.length : '—'} sub="Leads in pipeline" icon={Target} color={RED} bg={RED_LIGHT} />
+            <StatCard label="🔥 Hot Leads" value={rePipeline.filter((l:any) => l.temp === 'hot').length > 0 ? rePipeline.filter((l:any) => l.temp === 'hot').length : '—'} sub="Highest purchase intent" icon={Sparkles} color={GREEN} bg="#ecfdf5" />
+            <StatCard label="📅 Visits Scheduled" value={rePipeline.filter((l:any) => l.stage === 'visit_scheduled').length > 0 ? rePipeline.filter((l:any) => l.stage === 'visit_scheduled').length : '—'} sub="Site visits confirmed" icon={Calendar} color={AMBER} bg={AMBER_LIGHT} />
+            <StatCard label="💬 Conversations" value={stats.conversations || '—'} sub="Total WhatsApp chats" icon={Eye} color={BLUE} bg={BLUE_LIGHT} />
           </>
         ) : nicheId === 'salon' ? (
           <>
-            <StatCard label="✂️ Bookings Today" value="11 Booked" sub="3 slots still vacant today" icon={Scissors} color={RED} bg={RED_LIGHT} />
-            <StatCard label="💰 Revenue Today" value="PKR 38,500" sub="From confirmed slots & add-ons" icon={DollarSign} color={GREEN} bg="#ecfdf5" trend="+15%" trendUp={true} />
-            <StatCard label="🌸 Bridal Leads" value="2 Inquiries" sub="High-value bridal trials pending" icon={Sparkles} color={PURPLE} bg={PURPLE_LIGHT} />
-            <StatCard label="⏰ Next Slot" value="3:00 PM" sub="Stylist: Sarah (Hair Styling)" icon={Clock} color={AMBER} bg={AMBER_LIGHT} />
+            <StatCard label="✂️ Bookings Today" value={Object.values(salonSchedule).reduce((sum, hours) => sum + Object.values(hours).filter(b => b.client).length, 0) > 0 ? `${Object.values(salonSchedule).reduce((sum, hours) => sum + Object.values(hours).filter(b => b.client).length, 0)} Booked` : '—'} sub="Confirmed stylist slots" icon={Scissors} color={RED} bg={RED_LIGHT} />
+            <StatCard label="🌸 Bridal Inquiries" value={upcomingReminders.length > 0 ? upcomingReminders.length : '—'} sub="Pending bridal confirmations" icon={Sparkles} color={PURPLE} bg={PURPLE_LIGHT} />
+            <StatCard label="💬 Conversations" value={stats.conversations || '—'} sub="Active WhatsApp chats" icon={DollarSign} color={GREEN} bg="#ecfdf5" />
+            <StatCard label="🤖 AI Messages" value={stats.agentMessages || '—'} sub="Sent by AI agent total" icon={Clock} color={AMBER} bg={AMBER_LIGHT} />
           </>
         ) : (
           <>
-            <StatCard label="📋 OPD Today" value="28 Booked" sub="OPD appointments scheduled" icon={HeartPulse} color={RED} bg={RED_LIGHT} />
-            <StatCard label="👥 New Patients" value="6 Today" sub="First-time clinical visits" icon={UserPlus} color={BLUE} bg={BLUE_LIGHT} trend="+10%" trendUp={true} />
-            <StatCard label="⚕️ Reports Rcvd" value="4 Files" sub="Awaiting doctor clinical review" icon={FileText} color={AMBER} bg={AMBER_LIGHT} />
-            <StatCard label="🚨 Urgent Cases" value="1 Flagged" sub="Symptom escalations to clinical human" icon={AlertCircle} color={RED} bg={RED_LIGHT} />
+            <StatCard label="📋 OPD Conversations" value={stats.conversations || '—'} sub="Patient chats today" icon={HeartPulse} color={RED} bg={RED_LIGHT} />
+            <StatCard label="👥 Unique Patients" value={stats.customers || '—'} sub="Unique customer chats" icon={UserPlus} color={BLUE} bg={BLUE_LIGHT} />
+            <StatCard label="⚕️ Clinical Queries" value={dentalClinicalQueries.length > 0 ? dentalClinicalQueries.length : '—'} sub="Awaiting doctor review" icon={FileText} color={AMBER} bg={AMBER_LIGHT} />
+            <StatCard label="🤖 AI Messages" value={stats.agentMessages || '—'} sub="Total agent responses" icon={AlertCircle} color={GREEN} bg="#ecfdf5" />
           </>
         )}
       </div>
 
       {/* ── Core Niche Dashboard Layouts ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 24 }}>
+      <div className="dashboard-layout-grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 24 }}>
         
         {/* Left Column: All Niche-Specific Workspace Cards */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -497,20 +467,21 @@ export default function DashboardPage() {
                 </div>
               </SectionCard>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="niche-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <SectionCard title="🔥 Top Ordered Products">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {[
-                      { name: 'Chicken Karahi', share: '38%' },
-                      { name: 'Biryani Family Pack', share: '28%' },
-                      { name: 'Chapli Kebab', share: '18%' },
-                      { name: 'Seekh Platter', share: '16%' }
-                    ].map((item, idx) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 10, background: '#faf9f9' }}>
-                        <span style={{ fontSize: 13, fontWeight: 650, color: '#374151' }}>{item.name}</span>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: RED }}>{item.share}</span>
-                      </div>
-                    ))}
+                    {restaurantOrders.length === 0 ? (
+                      <div style={{ color: '#9ca3af', fontSize: 13, textAlign: 'center', padding: '12px 0' }}>No order data yet. Orders from WhatsApp will appear here.</div>
+                    ) : Object.entries(
+                        restaurantOrders.reduce((acc: Record<string, number>, o: any) => {
+                          acc[o.items] = (acc[o.items] || 0) + 1; return acc;
+                        }, {})
+                      ).slice(0, 4).map(([name, count], idx) => (
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 10, background: '#faf9f9' }}>
+                          <span style={{ fontSize: 13, fontWeight: 650, color: '#374151' }}>{name}</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: RED }}>{count}x</span>
+                        </div>
+                      ))}
                   </div>
                 </SectionCard>
 
@@ -601,7 +572,7 @@ export default function DashboardPage() {
                 </div>
               )}
               <SectionCard title="Live Order Kanban Pipeline" subtitle="Order checkout status tracked dynamically via WhatsApp chat">
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                <div className="niche-grid-3col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
                   {/* Stage 1: PENDING ADDRESS */}
                   <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
                     <div style={{ fontSize: 11.5, fontWeight: 750, color: AMBER, textTransform: 'uppercase', marginBottom: 10 }}>Pending Address</div>
@@ -667,36 +638,10 @@ export default function DashboardPage() {
                 </div>
               </SectionCard>
 
-              <SectionCard title="Product Intelligence Widget">
+              <SectionCard title="Product Intelligence">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>🔍 What Customers Search Most</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {[
-                        { query: 'Lawn Collection', count: 142 },
-                        { query: 'Medium size fits', count: 98 },
-                        { query: 'COD Available', count: 87 }
-                      ].map((item, idx) => (
-                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                          <span style={{ color: '#4b5563', fontWeight: 550 }}>"{item.query}"</span>
-                          <strong style={{ color: '#111827' }}>{item.count} queries</strong>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div style={{ borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: 14 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>⚠️ Out-of-Stock Pain Points</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {[
-                        { item: 'Red Kurti Size L', count: 18 },
-                        { item: 'Embroidered Dupatta', count: 12 }
-                      ].map((item, idx) => (
-                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                          <span style={{ color: RED, fontWeight: 650 }}>{item.item}</span>
-                          <strong style={{ color: '#4b5563' }}>Asked {item.count}x today</strong>
-                        </div>
-                      ))}
-                    </div>
+                  <div style={{ color: '#9ca3af', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>
+                    Connect your WooCommerce store to see top search queries, popular products, and out-of-stock pain points from customer conversations.
                   </div>
                 </div>
               </SectionCard>
@@ -751,17 +696,7 @@ export default function DashboardPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <SectionCard title="Weekly Treatment Breakdown">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {[
-                      { name: 'Scaling & Polishing', pct: '35%' },
-                      { name: 'Consultation Visit', pct: '25%' },
-                      { name: 'Root Canal Therapy', pct: '18%' },
-                      { name: 'Teeth Whitening Pack', pct: '12%' }
-                    ].map((item, idx) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 10, background: '#faf9f9' }}>
-                        <span style={{ fontSize: 13, fontWeight: 650, color: '#374151' }}>{item.name}</span>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: GREEN }}>{item.pct}</span>
-                      </div>
-                    ))}
+                    <div style={{ color: '#9ca3af', fontSize: 13, textAlign: 'center', padding: '12px 0' }}>Treatment breakdown data will populate as appointments are confirmed via WhatsApp.</div>
                   </div>
                 </SectionCard>
 
@@ -982,17 +917,7 @@ export default function DashboardPage() {
 
               <SectionCard title="⚕️ Specialty Consultation Demand">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  {[
-                    { name: 'General OPD Medicine', share: '45%' },
-                    { name: 'Pediatrics Consultations', share: '22%' },
-                    { name: 'Cardiology Specialist', share: '18%' },
-                    { name: 'Orthopedics Clinic', share: '15%' }
-                  ].map((item, idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 10, background: '#faf9f9' }}>
-                      <span style={{ fontSize: 13, fontWeight: 650, color: '#374151' }}>{item.name}</span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: RED }}>{item.share}</span>
-                    </div>
-                  ))}
+                  <div style={{ color: '#9ca3af', fontSize: 13, textAlign: 'center', padding: '12px 0' }}>Specialty demand data will populate as patient consultations are confirmed via WhatsApp chats.</div>
                 </div>
               </SectionCard>
             </>
@@ -1003,41 +928,42 @@ export default function DashboardPage() {
         {/* Right Column: Universal AI & Sentiment Stats */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           
-          <SectionCard title="🤖 AI Agent Performance" subtitle="Direct conversational ROI calculated from Meta Cloud API integrations">
+          <SectionCard title="🤖 AI Agent Performance" subtitle="Calculated from your live conversation data">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: RED_LIGHT, borderRadius: 12 }}>
                 <span style={{ fontSize: 13, fontWeight: 750, color: '#374151' }}>Resolved by AI</span>
-                <span style={{ fontSize: 14, fontWeight: 900, color: RED }}>94%</span>
+                <span style={{ fontSize: 14, fontWeight: 900, color: RED }}>{aiStats.resolvedPct > 0 ? `${aiStats.resolvedPct}%` : stats.conversations > 0 ? 'In progress' : '—'}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: '#faf9f9', borderRadius: 12 }}>
                 <span style={{ fontSize: 13, fontWeight: 750, color: '#374151' }}>Escalated to Human</span>
-                <span style={{ fontSize: 14, fontWeight: 900, color: AMBER }}>6%</span>
+                <span style={{ fontSize: 14, fontWeight: 900, color: AMBER }}>{aiStats.escalatedPct > 0 ? `${aiStats.escalatedPct}%` : '—'}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: '#faf9f9', borderRadius: 12 }}>
-                <span style={{ fontSize: 13, fontWeight: 750, color: '#374151' }}>Avg Response Speed</span>
-                <span style={{ fontSize: 14, fontWeight: 900, color: GREEN }}>8 seconds</span>
+                <span style={{ fontSize: 13, fontWeight: 750, color: '#374151' }}>Total Conversations</span>
+                <span style={{ fontSize: 14, fontWeight: 900, color: GREEN }}>{stats.conversations > 0 ? `${stats.conversations} chats` : '—'}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: '#faf9f9', borderRadius: 12 }}>
                 <span style={{ fontSize: 13, fontWeight: 750, color: '#374151' }}>AI Messages Sent Today</span>
-                <span style={{ fontSize: 14, fontWeight: 900, color: '#111827' }}>284 msgs</span>
+                <span style={{ fontSize: 14, fontWeight: 900, color: '#111827' }}>{aiStats.aiMsgsToday > 0 ? `${aiStats.aiMsgsToday} msgs` : '—'}</span>
               </div>
             </div>
           </SectionCard>
 
-          <SectionCard title="😊 Patient / Customer Sentiment">
+          <SectionCard title="📊 Channel Overview">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {[
-                { label: 'Positive', score: 78, color: GREEN, bg: '#ecfdf5' },
-                { label: 'Neutral', score: 16, color: AMBER, bg: AMBER_LIGHT },
-                { label: 'Negative', score: 6, color: RED, bg: RED_LIGHT }
-              ].map((s, idx) => (
+              {channels.length === 0 ? (
+                <div style={{ color: '#9ca3af', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>No channels connected yet</div>
+              ) : channels.map((c, idx) => (
                 <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
-                    <span style={{ fontWeight: 700, color: '#374151' }}>{s.label}</span>
-                    <strong style={{ color: s.color }}>{s.score}%</strong>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: 10, height: 10, borderRadius: 3, background: c.color }} />
+                      <span style={{ fontWeight: 700, color: '#374151' }}>{c.name}</span>
+                    </div>
+                    <strong style={{ color: '#111827' }}>{c.value} convs</strong>
                   </div>
                   <div style={{ width: '100%', height: 6, background: '#f3f4f6', borderRadius: 3, overflow: 'hidden' }}>
-                    <div style={{ width: `${s.score}%`, height: '100%', background: s.color }} />
+                    <div style={{ width: `${Math.round((c.value / channels.reduce((s, ch) => s + ch.value, 0)) * 100)}%`, height: '100%', background: c.color }} />
                   </div>
                 </div>
               ))}

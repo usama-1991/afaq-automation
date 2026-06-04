@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Search, Send, MessageSquare, Loader2, ChevronDown, Check, Paperclip, FileText, Image as ImageIcon, File, Eye } from 'lucide-react';
+import { Search, Send, MessageSquare, Loader2, ChevronDown, Check, Paperclip, FileText, Image as ImageIcon, File, Eye, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { useNiche } from '@/context/NicheContext';
 
@@ -157,9 +157,12 @@ function ConversationsInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [convos, setConversations] = useState<any[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
   const [selected, setSelectedState] = useState<any>(null);
   const setSelected = async (c: any) => {
     setSelectedState(c);
+    if (isMobile) setMobileView('chat');
     if (c && c.unread_count > 0) {
       // Reset unread count in DB
       await supabase
@@ -185,6 +188,13 @@ function ConversationsInner() {
   const { niche } = useNiche();
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const fetchConversations = async () => {
     try {
@@ -367,16 +377,22 @@ function ConversationsInner() {
   ];
 
   return (
-    <div style={{ height: 'calc(100vh - 98px)', display: 'flex', flexDirection: 'column', fontFamily: 'inherit' }}>
+    <div className="conversations-root" style={{ height: 'calc(100vh - 98px)', display: 'flex', flexDirection: 'column', fontFamily: 'inherit' }}>
       {/* Header */}
-      <div style={{ padding: '16px 24px 12px', background: '#fff', borderBottom: '1px solid rgba(220,38,38,0.08)' }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: '#111827', letterSpacing: '-0.4px', margin: 0 }}>Live Conversations</h1>
-        <p style={{ fontSize: 13, color: '#6b7280', marginTop: 2, marginBottom: 0 }}>Real-time chat across WhatsApp, Messenger, and Instagram</p>
+      <div style={{ padding: '12px 16px 10px', background: '#fff', borderBottom: '1px solid rgba(220,38,38,0.08)' }}>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: '#111827', letterSpacing: '-0.4px', margin: 0 }}>Live Conversations</h1>
+        <p style={{ fontSize: 12, color: '#6b7280', marginTop: 2, marginBottom: 0 }}>Real-time chat across WhatsApp, Messenger, and Instagram</p>
       </div>
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* LEFT: Conversation List */}
-        <div style={{ width: 300, background: '#fff', borderRight: '1px solid rgba(220,38,38,0.08)', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+        <div style={{
+          width: isMobile ? '100%' : 300,
+          background: '#fff',
+          borderRight: isMobile ? 'none' : '1px solid rgba(220,38,38,0.08)',
+          display: isMobile && mobileView === 'chat' ? 'none' : 'flex',
+          flexDirection: 'column', flexShrink: 0,
+        }}>
           {/* Search + Filter */}
           <div style={{ padding: '10px 12px 8px', borderBottom: '1px solid rgba(220,38,38,0.06)', display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ position: 'relative' }}>
@@ -482,9 +498,25 @@ function ConversationsInner() {
 
         {/* CENTER: Chat Window */}
         {selected ? (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#faf9f9', minWidth: 0 }}>
+          <div style={{
+            flex: 1, display: isMobile && mobileView === 'list' ? 'none' : 'flex',
+            flexDirection: 'column', background: '#faf9f9', minWidth: 0,
+          }}>
             {/* Chat header */}
-            <div style={{ padding: '10px 18px', background: '#fff', borderBottom: '1px solid rgba(220,38,38,0.08)', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ padding: '10px 14px', background: '#fff', borderBottom: '1px solid rgba(220,38,38,0.08)', display: 'flex', alignItems: 'center', gap: 10 }}>
+              {/* Back button on mobile */}
+              {isMobile && (
+                <button
+                  onClick={() => setMobileView('list')}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: '#dc2626', padding: '4px 2px', display: 'flex', alignItems: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <ArrowLeft size={20} />
+                </button>
+              )}
               <Avatar name={selected.customer_name || '?'} size={34} />
               <div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{selected.customer_name || selected.external_conversation_id}</div>
@@ -735,7 +767,11 @@ function ConversationsInner() {
             </div>
           </div>
         ) : (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, background: '#faf9f9' }}>
+          <div style={{
+            flex: 1,
+            display: isMobile ? 'none' : 'flex',
+            alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, background: '#faf9f9',
+          }}>
             <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <MessageSquare size={24} color="#dc2626" />
             </div>
