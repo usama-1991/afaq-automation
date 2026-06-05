@@ -42,24 +42,11 @@ export default function OrdersPage() {
     async function fetchData() {
       setLoading(true);
       try {
-        let tableName = 'orders';
-        let query = supabase.from(tableName).select('*').eq('tenant_id', tenantId);
-
-        if (niche.id === 'restaurant') {
-          tableName = 'restaurant_orders';
-          query = supabase.from(tableName).select('*').eq('tenant_id', tenantId).order('order_placed_at', { ascending: false });
-        } else if (niche.id === 'ecommerce') {
-          tableName = 'orders';
-          query = supabase.from(tableName).select('*').eq('tenant_id', tenantId).order('created_at', { ascending: false });
-        } else if (niche.id === 'dental' || niche.id === 'salon' || niche.id === 'clinic') {
-          tableName = 'appointments';
-          query = supabase.from(tableName).select('*').eq('tenant_id', tenantId).order('created_at', { ascending: false });
-        } else if (niche.id === 'realestate') {
-          tableName = 'leads';
-          query = supabase.from(tableName).select('*').eq('tenant_id', tenantId).order('created_at', { ascending: false });
-        }
-
-        const { data: records, error } = await query;
+        const { data: records, error } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('tenant_id', tenantId)
+          .order('created_at', { ascending: false });
         if (!error && records) {
           setData(records);
           if (records.length > 0 && !selected) {
@@ -75,14 +62,8 @@ export default function OrdersPage() {
 
     fetchData();
 
-    // Subscribe to realtime changes based on niche table
-    let tableName = 'orders';
-    if (niche.id === 'restaurant') tableName = 'restaurant_orders';
-    if (['dental', 'salon', 'clinic'].includes(niche.id)) tableName = 'appointments';
-    if (niche.id === 'realestate') tableName = 'leads';
-
-    const channel = supabase.channel(`${tableName}-sync`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: tableName }, () => {
+    const channel = supabase.channel(`orders-sync`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
         fetchData();
       })
       .subscribe();
@@ -99,8 +80,8 @@ export default function OrdersPage() {
   // Filter logic
   const filtered = data.filter(item => {
     const term = search.toLowerCase();
-    const name = (item.customer_name || item.patient_name || '').toLowerCase();
-    const phone = item.customer_phone || item.patient_phone || '';
+    const name = (item.customer_name || '').toLowerCase();
+    const phone = item.customer_phone || '';
     return name.includes(term) || phone.includes(term);
   });
 
@@ -175,16 +156,16 @@ export default function OrdersPage() {
           ) : filtered.length === 0 ? (
             <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af', fontSize: 12.5 }}>No records found</div>
           ) : filtered.map(item => {
-            const name = item.customer_name || item.patient_name || 'Unknown';
-            const phone = item.customer_phone || item.patient_phone || 'No phone';
-            const status = item.status || item.stage || 'pending';
+            const name = item.customer_name || 'Unknown';
+            const phone = item.customer_phone || 'No phone';
+            const status = item.status || item.niche_metadata?.stage || 'pending';
             const color = getStatusColor(status);
             
             let primaryInfo = '';
             if (isEcommerce) primaryInfo = `PKR ${item.order_amount || 0}`;
-            if (isRestaurant) primaryInfo = `PKR ${item.total_amount || 0} • ${item.order_type || 'Delivery'}`;
-            if (isAppointment) primaryInfo = `${item.treatment_type || 'Consultation'}`;
-            if (isRealEstate) primaryInfo = `${item.property_type || 'Property'} • ${item.intent || 'Buy'}`;
+            if (isRestaurant) primaryInfo = `PKR ${item.order_amount || 0} • ${item.order_type || 'Delivery'}`;
+            if (isAppointment) primaryInfo = `${item.niche_metadata?.treatment_type || 'Consultation'}`;
+            if (isRealEstate) primaryInfo = `${item.niche_metadata?.property_type || 'Property'} • ${item.niche_metadata?.intent || 'Buy'}`;
 
             return (
               <div 
@@ -230,22 +211,22 @@ export default function OrdersPage() {
                       {renderIcon()}
                     </div>
                     <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', margin: 0 }}>
-                      {selected.customer_name || selected.patient_name || 'Record Details'}
+                      {selected.customer_name || 'Record Details'}
                     </h2>
                   </div>
                   <div style={{ fontSize: 13, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Phone size={12} /> {selected.customer_phone || selected.patient_phone}</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={12} /> {new Date(selected.created_at || selected.order_placed_at).toLocaleString()}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Phone size={12} /> {selected.customer_phone}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={12} /> {new Date(selected.created_at).toLocaleString()}</span>
                   </div>
                 </div>
                 <div>
                   <span style={{ 
                     fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 12, 
-                    background: getStatusColor(selected.status || selected.stage).bg, 
-                    color: getStatusColor(selected.status || selected.stage).text,
-                    border: `1px solid ${getStatusColor(selected.status || selected.stage).text}30`
+                    background: getStatusColor(selected.status || selected.niche_metadata?.stage).bg, 
+                    color: getStatusColor(selected.status || selected.niche_metadata?.stage).text,
+                    border: `1px solid ${getStatusColor(selected.status || selected.niche_metadata?.stage).text}30`
                   }}>
-                    {(selected.status || selected.stage || 'PENDING').replace('_', ' ').toUpperCase()}
+                    {(selected.status || selected.niche_metadata?.stage || 'PENDING').replace('_', ' ').toUpperCase()}
                   </span>
                 </div>
               </div>
@@ -263,7 +244,7 @@ export default function OrdersPage() {
                 {(isEcommerce || isRestaurant) && (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                     <span style={{ fontSize: 14, color: '#4b5563', fontWeight: 500 }}>Total Amount</span>
-                    <span style={{ fontSize: 18, color: '#dc2626', fontWeight: 800 }}>PKR {selected.order_amount || selected.total_amount || 0}</span>
+                    <span style={{ fontSize: 18, color: '#dc2626', fontWeight: 800 }}>PKR {selected.order_amount || 0}</span>
                   </div>
                 )}
                 
@@ -271,15 +252,17 @@ export default function OrdersPage() {
                   <>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14 }}>
                       <span style={{ color: '#6b7280' }}>Treatment</span>
-                      <span style={{ fontWeight: 600, color: '#111' }}>{selected.treatment_type || 'N/A'}</span>
+                      <span style={{ fontWeight: 600, color: '#111' }}>{selected.niche_metadata?.treatment_type || 'N/A'}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14 }}>
                       <span style={{ color: '#6b7280' }}>Provider</span>
-                      <span style={{ fontWeight: 600, color: '#111' }}>{selected.doctor_name || 'N/A'}</span>
+                      <span style={{ fontWeight: 600, color: '#111' }}>{selected.service_provider || 'N/A'}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
                       <span style={{ color: '#6b7280' }}>Date & Time</span>
-                      <span style={{ fontWeight: 600, color: '#111' }}>{selected.appointment_date} {selected.appointment_time}</span>
+                      <span style={{ fontWeight: 600, color: '#111' }}>
+                        {selected.scheduled_at ? new Date(selected.scheduled_at).toLocaleString() : 'N/A'}
+                      </span>
                     </div>
                   </>
                 )}
@@ -288,15 +271,15 @@ export default function OrdersPage() {
                   <>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14 }}>
                       <span style={{ color: '#6b7280' }}>Intent</span>
-                      <span style={{ fontWeight: 600, color: '#111', textTransform: 'capitalize' }}>{selected.intent || 'N/A'}</span>
+                      <span style={{ fontWeight: 600, color: '#111', textTransform: 'capitalize' }}>{selected.niche_metadata?.intent || 'N/A'}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14 }}>
                       <span style={{ color: '#6b7280' }}>Property Type</span>
-                      <span style={{ fontWeight: 600, color: '#111', textTransform: 'capitalize' }}>{selected.property_type || 'N/A'}</span>
+                      <span style={{ fontWeight: 600, color: '#111', textTransform: 'capitalize' }}>{selected.niche_metadata?.property_type || 'N/A'}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
                       <span style={{ color: '#6b7280' }}>Budget Range</span>
-                      <span style={{ fontWeight: 600, color: '#111' }}>{selected.budget_min} - {selected.budget_max}</span>
+                      <span style={{ fontWeight: 600, color: '#111' }}>{selected.niche_metadata?.budget_min || 0} - {selected.niche_metadata?.budget_max || 0}</span>
                     </div>
                   </>
                 )}
@@ -325,15 +308,15 @@ export default function OrdersPage() {
                   <div style={{ fontSize: 13, color: '#4b5563', lineHeight: 1.5 }}>
                     {isRealEstate && (
                       <div>
-                        <strong>Area Preference:</strong> {selected.area_preference || 'Not specified'}<br/>
-                        <strong>Bedrooms:</strong> {selected.bedrooms || 'Any'}<br/>
-                        <strong>Temperature:</strong> <span style={{ textTransform: 'capitalize' }}>{selected.temperature || 'Warm'}</span>
+                        <strong>Area Preference:</strong> {selected.niche_metadata?.area_preference || 'Not specified'}<br/>
+                        <strong>Bedrooms:</strong> {selected.niche_metadata?.bedrooms || 'Any'}<br/>
+                        <strong>Temperature:</strong> <span style={{ textTransform: 'capitalize' }}>{selected.niche_metadata?.temperature || 'Warm'}</span>
                       </div>
                     )}
                     {isAppointment && (
                       <div>
-                        <strong>New Patient:</strong> {selected.is_new_patient ? 'Yes' : 'No'}<br/>
-                        <strong>Notes:</strong> {selected.notes || 'No notes provided by AI.'}
+                        <strong>New Patient:</strong> {selected.niche_metadata?.is_new_patient ? 'Yes' : 'No'}<br/>
+                        <strong>Notes:</strong> {selected.niche_metadata?.notes || 'No notes provided by AI.'}
                       </div>
                     )}
                   </div>
