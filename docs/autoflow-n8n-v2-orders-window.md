@@ -782,7 +782,7 @@ const intent = d.detected_intent;
 // Determine if n8n should create a DB record
 let createRecord = false;
 let recordType = null;
-let recordData = {};
+let recordData = JSON.parse('{}');
 
 // eCommerce/Restaurant: create order on first contact or when order intent detected
 if (['ecommerce','restaurant'].includes(niche)) {
