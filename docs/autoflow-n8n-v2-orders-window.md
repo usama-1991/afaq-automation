@@ -486,27 +486,27 @@ return [{ json: { ...base, live_data_context: liveContext } }];
 ```json
 Type: HTTP Request
 Method: GET
-URL: https://www.googleapis.com/calendar/v3/calendars/{{ $json.integrations.google_calendar?.calendar_id }}/events
+URL: ={{ $env.SUPABASE_URL }}/rest/v1/appointments
 Query: {
-  "timeMin": "={{ new Date().toISOString() }}",
-  "timeMax": "={{ new Date(Date.now() + 7*24*60*60*1000).toISOString() }}",
-  "maxResults": 20,
-  "singleEvents": true,
-  "orderBy": "startTime"
+  "tenant_id": "=eq.{{ $json.tenant_id }}",
+  "status": "=in.(confirmed,pending)",
+  "appointment_date": "=gte.{{ new Date().toISOString().split('T')[0] }}",
+  "select": "appointment_date,appointment_time"
 }
 Headers: {
-  "Authorization": "=Bearer {{ $json.integrations.google_calendar?.access_token }}"
+  "apikey": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}",
+  "Authorization": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
 }
 Continue on Fail: true
 ```
 
 **Code Node after (Appointment niches):**
 ```javascript
-const events = $input.first().json?.items || [];
+const events = $input.first().json || [];
 const base = $('Code — Validate + Unpack').first().json;
 
 // Build available slots (next 5 working days, 9am-5pm, hourly)
-const booked = events.map(e => new Date(e.start?.dateTime || e.start?.date).getTime());
+const booked = events.map(e => new Date(`${e.appointment_date}T${e.appointment_time || '00:00:00'}`).getTime());
 const available = [];
 
 for (let d = 1; d <= 7 && available.length < 6; d++) {
