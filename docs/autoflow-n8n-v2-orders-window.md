@@ -580,8 +580,8 @@ return [{ json: { ...base, live_data_context: '' } }];
 ### NODE 5: Merge
 ```
 Type: Merge
-Mode: Append (collects all 7 branch outputs into one stream)
-Connect all outputs of 4a through 4f here
+Mode: Append (collects all 5 branch outputs into one stream)
+Connect all outputs of 4a through 4e here
 ```
 
 ---
