@@ -483,18 +483,20 @@ return [{ json: { ...base, live_data_context: liveContext } }];
 ---
 
 ### NODE 4c: Dental/Salon/Clinic Branch — Fetch Calendar Availability
-```
+```json
 Type: HTTP Request
 Method: GET
 URL: https://www.googleapis.com/calendar/v3/calendars/{{ $json.integrations.google_calendar?.calendar_id }}/events
-Query:
-  timeMin: {{ new Date().toISOString() }}
-  timeMax: {{ new Date(Date.now() + 7*24*60*60*1000).toISOString() }}
-  maxResults: 20
-  singleEvents: true
-  orderBy: startTime
-Headers:
-  Authorization: Bearer {{ $json.integrations.google_calendar?.access_token }}
+Query: {
+  "timeMin": "={{ new Date().toISOString() }}",
+  "timeMax": "={{ new Date(Date.now() + 7*24*60*60*1000).toISOString() }}",
+  "maxResults": 20,
+  "singleEvents": true,
+  "orderBy": "startTime"
+}
+Headers: {
+  "Authorization": "=Bearer {{ $json.integrations.google_calendar?.access_token }}"
+}
 Continue on Fail: true
 ```
 

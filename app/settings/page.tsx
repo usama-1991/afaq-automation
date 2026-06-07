@@ -136,10 +136,10 @@ function SettingsInner() {
   const [optOutCount, setOptOutCount] = useState(0);
 
   // Property Listings State
-  interface Listing { id: string; title: string; area: string; type: string; bedrooms: number; price: number; description: string; status: string; created_at: string; }
+  interface Listing { id: string; title: string; area: string; type: string; bedrooms: number; price: number; description: string; status: string; photos_urls: string[]; created_at: string; }
   const [listings, setListings] = useState<Listing[]>([]);
   const [listingsLoading, setListingsLoading] = useState(false);
-  const [listingForm, setListingForm] = useState({ id: '', title: '', area: '', type: 'flat', bedrooms: '2', price: '', description: '', status: 'available' });
+  const [listingForm, setListingForm] = useState({ id: '', title: '', area: '', type: 'flat', bedrooms: '2', price: '', description: '', status: 'available', photos_urls: [] as string[] });
   const [isEditingListing, setIsEditingListing] = useState(false);
 
   useEffect(() => {
@@ -295,10 +295,11 @@ function SettingsInner() {
         title: listingForm.title,
         area: listingForm.area,
         type: listingForm.type,
-        bedrooms: parseInt(listingForm.bedrooms) || 0,
+        bedrooms: listingForm.type === 'commercial' ? null : (parseInt(listingForm.bedrooms) || 0),
         price: parseFloat(listingForm.price) || 0,
         description: listingForm.description,
-        status: listingForm.status
+        status: listingForm.status,
+        photos_urls: listingForm.photos_urls
       };
 
       if (isEditingListing && listingForm.id) {
@@ -307,7 +308,7 @@ function SettingsInner() {
         await supabase.from('listings').insert(payload);
       }
       
-      setListingForm({ id: '', title: '', area: '', type: 'flat', bedrooms: '2', price: '', description: '', status: 'available' });
+      setListingForm({ id: '', title: '', area: '', type: 'flat', bedrooms: '2', price: '', description: '', status: 'available', photos_urls: [] });
       setIsEditingListing(false);
       fetchListings(tenantIdState);
     } catch (e: any) {
@@ -324,7 +325,8 @@ function SettingsInner() {
       bedrooms: listing.bedrooms?.toString() || '0',
       price: listing.price?.toString() || '0',
       description: listing.description || '',
-      status: listing.status || 'available'
+      status: listing.status || 'available',
+      photos_urls: listing.photos_urls || []
     });
     setIsEditingListing(true);
     // Scroll to top of tab
@@ -1052,17 +1054,21 @@ function SettingsInner() {
                 </div>
 
                 <div style={{ marginBottom: 16 }}>
-                  <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Bedrooms</label>
-                  <input 
-                    type="number"
-                    value={listingForm.bedrooms}
-                    onChange={e => setListingForm({...listingForm, bedrooms: e.target.value})}
-                    style={{
-                      width: '100%', padding: '10px 12px', fontSize: 13,
-                      border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fff',
-                      fontFamily: 'inherit', color: '#1f2937', outline: 'none'
-                    }}
-                  />
+                  {listingForm.type !== 'commercial' && (
+                    <>
+                      <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Bedrooms</label>
+                      <input 
+                        type="number"
+                        value={listingForm.bedrooms}
+                        onChange={e => setListingForm({...listingForm, bedrooms: e.target.value})}
+                        style={{
+                          width: '100%', padding: '10px 12px', fontSize: 13,
+                          border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fff',
+                          fontFamily: 'inherit', color: '#1f2937', outline: 'none'
+                        }}
+                      />
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -1081,12 +1087,46 @@ function SettingsInner() {
                 />
               </div>
 
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Property Images</label>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {listingForm.photos_urls.map((url, idx) => (
+                    <div key={idx} style={{ position: 'relative', width: 80, height: 80, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(220,38,38,0.15)' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt={`Property ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <button 
+                        onClick={() => setListingForm({...listingForm, photos_urls: listingForm.photos_urls.filter((_, i) => i !== idx)})}
+                        style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.5)', color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 12 }}
+                      >✕</button>
+                    </div>
+                  ))}
+                  <label style={{ 
+                    width: 80, height: 80, borderRadius: 8, border: '2px dashed rgba(220,38,38,0.2)', 
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
+                    cursor: 'pointer', background: '#fff5f5', color: '#dc2626', transition: 'all 0.2s'
+                  }}>
+                    <Upload size={18} style={{ marginBottom: 4 }} />
+                    <span style={{ fontSize: 10, fontWeight: 600 }}>Upload</span>
+                    <input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={e => {
+                      const files = Array.from(e.target.files || []);
+                      files.forEach(file => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setListingForm(prev => ({ ...prev, photos_urls: [...prev.photos_urls, reader.result as string] }));
+                        };
+                        reader.readAsDataURL(file);
+                      });
+                    }} />
+                  </label>
+                </div>
+              </div>
+
               <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
                 {isEditingListing && (
                   <button 
                     onClick={() => {
                       setIsEditingListing(false);
-                      setListingForm({ id: '', title: '', area: '', type: 'flat', bedrooms: '2', price: '', description: '', status: 'available' });
+                      setListingForm({ id: '', title: '', area: '', type: 'flat', bedrooms: '2', price: '', description: '', status: 'available', photos_urls: [] });
                     }}
                     style={{
                       padding: '8px 16px', fontSize: 13, fontWeight: 600, color: '#374151',
