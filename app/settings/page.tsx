@@ -7,13 +7,13 @@ import {
   Volume2, UserX, BarChart3, Upload, Key, ShieldCheck, 
   User, CreditCard, LayoutGrid, Sliders, MessageSquare, 
   AlertCircle, Globe, BookOpen, Trash2, Loader2, ShoppingCart,
-  ExternalLink, Link2
+  ExternalLink, Link2, Home
 } from 'lucide-react';
 import { useNiche } from '@/context/NicheContext';
 import { niches } from '@/lib/niches';
 import { supabase } from '@/lib/supabase/client';
 
-const tabs = ['Business Profile', 'Channels & APIs', 'AI Knowledge', 'eCommerce Platform', 'Voice & Opt-Outs', 'Usage Quotas'] as const;
+const tabs = ['Business Profile', 'Channels & APIs', 'AI Knowledge', 'eCommerce Platform', 'Property Listings', 'Voice & Opt-Outs', 'Usage Quotas'] as const;
 type Tab = typeof tabs[number];
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
@@ -135,6 +135,13 @@ function SettingsInner() {
   // Opt-out lead count from localStorage (simulated)
   const [optOutCount, setOptOutCount] = useState(0);
 
+  // Property Listings State
+  interface Listing { id: string; title: string; area: string; type: string; bedrooms: number; price: number; description: string; status: string; created_at: string; }
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [listingsLoading, setListingsLoading] = useState(false);
+  const [listingForm, setListingForm] = useState({ id: '', title: '', area: '', type: 'flat', bedrooms: '2', price: '', description: '', status: 'available' });
+  const [isEditingListing, setIsEditingListing] = useState(false);
+
   useEffect(() => {
     const t = searchParams.get('tab');
     if (t && tabs.includes(t as any)) {
@@ -182,6 +189,10 @@ function SettingsInner() {
             fetchKnowledgeBase(profile.tenant_id);
             // Load ecommerce credentials
             fetchEcomCredentials(profile.tenant_id);
+            // Load property listings if realestate
+            if (tenant?.niche === 'realestate' || niche.id === 'realestate') {
+              fetchListings(profile.tenant_id);
+            }
           }
         }
       } catch (err) {
@@ -254,6 +265,83 @@ function SettingsInner() {
   const handleToggleKB = async (id: string, active: boolean) => {
     await supabase.from('knowledge_base').update({ is_active: !active }).eq('id', id);
     if (tenantIdState) fetchKnowledgeBase(tenantIdState);
+  };
+
+  // Listings operations
+  const fetchListings = async (tid: string) => {
+    setListingsLoading(true);
+    try {
+      const { data } = await supabase
+        .from('listings')
+        .select('*')
+        .eq('tenant_id', tid)
+        .order('created_at', { ascending: false });
+      if (data) setListings(data);
+    } catch (e) { console.error(e); }
+    setListingsLoading(false);
+  };
+
+  useEffect(() => {
+    if (tenantIdState && niche.id === 'realestate') {
+      fetchListings(tenantIdState);
+    }
+  }, [niche.id, tenantIdState]);
+
+  const handleSaveListing = async () => {
+    if (!tenantIdState) return;
+    try {
+      const payload = {
+        tenant_id: tenantIdState,
+        title: listingForm.title,
+        area: listingForm.area,
+        type: listingForm.type,
+        bedrooms: parseInt(listingForm.bedrooms) || 0,
+        price: parseFloat(listingForm.price) || 0,
+        description: listingForm.description,
+        status: listingForm.status
+      };
+
+      if (isEditingListing && listingForm.id) {
+        await supabase.from('listings').update(payload).eq('id', listingForm.id);
+      } else {
+        await supabase.from('listings').insert(payload);
+      }
+      
+      setListingForm({ id: '', title: '', area: '', type: 'flat', bedrooms: '2', price: '', description: '', status: 'available' });
+      setIsEditingListing(false);
+      fetchListings(tenantIdState);
+    } catch (e: any) {
+      alert('Failed to save listing: ' + e.message);
+    }
+  };
+
+  const handleEditListing = (listing: Listing) => {
+    setListingForm({
+      id: listing.id,
+      title: listing.title,
+      area: listing.area || '',
+      type: listing.type || 'flat',
+      bedrooms: listing.bedrooms?.toString() || '0',
+      price: listing.price?.toString() || '0',
+      description: listing.description || '',
+      status: listing.status || 'available'
+    });
+    setIsEditingListing(true);
+    // Scroll to top of tab
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteListing = async (id: string) => {
+    if (!tenantIdState || !confirm('Are you sure you want to delete this listing?')) return;
+    await supabase.from('listings').delete().eq('id', id);
+    fetchListings(tenantIdState);
+  };
+
+  const handleToggleListingStatus = async (id: string, currentStatus: string) => {
+    if (!tenantIdState) return;
+    const newStatus = currentStatus === 'available' ? 'sold' : 'available';
+    await supabase.from('listings').update({ status: newStatus }).eq('id', id);
+    fetchListings(tenantIdState);
   };
 
   // eCommerce credentials fetcher
@@ -407,8 +495,9 @@ function SettingsInner() {
       </div>
 
       {/* Modern Red-Themed Tabs */}
-      <div className="settings-tab-bar" style={{ display: 'flex', gap: 2, borderBottom: '1px solid rgba(220,38,38,0.08)', marginBottom: 28 }}>
+      <div className="settings-tab-bar" style={{ display: 'flex', gap: 2, borderBottom: '1px solid rgba(220,38,38,0.08)', marginBottom: 28, flexWrap: 'wrap' }}>
         {tabs.map(t => {
+          if (t === 'Property Listings' && niche.id !== 'realestate') return null;
           const active = tab === t;
           return (
             <button 
@@ -914,6 +1003,187 @@ function SettingsInner() {
                           </div>
                         </div>
                       )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Property Listings Tab (Real Estate Only) ── */}
+        {tab === 'Property Listings' && niche.id === 'realestate' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Add/Edit Listing Form */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <Home size={16} color="#dc2626" />
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>
+                  {isEditingListing ? 'Edit Property Listing' : 'Add New Property'}
+                </div>
+              </div>
+              <p style={{ fontSize: 12.5, color: '#6b7280', marginBottom: 16 }}>
+                Listings added here are instantly available to your AI agent when customers ask about available properties.
+              </p>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <Field label="Property Title" value={listingForm.title} onChange={v => setListingForm({...listingForm, title: v})} hint="e.g. Luxury 2-Bed Apartment in DHA" />
+                </div>
+                <Field label="Area / Location" value={listingForm.area} onChange={v => setListingForm({...listingForm, area: v})} hint="e.g. DHA Phase 6" />
+                <Field label="Price (PKR)" value={listingForm.price} onChange={v => setListingForm({...listingForm, price: v})} type="number" hint="e.g. 50000000" />
+                
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Property Type</label>
+                  <select 
+                    value={listingForm.type}
+                    onChange={e => setListingForm({...listingForm, type: e.target.value})}
+                    style={{
+                      width: '100%', padding: '10px 12px', fontSize: 13,
+                      border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fff',
+                      fontFamily: 'inherit', color: '#1f2937', outline: 'none'
+                    }}
+                  >
+                    <option value="flat">Apartment / Flat</option>
+                    <option value="house">House / Villa</option>
+                    <option value="plot">Plot / Land</option>
+                    <option value="commercial">Commercial Space</option>
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Bedrooms</label>
+                  <input 
+                    type="number"
+                    value={listingForm.bedrooms}
+                    onChange={e => setListingForm({...listingForm, bedrooms: e.target.value})}
+                    style={{
+                      width: '100%', padding: '10px 12px', fontSize: 13,
+                      border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fff',
+                      fontFamily: 'inherit', color: '#1f2937', outline: 'none'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Description</label>
+                <textarea
+                  value={listingForm.description}
+                  onChange={e => setListingForm({...listingForm, description: e.target.value})}
+                  rows={3}
+                  style={{
+                    width: '100%', padding: '10px 12px', fontSize: 13,
+                    border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fff',
+                    fontFamily: 'inherit', color: '#1f2937', outline: 'none', resize: 'vertical'
+                  }}
+                  placeholder="Key features, amenities, nearby places..."
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
+                {isEditingListing && (
+                  <button 
+                    onClick={() => {
+                      setIsEditingListing(false);
+                      setListingForm({ id: '', title: '', area: '', type: 'flat', bedrooms: '2', price: '', description: '', status: 'available' });
+                    }}
+                    style={{
+                      padding: '8px 16px', fontSize: 13, fontWeight: 600, color: '#374151',
+                      background: '#f3f4f6', border: 'none', borderRadius: 8, cursor: 'pointer'
+                    }}
+                  >
+                    Cancel Edit
+                  </button>
+                )}
+                <button
+                  onClick={handleSaveListing}
+                  disabled={!listingForm.title || !listingForm.price}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '8px 18px', fontSize: 13, fontWeight: 700,
+                    background: (!listingForm.title || !listingForm.price) ? '#e5e7eb' : 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                    color: (!listingForm.title || !listingForm.price) ? '#9ca3af' : '#fff',
+                    border: 'none', borderRadius: 8, cursor: (!listingForm.title || !listingForm.price) ? 'default' : 'pointer'
+                  }}
+                >
+                  <Check size={14} /> {isEditingListing ? 'Update Listing' : 'Save Property'}
+                </button>
+              </div>
+            </div>
+
+            {/* Listings Directory */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <LayoutGrid size={16} color="#dc2626" />
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Active Portfolio ({listings.length})</div>
+                </div>
+                {listingsLoading && <Loader2 size={14} color="#dc2626" style={{ animation: 'spin 1s linear infinite' }} />}
+              </div>
+
+              {listings.length === 0 ? (
+                <div style={{ padding: '24px 0', textAlign: 'center', color: '#9ca3af', fontSize: 12.5 }}>
+                  No properties listed yet. Add your first listing above.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {listings.map(listing => (
+                    <div key={listing.id} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '12px 16px', borderRadius: 10,
+                      border: '1px solid', borderColor: listing.status === 'available' ? 'rgba(220,38,38,0.1)' : '#e5e7eb',
+                      background: listing.status === 'available' ? '#fff' : '#f9fafb',
+                      opacity: listing.status === 'available' ? 1 : 0.7
+                    }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{listing.title}</span>
+                          <span style={{ 
+                            fontSize: 10, fontWeight: 700, textTransform: 'uppercase', padding: '2px 6px', borderRadius: 6,
+                            background: listing.status === 'available' ? '#ecfdf5' : '#f1f5f9',
+                            color: listing.status === 'available' ? '#059669' : '#64748b'
+                          }}>
+                            {listing.status}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 12, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <span>📍 {listing.area || 'N/A'}</span>
+                          <span>🛏️ {listing.bedrooms} Beds</span>
+                          <span>💰 PKR {listing.price?.toLocaleString()}</span>
+                        </div>
+                      </div>
+                      
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button
+                          onClick={() => handleToggleListingStatus(listing.id, listing.status)}
+                          title={listing.status === 'available' ? 'Mark as Sold' : 'Mark as Available'}
+                          style={{
+                            padding: '6px 10px', fontSize: 11, fontWeight: 600, borderRadius: 6, cursor: 'pointer',
+                            background: '#fff', border: '1px solid #e5e7eb', color: '#4b5563'
+                          }}
+                        >
+                          {listing.status === 'available' ? 'Mark Sold' : 'Relist'}
+                        </button>
+                        <button
+                          onClick={() => handleEditListing(listing)}
+                          style={{
+                            padding: '6px 10px', fontSize: 11, fontWeight: 600, borderRadius: 6, cursor: 'pointer',
+                            background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8'
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteListing(listing.id)}
+                          style={{
+                            padding: '6px 8px', borderRadius: 6, cursor: 'pointer',
+                            background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626'
+                          }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
