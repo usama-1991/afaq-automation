@@ -21,6 +21,26 @@ interface Template {
 
 const defaultTemplates: Template[] = [];
 
+const mapDbToTemplate = (dbTpl: any): Template => {
+  const metaStatus = dbTpl.status || 'PENDING';
+  let uiStatus: Template['status'] = 'Pending';
+  if (metaStatus === 'APPROVED') uiStatus = 'Approved';
+  if (metaStatus === 'REJECTED') uiStatus = 'Rejected';
+  
+  return {
+    id: dbTpl.id,
+    name: dbTpl.name,
+    category: dbTpl.category as Template['category'],
+    language: dbTpl.language,
+    status: uiStatus,
+    headerType: dbTpl.header_type as Template['headerType'] || 'None',
+    headerText: dbTpl.header_text || undefined,
+    bodyText: dbTpl.body_text || '',
+    footerText: dbTpl.footer_text || undefined,
+    buttons: dbTpl.buttons || []
+  };
+};
+
 export default function TemplatesPage() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,24 +63,26 @@ export default function TemplatesPage() {
   const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem('autoflow_whatsapp_templates');
-    if (stored) {
+    const fetchTemplates = async () => {
       try {
-        const parsed = JSON.parse(stored);
-        setTemplates(parsed);
-        if (parsed.length > 0) setSelectedTemplate(parsed[0]);
+        const res = await fetch('/api/templates');
+        if (res.ok) {
+          const data = await res.json();
+          const mapped = data.templates.map(mapDbToTemplate);
+          setTemplates(mapped);
+          if (mapped.length > 0) setSelectedTemplate(mapped[0]);
+        } else {
+          setTemplates([]);
+        }
       } catch (e) {
+        console.error('Failed to load templates:', e);
         setTemplates([]);
-        setSelectedTemplate(null);
       }
-    } else {
-      setTemplates([]);
-      setSelectedTemplate(null);
-      localStorage.setItem('autoflow_whatsapp_templates', JSON.stringify([]));
-    }
+    };
+    fetchTemplates();
   }, []);
 
-  const handleCreateTemplate = (e: React.FormEvent) => {
+  const handleCreateTemplate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!tplName || !tplBodyText) return;
 
@@ -74,43 +96,65 @@ export default function TemplatesPage() {
       });
     }
 
-    const newTpl: Template = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: tplName.toLowerCase().replace(/[^a-z0-9_]/g, '_'),
-      category: tplCategory,
-      language: 'English (US)',
-      status: 'Approved', // Auto-approved for simulation convenience!
-      headerType: tplHeaderType,
-      headerText: tplHeaderType === 'Text' ? tplHeaderText : undefined,
-      bodyText: tplBodyText,
-      footerText: tplFooterText || undefined,
-      buttons: buttonsArray
-    };
+    try {
+      const res = await fetch('/api/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: tplName,
+          category: tplCategory,
+          header_type: tplHeaderType,
+          header_text: tplHeaderText,
+          body_text: tplBodyText,
+          footer_text: tplFooterText,
+          buttons: buttonsArray
+        })
+      });
 
-    const updated = [newTpl, ...templates];
-    setTemplates(updated);
-    localStorage.setItem('autoflow_whatsapp_templates', JSON.stringify(updated));
-    setSelectedTemplate(newTpl);
-    setShowCreate(false);
-    
-    // Reset Form
-    setTplName('');
-    setTplCategory('Marketing');
-    setTplHeaderType('None');
-    setTplHeaderText('');
-    setTplBodyText('');
-    setTplFooterText('');
-    setButtonCount(0);
-    setButton1Text('');
-    setButton1Val('');
+      if (res.ok) {
+        const data = await res.json();
+        const newTpl = mapDbToTemplate(data.template);
+        const updated = [newTpl, ...templates];
+        setTemplates(updated);
+        setSelectedTemplate(newTpl);
+        setShowCreate(false);
+        
+        // Reset Form
+        setTplName('');
+        setTplCategory('Marketing');
+        setTplHeaderType('None');
+        setTplHeaderText('');
+        setTplBodyText('');
+        setTplFooterText('');
+        setButtonCount(0);
+        setButton1Text('');
+        setButton1Val('');
+      } else {
+        const err = await res.json();
+        alert(`Failed to submit template: ${err.error || 'Unknown error'}`);
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Network error submitting template');
+    }
   };
 
-  const handleDeleteTemplate = (id: string) => {
-    const updated = templates.filter(t => t.id !== id);
-    setTemplates(updated);
-    localStorage.setItem('autoflow_whatsapp_templates', JSON.stringify(updated));
-    if (selectedTemplate?.id === id) {
-      setSelectedTemplate(updated.length > 0 ? updated[0] : null);
+  const handleDeleteTemplate = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this template?')) return;
+    try {
+      const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        const updated = templates.filter(t => t.id !== id);
+        setTemplates(updated);
+        if (selectedTemplate?.id === id) {
+          setSelectedTemplate(updated.length > 0 ? updated[0] : null);
+        }
+      } else {
+        alert('Failed to delete template');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Network error deleting template');
     }
   };
 

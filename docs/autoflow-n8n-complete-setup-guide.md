@@ -467,239 +467,69 @@ return [{
 
 ---
 
-#### NODE 3: Switch Node — Route by Niche
-```
-Type: Switch
-Mode: Rules
-Value to test: {{ $json.niche }}
-
-Rules:
-  Rule 1: equals "ecommerce"   → Output 0
-  Rule 2: equals "restaurant"  → Output 1
-  Rule 3: equals "dental"      → Output 2
-  Rule 4: equals "realestate"  → Output 3
-  Rule 5: equals "salon"       → Output 4
-  Rule 6: equals "clinic"      → Output 5
-  Fallback: Output 6 (general)
-```
-
----
-
-#### NODE 4a: HTTP Request — WooCommerce Live Data (ecommerce branch)
+#### NODE 3: HTTP Request — Fetch Unified Orders from Supabase
+*Because you created a centralized `orders` table in Supabase, you do not need a Switch node or complex Google Sheets/WooCommerce integrations anymore! You can fetch orders for EVERY niche using a single query.*
 ```
 Type: HTTP Request
 Method: GET
-URL: https://lemonchiffon-oryx-271652.hostingersite.com/wp-json/wc/v3/orders
-Query Parameters:
-  per_page: 5
-  search: {{ $json.customer_phone }} (Optional: To filter orders by this customer)
-Authentication: Basic Auth
-  Username: [Your WooCommerce Consumer Key]
-  Password: [Your WooCommerce Consumer Secret]
-  
-On error: Continue (return empty if WooCommerce fails)
-```
-
-Then add a **Code Node** after:
-```javascript
-// Get the orders returned from the WooCommerce HTTP Request
-// If WooCommerce returns an array, n8n creates multiple items
-const wooOrders = $input.all().map(item => item.json);
-
-// Get the original data from Node 2 (Make sure the name matches your Node 2 exactly)
-const mainData = $('Code').first().json; 
-
-let liveContext = '';
-if (wooOrders.length > 0 && wooOrders[0].id) {
-  liveContext = `Customer's recent WooCommerce orders:\n` +
-    wooOrders.slice(0, 3).map(o =>
-      `Order #${o.id}: Status: ${o.status} ` +
-      `| Items: ${(o.line_items || []).map(i => i.name).join(', ')} ` +
-      `| Total: ${o.currency} ${o.total}`
-    ).join('\n');
-}
-
-return [{ json: { 
-  ...mainData,
-  live_data_context: liveContext || 'No previous orders found for this customer.'
-}}];
-```
-
----
-
-#### NODE 4b: Google Sheets (restaurant branch)
-*Do not use the HTTP Request node. Use the native "Google Sheets" node.*
-```
-Type: Google Sheets
-Authentication: Service Account
-Operation: Get Many (or Read Rows)
-Document: By ID
-Spreadsheet ID: {{ $json.integrations.google_sheets?.spreadsheet_id }}
-Sheet Name: OrdersTable
-Options -> Output: JSON
-```
-*Note: Because you are building a SaaS, you will create one Service Account (a robot email) and have your customers share their sheets with that email. See the setup steps for this below.*
-
-Code Node after:
-```javascript
-// Get the rows returned from Google Sheets
-const sheetData = $input.first().json?.values || [];
-const headers = sheetData[0] || [];
-
-// Get the original data from Node 2 (Make sure the name matches your Node 2 exactly)
-const mainData = $('Code in JavaScript').first().json;
-const customerPhone = mainData.customer_phone;
-
-// Parse the rows into objects
-const allOrders = sheetData.slice(1).map(row => {
-  return headers.reduce((acc, curr, index) => {
-    acc[curr] = row[index] || '';
-    return acc;
-  }, {});
-});
-
-// Filter for this specific customer's orders (matching phone number)
-const cleanPhone = (phone) => (phone || '').toString().replace(/\D/g, '');
-const customerOrders = allOrders.filter(order => {
-  const p1 = cleanPhone(order.Phone);
-  const p2 = cleanPhone(customerPhone);
-  return p1 && p2 && (p1 === p2 || p1.includes(p2) || p2.includes(p1));
-});
-
-let liveContext = '';
-if (customerOrders.length > 0) {
-  // Get their 3 most recent orders (assuming the sheet has oldest at top, we reverse it)
-  liveContext = `Customer's recent Restaurant Orders:\n` +
-    customerOrders.reverse().slice(0, 3).map(o =>
-      `Order ${o.Order}: ${o.Status} ` +
-      `| Items: ${o.Items} ` +
-      `| Total: Rs. ${o.TotalAmount} ` +
-      `| Ordered At: ${o.OrderTime}` + 
-      (o.Status === 'Out For Delivery' ? ` | Rider: ${o.RiderName} (${o.RiderPhone})` : '')
-    ).join('\n');
-}
-
-return [{ json: { 
-  ...mainData,
-  live_data_context: liveContext || 'No previous orders found for this customer.'
-}}];
-```
-
----
-
-#### NODE 4c: HTTP Request — Google Calendar (dental/salon/clinic branch)
-```
-Type: HTTP Request
-Method: GET
-URL: https://www.googleapis.com/calendar/v3/calendars/{{ $json.integrations.google_calendar?.calendar_id }}/events
-Query Parameters:
-  timeMin: {{ new Date().toISOString() }}
-  timeMax: {{ new Date(Date.now() + 7*24*60*60*1000).toISOString() }}
-  maxResults: 20
-  singleEvents: true
-  orderBy: startTime
-Headers:
-  Authorization: Bearer {{ $json.integrations.google_calendar?.access_token }}
-
-On error: Continue
-```
-
-Code Node after:
-```javascript
-const events = $input.item.json?.items || [];
-
-const bookedSlots = events.map(e => ({
-  time: e.start?.dateTime || e.start?.date,
-  title: e.summary,
-  status: 'booked'
-}));
-
-// Generate available slots (simple: next 5 business days, 9am-5pm, hourly)
-const available = [];
-for (let d = 0; d < 5; d++) {
-  const date = new Date();
-  date.setDate(date.getDate() + d + 1);
-  if (date.getDay() === 0 || date.getDay() === 6) continue; // skip weekends
-  for (let h = 9; h <= 16; h++) {
-    const slotTime = new Date(date);
-    slotTime.setHours(h, 0, 0, 0);
-    const isBooked = bookedSlots.some(b => 
-      new Date(b.time).toISOString() === slotTime.toISOString()
-    );
-    if (!isBooked) {
-      available.push(slotTime.toLocaleString('en-PK', { 
-        weekday: 'short', month: 'short', day: 'numeric', 
-        hour: '2-digit', minute: '2-digit' 
-      }));
-    }
-  }
-  if (available.length >= 6) break;
-}
-
-const liveContext = `Available appointment slots:\n${available.slice(0, 6).join('\n')}\n\n` +
-  `Already booked slots this week: ${bookedSlots.length}`;
-
-return [{ json: { ...($('NODE 2').item.json), live_data_context: liveContext }}];
-```
-
----
-
-#### NODE 4d: HTTP Request — Supabase Listings (realestate branch)
-```
-Type: HTTP Request
-Method: GET  
-URL: {{ $env.SUPABASE_URL }}/rest/v1/listings
+URL: {{ $env.SUPABASE_URL }}/rest/v1/orders
 Query Parameters:
   tenant_id: eq.{{ $json.tenant_id }}
-  status: eq.available
-  select: title,area,type,bedrooms,price,description,photos_urls
-  limit: 5
+  customer_phone: eq.{{ $json.customer_phone }}
+  order: created_at.desc
+  limit: 3
 Headers:
   apikey: {{ $env.SUPABASE_SERVICE_ROLE_KEY }}
   Authorization: Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}
 
-On error: Continue
-```
-
-Code Node after:
-```javascript
-const listings = $input.item.json || [];
-const liveContext = listings.length > 0
-  ? `Available properties:\n${listings.map(l =>
-      `• ${l.title} — PKR ${Number(l.price).toLocaleString()} | ` +
-      `${l.bedrooms} Bed | ${l.area} | ${l.type}`
-    ).join('\n')}`
-  : 'No listings currently available.';
-
-return [{ json: { ...($('NODE 2').item.json), live_data_context: liveContext }}];
+On error: Continue (return empty array if no orders exist)
 ```
 
 ---
 
-#### NODE 4e: General fallback (no live data)
+#### NODE 4: Code Node — Format Unified Orders Context
 ```javascript
-// Code Node — pass through with empty live context
-return [{ json: { ...($input.item.json), live_data_context: '' }}];
-```
+// Get the original incoming payload (Change name to match your Node 2 exactly)
+const mainData = $('Code in JavaScript').first().json;
 
----
+// Get the orders we just fetched from Supabase
+const ordersResponse = $input.first().json;
+const orders = Array.isArray(ordersResponse) ? ordersResponse : [];
 
-#### NODE 5: Merge Node
+let liveContext = '';
+
+// If Supabase returned orders for this customer
+if (orders.length > 0) {
+  liveContext = "Customer's recent orders:\n" +
+    orders.map(o => {
+      // Handle the dynamic niche metadata safely
+      let details = '';
+      if (o.niche === 'restaurant' || o.niche === 'ecommerce') {
+        details = "| Items: " + (o.niche_metadata?.items || 'See details');
+      } else if (o.niche === 'clinic' || o.niche === 'salon') {
+        details = "| Scheduled: " + (o.scheduled_at || 'TBD') + " | Provider: " + (o.service_provider || 'Any');
+      }
+      
+      return "Order ID: " + o.id.substring(0, 8) + " | Status: " + (o.status || '').toUpperCase() +
+             " | Type: " + (o.order_type || o.niche) +
+             " | Total: Rs. " + (o.total_amount || 0) + " " +
+             details;
+    }).join('\n');
+}
+
+return [{ json: { 
+  ...mainData,
+  live_data_context: liveContext || 'No previous orders found for this customer.'
+}}];
 ```
-Type: Merge
-Mode: Merge By Position
-Inputs: connect all 7 Switch outputs (4a, 4b, 4c, 4d, 4e x2, general) here
-```
-This reunifies all branches into one stream.
 
 ---
 
 #### NODE 6: Code Node — Intent Detection + Funnel Tagging
 ```javascript
-const message = $input.item.json.message_text.toLowerCase();
-const niche = $input.item.json.niche;
-const tenantId = $input.item.json.tenant_id;
-const conversationId = $input.item.json.conversation_id;
+const inputData = $input.first().json;
+const message = (inputData.message_text || '').toLowerCase();
+const niche = inputData.niche;
 
 // Intent detection keywords per niche
 const intents = {
@@ -766,7 +596,7 @@ const needsHandoff = handoffTriggers.some(t => message.includes(t));
 
 return [{
   json: {
-    ...($input.item.json),
+    ...inputData,
     detected_intent: detectedIntent,
     funnel_stage: funnelStage,
     requires_human_review: requiresHumanReview,
@@ -779,7 +609,7 @@ return [{
 
 #### NODE 7: Code Node — Build Complete System Prompt
 ```javascript
-const data = $input.item.json;
+const data = $input.first().json;
 
 const systemPrompt = `You are ${data.agent_config.name}, an AI assistant for ${data.business_name}.
 
@@ -830,7 +660,8 @@ False output → NODE 11 (Handoff handler)
 
 #### NODE 9: OpenAI Chat Model
 ```
-Type: OpenAI (Chat)
+Type: OpenAI
+Action: Message a model
 Credential: OpenAI API (add your key in n8n credentials)
 Model: gpt-4o-mini (cheaper, fast) or gpt-4o (better quality)
 System Message: {{ $json.final_system_prompt }}

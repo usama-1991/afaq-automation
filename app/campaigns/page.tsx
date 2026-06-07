@@ -35,78 +35,110 @@ export default function CampaignsPage() {
   const [scheduleTime, setScheduleTime] = useState('');
   const [campSaved, setCampSaved] = useState(false);
 
-  // Load data dynamically
   useEffect(() => {
-    // Load Campaigns
-    const stored = localStorage.getItem('autoflow_campaigns');
-    if (stored) {
+    const fetchData = async () => {
       try {
-        setCampaigns(JSON.parse(stored));
-      } catch (e) {
-        setCampaigns([]);
+        const campRes = await fetch('/api/campaigns');
+        if (campRes.ok) {
+          const cData = await campRes.json();
+          setCampaigns(cData.campaigns.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            templateName: c.template_name,
+            segmentName: c.segment_name,
+            sentCount: c.sent_count || 0,
+            deliveredCount: c.delivered_count || 0,
+            readCount: c.read_count || 0,
+            failedCount: c.failed_count || 0,
+            status: c.status,
+            scheduledTime: c.scheduled_at ? new Date(c.scheduled_at).toLocaleString() : 'Sent Immediately'
+          })));
+        }
+        
+        const tplRes = await fetch('/api/templates');
+        if (tplRes.ok) {
+          const tData = await tplRes.json();
+          // ONLY APPROVED templates show in Campaigns dropdown
+          setTplList(tData.templates.filter((t: any) => t.status === 'APPROVED'));
+        }
+      } catch (err) {
+        console.error('Failed to load data:', err);
       }
-    } else {
-      setCampaigns([]);
-      localStorage.setItem('autoflow_campaigns', JSON.stringify([]));
-    }
-
-    // Load templates for selector
-    const storedTpl = localStorage.getItem('autoflow_whatsapp_templates');
-    if (storedTpl) {
-      try {
-        setTplList(JSON.parse(storedTpl));
-      } catch (e) {
-        setTplList([]);
-      }
-    }
+    };
+    fetchData();
   }, []);
 
-  const handleLaunchCampaign = (e: React.FormEvent) => {
+  const handleLaunchCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!campName || !selectedTpl) return;
 
-    // Simulate contact count based on segment
-    let count = 35;
-    if (selectedSegment === 'All Contacts') count = 280;
-    else if (selectedSegment === 'VIP Customers') count = 45;
-    else if (selectedSegment === 'Hot Leads') count = 82;
-    else if (selectedSegment === 'New Leads') count = 110;
+    try {
+      const selectedTplObj = tplList.find(t => t.id === selectedTpl);
+      if (!selectedTplObj) return;
 
-    const timeStr = scheduleType === 'immediate' 
-      ? 'Sent Immediately' 
-      : `${scheduleDate} ${scheduleTime}`;
+      const res = await fetch('/api/campaigns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: campName,
+          template_id: selectedTplObj.id,
+          template_name: selectedTplObj.name,
+          segment_name: selectedSegment,
+          schedule_type: scheduleType,
+          scheduled_at: scheduleType === 'immediate' ? null : `${scheduleDate}T${scheduleTime}:00Z`
+        })
+      });
 
-    const newCampaign: Campaign = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: campName,
-      templateName: selectedTpl,
-      segmentName: selectedSegment,
-      sentCount: scheduleType === 'immediate' ? count : 0,
-      deliveredCount: scheduleType === 'immediate' ? Math.round(count * 0.98) : 0,
-      readCount: scheduleType === 'immediate' ? Math.round(count * 0.82) : 0,
-      failedCount: scheduleType === 'immediate' ? Math.round(count * 0.02) : 0,
-      status: scheduleType === 'immediate' ? 'Completed' : 'Scheduled',
-      scheduledTime: timeStr
-    };
+      if (res.ok) {
+        const data = await res.json();
+        const newCampaign: Campaign = {
+          id: data.campaign.id,
+          name: data.campaign.name,
+          templateName: data.campaign.template_name,
+          segmentName: data.campaign.segment_name,
+          sentCount: data.campaign.sent_count || 0,
+          deliveredCount: data.campaign.delivered_count || 0,
+          readCount: data.campaign.read_count || 0,
+          failedCount: data.campaign.failed_count || 0,
+          status: data.campaign.status as Campaign['status'],
+          scheduledTime: data.campaign.scheduled_at ? new Date(data.campaign.scheduled_at).toLocaleString() : 'Sent Immediately'
+        };
 
-    const updated = [newCampaign, ...campaigns];
-    setCampaigns(updated);
-    localStorage.setItem('autoflow_campaigns', JSON.stringify(updated));
-    setShowCreate(false);
-    
-    // Reset Form
-    setCampName('');
-    setSelectedTpl('');
-    setSelectedSegment('All Contacts');
-    setScheduleType('immediate');
-    setScheduleDate('');
-    setScheduleTime('');
+        const updated = [newCampaign, ...campaigns];
+        setCampaigns(updated);
+        setShowCreate(false);
+        
+        // Reset Form
+        setCampName('');
+        setSelectedTpl('');
+        setSelectedSegment('All Contacts');
+        setScheduleType('immediate');
+        setScheduleDate('');
+        setScheduleTime('');
+      } else {
+        const err = await res.json();
+        alert(`Failed to launch: ${err.error || 'Unknown error'}`);
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Network error launching campaign');
+    }
   };
 
-  const handleDeleteCampaign = (id: string) => {
-    const updated = campaigns.filter(c => c.id !== id);
-    setCampaigns(updated);
-    localStorage.setItem('autoflow_campaigns', JSON.stringify(updated));
+  const handleDeleteCampaign = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this campaign?')) return;
+    try {
+      const res = await fetch(`/api/campaigns/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        const updated = campaigns.filter(c => c.id !== id);
+        setCampaigns(updated);
+      } else {
+        alert('Failed to delete campaign');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Network error deleting campaign');
+    }
   };
 
   // Compute overall stats
@@ -348,7 +380,7 @@ export default function CampaignsPage() {
                   >
                     <option value="">-- Choose Template --</option>
                     {tplList.map(tpl => (
-                      <option key={tpl.id} value={tpl.name}>{tpl.name} ({tpl.category})</option>
+                      <option key={tpl.id} value={tpl.id}>{tpl.name} ({tpl.category})</option>
                     ))}
                   </select>
                 </div>

@@ -179,35 +179,207 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
 
   fastify.log.info(`[${platform}] Message inserted and counter updated to ${currentCount + 1}.`);
 
-  // 4. Trigger n8n Webhook for AI Agent Processing (enriched with niche context)
+  // 4. Fetch enrichment data in parallel before firing n8n
   const n8nUrl = process.env.N8N_WEBHOOK_URL;
   if (n8nUrl) {
-    const n8nPayload = {
-      // Core identifiers
-      tenant_id: tenantId,
-      conversation_id: conversation.id,
-      message_id: savedMessage?.id || null,
-      // Customer context
-      customer_phone: customerId,
-      customer_name: customerName,
-      message_text: messageText,
-      platform: platform,
-      // Niche routing context (consumed by n8n Switch node)
-      niche: tenantNiche,
-      business_name: tenantBusinessName,
-      tenant_metadata: tenantMetadata,
-      // Timestamp
-      timestamp: new Date().toISOString(),
-    };
-    fastify.log.info(`[${platform}] Firing n8n webhook with niche="${tenantNiche}"`);
-    fetch(n8nUrl, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.N8N_API_KEY || ''
-      },
-      body: JSON.stringify(n8nPayload)
-    }).catch(err => fastify.log.error(`Failed to trigger n8n: ${err.message}`));
+    try {
+      // Fetch knowledge base, conversation history, integrations, and agent config in parallel
+      const [kbResult, historyResult, integResult, agentResult] = await Promise.allSettled([
+
+        // Knowledge base for this tenant
+        supabase
+          .from('knowledge_base')
+          .select('kb_type, title, content')
+          .eq('tenant_id', tenantId)
+          .eq('is_active', true)
+          .limit(20),
+
+        // Last 10 messages in this conversation for context
+        supabase
+          .from('messages')
+          .select('sender_type, content, created_at')
+          .eq('conversation_id', conversation.id)
+          .order('created_at', { ascending: false })
+          .limit(10),
+
+        // Integration credentials (WooCommerce, Google Calendar, etc.)
+        supabase
+          .from('integrations')
+          .select('platform, external_account_id, credentials')
+          .eq('tenant_id', tenantId),
+
+        // Agent config (name, prompt, tone)
+        supabase
+          .from('agent_configs')
+          .select('name, prompt, tone, language')
+          .eq('tenant_id', tenantId)
+          .eq('is_active', true)
+          .maybeSingle(),
+      ]);
+
+      // Safely extract results
+      const knowledgeBase = kbResult.status === 'fulfilled' ? (kbResult.value.data || []) : [];
+      const conversationHistory = historyResult.status === 'fulfilled'
+        ? (historyResult.value.data || []).reverse() // chronological order
+        : [];
+      const integrations = integResult.status === 'fulfilled' ? (integResult.value.data || []) : [];
+      const agentConfig = agentResult.status === 'fulfilled' ? (agentResult.value.data || {}) : {};
+
+      // Build a map of integrations keyed by platform for easy lookup in n8n
+      const integMap = {};
+      for (const integ of integrations) {
+        integMap[integ.platform] = integ.credentials || {};
+      }
+
+      // Find Meta credentials (fallback to env vars)
+      const metaCreds = integMap['meta'] || {};
+
+      // Fetch existing conversation context (previous intent/funnel stage)
+      const { data: existingContext } = await supabase
+        .from('conversation_context')
+        .select('last_intent, funnel_stage, context_data')
+        .eq('conversation_id', conversation.id)
+        .maybeSingle();
+
+      const n8nPayload = {
+        // ── Core identifiers ──────────────────────────────────────────
+        tenant_id: tenantId,
+        conversation_id: conversation.id,
+        message_id: savedMessage?.id || null,
+
+        // ── Customer context ──────────────────────────────────────────
+        customer_phone: customerId,
+        customer_name: customerName,
+        message_text: messageText,
+        platform: platform,
+        timestamp: new Date().toISOString(),
+
+        // ── Business / niche context ──────────────────────────────────
+        niche: tenantNiche,
+        business_name: tenantBusinessName,
+        tenant_metadata: tenantMetadata,
+
+        // ── AI agent configuration ────────────────────────────────────
+        agent_config: {
+          name: agentConfig.name || 'AutoFlow Assistant',
+          prompt: agentConfig.prompt || 'You are a helpful business assistant.',
+          tone: agentConfig.tone || 'professional',
+          language: agentConfig.language || 'auto',
+        },
+
+        // ── Knowledge base (n8n builds knowledge_base_text from this) ─
+        knowledge_base: knowledgeBase,
+
+        // ── Conversation history (last 10 messages) ───────────────────
+        conversation_history: conversationHistory,
+
+        // ── Previous AI context (intent, funnel stage) ────────────────
+        existing_context: existingContext || null,
+
+        // ── Integration credentials (WooCommerce, Google Calendar etc) ─
+        integrations: {
+          woocommerce: integMap['woocommerce'] || null,
+          google_calendar: integMap['google_calendar'] || null,
+          google_sheets: integMap['google_sheets'] || null,
+        },
+
+        // ── Meta credentials per tenant (used by n8n to send WhatsApp) ─
+        meta_credentials: {
+          phone_number_id: metaCreds.phone_number_id || process.env.META_PHONE_NUMBER_ID,
+          access_token: metaCreds.access_token || process.env.META_ACCESS_TOKEN,
+          instagram_user_id: metaCreds.instagram_user_id || process.env.INSTAGRAM_USER_ID,
+        },
+      };
+
+      fastify.log.info(`[${platform}] Firing n8n with niche="${tenantNiche}", kb=${knowledgeBase.length} items, history=${conversationHistory.length} msgs`);
+
+      fetch(n8nUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.N8N_API_KEY || '',
+        },
+        body: JSON.stringify(n8nPayload),
+      }).catch(err => fastify.log.error(`Failed to trigger n8n: ${err.message}`));
+
+    } catch (enrichErr) {
+      fastify.log.error(`[${platform}] Enrichment failed, firing n8n with minimal payload: ${enrichErr.message}`);
+      // Fallback: fire n8n with minimal payload so the customer still gets a reply
+      fetch(n8nUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.N8N_API_KEY || '' },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          conversation_id: conversation.id,
+          customer_phone: customerId,
+          customer_name: customerName,
+          message_text: messageText,
+          platform: platform,
+          niche: tenantNiche,
+          business_name: tenantBusinessName,
+          agent_config: { name: 'AutoFlow Assistant', prompt: 'You are a helpful assistant.' },
+          knowledge_base: [],
+          conversation_history: [],
+          existing_context: null,
+          integrations: {},
+          meta_credentials: {
+            phone_number_id: process.env.META_PHONE_NUMBER_ID,
+            access_token: process.env.META_ACCESS_TOKEN,
+            instagram_user_id: process.env.INSTAGRAM_USER_ID,
+          },
+        }),
+      }).catch(err => fastify.log.error(`Fallback n8n trigger failed: ${err.message}`));
+    }
+  }
+}
+
+// Helper to handle campaign message delivery statuses and aggregate counts
+async function processMessageStatus(statusObj) {
+  const metaMessageId = statusObj.id;
+  const deliveryStatus = statusObj.status; // sent, delivered, read, failed
+  
+  fastify.log.info(`[whatsapp] Message status update: ${metaMessageId} -> ${deliveryStatus}`);
+  
+  // 1. Find if this message belongs to a campaign
+  const { data: campMsg } = await supabase
+    .from('campaign_messages')
+    .select('campaign_id')
+    .eq('meta_message_id', metaMessageId)
+    .single();
+
+  if (!campMsg) return; // Not a campaign message
+
+  // 2. Update the campaign_messages row
+  await supabase
+    .from('campaign_messages')
+    .update({ 
+      status: deliveryStatus,
+      updated_at: new Date().toISOString()
+    })
+    .eq('meta_message_id', metaMessageId);
+
+  // 3. Aggregate stats and update the campaigns table
+  const { data: allMsgs } = await supabase
+    .from('campaign_messages')
+    .select('status')
+    .eq('campaign_id', campMsg.campaign_id);
+    
+  if (allMsgs) {
+    const sent_count = allMsgs.filter(m => ['sent', 'delivered', 'read'].includes(m.status)).length;
+    const delivered_count = allMsgs.filter(m => ['delivered', 'read'].includes(m.status)).length;
+    const read_count = allMsgs.filter(m => m.status === 'read').length;
+    const failed_count = allMsgs.filter(m => m.status === 'failed').length;
+
+    await supabase
+      .from('campaigns')
+      .update({
+        sent_count,
+        delivered_count,
+        read_count,
+        failed_count,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', campMsg.campaign_id);
   }
 }
 
@@ -226,6 +398,26 @@ fastify.post('/webhook', async (request, reply) => {
         // ── WhatsApp ──────────────────────────────────────────────────
         if (body.object === 'whatsapp_business_account') {
           for (const change of entry.changes) {
+            
+            // 1. Handle Template Status Updates
+            if (change.field === 'message_template_status_update') {
+              const { message_template_id, event } = change.value;
+              fastify.log.info(`[whatsapp] Template status update: ${message_template_id} -> ${event}`);
+              await supabase
+                .from('templates')
+                .update({ status: event })
+                .eq('meta_template_id', message_template_id);
+              continue;
+            }
+
+            // 2. Handle Message Delivery Statuses
+            if (change.value && change.value.statuses) {
+              for (const statusObj of change.value.statuses) {
+                await processMessageStatus(statusObj);
+              }
+            }
+
+            // 3. Handle Incoming Messages
             if (change.value && change.value.messages) {
               const phoneNumberId = change.value.metadata.phone_number_id;
               const message = change.value.messages[0];
