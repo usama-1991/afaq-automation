@@ -489,9 +489,10 @@ Method: GET
 URL: ={{ $env.SUPABASE_URL }}/rest/v1/appointments
 Query: {
   "tenant_id": "=eq.{{ $json.tenant_id }}",
-  "status": "=in.(confirmed,pending)",
   "appointment_date": "=gte.{{ new Date().toISOString().split('T')[0] }}",
-  "select": "appointment_date,appointment_time"
+  "status": "neq.cancelled",
+  "select": "appointment_date,appointment_time",
+  "limit": 50
 }
 Headers: {
   "apikey": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}",
@@ -502,11 +503,11 @@ Continue on Fail: true
 
 **Code Node after (Appointment niches):**
 ```javascript
-const events = $input.first().json || [];
+const appointments = $input.first().json || [];
 const base = $('Code — Validate + Unpack').first().json;
 
 // Build available slots (next 5 working days, 9am-5pm, hourly)
-const booked = events.map(e => new Date(`${e.appointment_date}T${e.appointment_time || '00:00:00'}`).getTime());
+const booked = appointments.map(a => new Date(`${a.appointment_date}T${a.appointment_time}`).getTime());
 const available = [];
 
 for (let d = 1; d <= 7 && available.length < 6; d++) {
@@ -534,18 +535,20 @@ return [{ json: { ...base, live_data_context: liveContext } }];
 ---
 
 ### NODE 4d: Real Estate Branch — Fetch Listings from Supabase
-```
+```json
 Type: HTTP Request
 Method: GET
-URL: {{ $env.SUPABASE_URL }}/rest/v1/listings
-Query:
-  tenant_id: eq.{{ $json.tenant_id }}
-  status: eq.available
-  select: title,area,type,bedrooms,price,description
-  limit: 5
-Headers:
-  apikey: {{ $env.SUPABASE_SERVICE_ROLE_KEY }}
-  Authorization: Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}
+URL: ={{ $env.SUPABASE_URL }}/rest/v1/listings
+Query: {
+  "tenant_id": "=eq.{{ $json.tenant_id }}",
+  "status": "eq.available",
+  "select": "title,area,type,bedrooms,price,description",
+  "limit": 5
+}
+Headers: {
+  "apikey": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}",
+  "Authorization": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+}
 Continue on Fail: true
 ```
 
