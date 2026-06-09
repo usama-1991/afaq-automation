@@ -106,7 +106,7 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
   // 2. Find or Create Conversation
   let { data: conversation, error: convError } = await supabase
     .from('conversations')
-    .select('id, unread_count')
+    .select('id, unread_count, status')
     .eq('tenant_id', tenantId)
     .eq('external_conversation_id', customerId)
     .single();
@@ -178,6 +178,12 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
     .eq('id', conversation.id);
 
   fastify.log.info(`[${platform}] Message inserted and counter updated to ${currentCount + 1}.`);
+
+  // 3b. Human handoff gate: if conversation is 'pending', skip AI — human is handling it
+  if (conversation?.status === 'pending') {
+    fastify.log.info(`[${platform}] Conversation ${conversation.id} is in human handoff (pending). Skipping n8n AI.`);
+    return;
+  }
 
   // 4. Fetch enrichment data in parallel before firing n8n
   const n8nUrl = process.env.N8N_WEBHOOK_URL;
