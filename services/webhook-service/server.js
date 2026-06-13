@@ -103,39 +103,51 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
     fastify.log.warn(`[${platform}] Could not fetch tenant niche: ${e.message}`);
   }
 
-  // 2. Find or Create Conversation
-  let { data: conversation, error: convError } = await supabase
+  // 2. Find or Create Conversation (safe: handles duplicates + race conditions)
+  let { data: conversation } = await supabase
     .from('conversations')
     .select('id, unread_count, status')
     .eq('tenant_id', tenantId)
     .eq('external_conversation_id', customerId)
-    .single();
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
 
   if (!conversation) {
     fastify.log.info(`[${platform}] Creating new conversation for ${customerId}`);
     const { data: newConv, error: newConvError } = await supabase
       .from('conversations')
-      .insert({
+      .upsert({
         tenant_id: tenantId,
         platform: platform,
         external_conversation_id: customerId,
         customer_name: customerName
-      })
-      .select('id')
+      }, { onConflict: 'tenant_id,external_conversation_id', ignoreDuplicates: false })
+      .select('id, unread_count, status')
       .single();
-    
+
     if (newConvError) {
-      fastify.log.error(`[${platform}] Failed to create conversation: ${newConvError.message}`);
-      throw newConvError;
+      // Race condition: another request created it — fetch it now
+      const { data: retryConv, error: retryErr } = await supabase
+        .from('conversations')
+        .select('id, unread_count, status')
+        .eq('tenant_id', tenantId)
+        .eq('external_conversation_id', customerId)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (!retryConv) {
+        fastify.log.error(`[${platform}] Failed to create conversation: ${newConvError.message}`);
+        throw newConvError;
+      }
+      conversation = retryConv;
+    } else {
+      conversation = newConv;
     }
-    conversation = newConv;
-    fastify.log.info(`[${platform}] New conversation created: ${conversation.id}`);
-    
-    // Log the new conversation creation to Audit Logs
+    fastify.log.info(`[${platform}] Conversation ready: ${conversation.id}`);
     await logAudit(tenantId, 'conversation_started', { platform, external_conversation_id: customerId, customer_name: customerName });
   } else {
     fastify.log.info(`[${platform}] Existing conversation found: ${conversation.id}`);
-    // Update customer name and updated_at
     await supabase
       .from('conversations')
       .update({ customer_name: customerName, updated_at: new Date().toISOString() })
