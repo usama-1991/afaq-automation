@@ -973,16 +973,17 @@ Output 2: lead          → NODE 13c
 ---
 
 ### NODE 13a: HTTP Request — Upsert into orders table
-```
+```json
 Type: HTTP Request
 Method: POST
-URL: {{ $env.SUPABASE_URL }}/rest/v1/orders
-Headers:
-  apikey: {{ $env.SUPABASE_SERVICE_ROLE_KEY }}
-  Authorization: Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}
-  Content-Type: application/json
-  Prefer: resolution=merge-duplicates,return=representation
-Body: {{ JSON.stringify($json.record_data) }}
+URL: https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/orders
+Headers: {
+  "apikey": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}",
+  "Authorization": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}",
+  "Content-Type": "application/json",
+  "Prefer": "resolution=merge-duplicates,return=representation"
+}
+Body: ={{ JSON.stringify($json.record_data) }}
 ```
 
 **Why upsert not insert:** If customer sends multiple messages (first "I want red kurti" then "size M" then "address is DHA"), you don't want 3 separate order rows. Use conversation_id as conflict key.
@@ -996,21 +997,43 @@ UNIQUE (conversation_id);
 ---
 
 ### NODE 13b: HTTP Request — Upsert into appointments table
+```json
+Type: HTTP Request
+Method: POST
+URL: https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/appointments
+Headers: {
+  "apikey": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}",
+  "Authorization": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}",
+  "Content-Type": "application/json",
+  "Prefer": "resolution=merge-duplicates,return=representation"
+}
+Body: ={{ JSON.stringify($json.record_data) }}
 ```
-Same structure as 13a but URL: .../rest/v1/appointments
+
 Add constraint:
-ALTER TABLE public.appointments ADD CONSTRAINT unique_conversation_appointment 
-UNIQUE (conversation_id);
+```sql
+ALTER TABLE public.appointments ADD CONSTRAINT unique_conversation_appointment UNIQUE (conversation_id);
 ```
 
 ---
 
 ### NODE 13c: HTTP Request — Upsert into leads table
+```json
+Type: HTTP Request
+Method: POST
+URL: https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/leads
+Headers: {
+  "apikey": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}",
+  "Authorization": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}",
+  "Content-Type": "application/json",
+  "Prefer": "resolution=merge-duplicates,return=representation"
+}
+Body: ={{ JSON.stringify($json.record_data) }}
 ```
-Same structure as 13a but URL: .../rest/v1/leads
+
 Add constraint:
-ALTER TABLE public.leads ADD CONSTRAINT unique_conversation_lead 
-UNIQUE (conversation_id);
+```sql
+ALTER TABLE public.leads ADD CONSTRAINT unique_conversation_lead UNIQUE (conversation_id);
 ```
 
 ---

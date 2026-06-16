@@ -98,12 +98,9 @@ function SettingsInner() {
   const [specialties, setSpecialties] = useState('Pediatrics, Cardiology, General Medicine');
 
   // APIs state
-  const [openaiKey, setOpenaiKey] = useState('sk-proj-••••••••••••5aB2');
   const [waToken, setWaToken] = useState('EAAGm••••••••••••3kL');
   const [waPhoneId, setWaPhoneId] = useState('108253102123984');
   const [waAccountId, setWaAccountId] = useState('109283019238472');
-  const [tiktokKey, setTiktokKey] = useState('tt-dev-••••••••••••x9A7');
-  const [sheetKey, setSheetKey] = useState('AIza••••••••••••_M9');
 
   // AI Knowledge Base state
   interface KBEntry { id: string; kb_type: string; title: string; content: string; source_url?: string; is_active: boolean; created_at: string; }
@@ -713,24 +710,6 @@ function SettingsInner() {
             <p style={{ fontSize: 12.5, color: '#6b7280', marginBottom: 20 }}>Configure credentials for omni-channel messaging routing and automation triggers.</p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              {/* OpenAI Key */}
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-                  <Sparkles size={14} color="#dc2626" />
-                  <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151' }}>OpenAI Copilot Secret Key</label>
-                </div>
-                <div className="settings-api-row" style={{ display: 'flex', gap: 8 }}>
-                  <input 
-                    type="password" 
-                    value={openaiKey} 
-                    onChange={e => setOpenaiKey(e.target.value)} 
-                    style={{ flex: 1, padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fafafa', fontFamily: 'inherit', outline: 'none' }} 
-                  />
-                  <button style={{ padding: '8px 14px', fontSize: 12, border: '1px solid rgba(220,38,38,0.15)', borderRadius: 9, background: '#fff', cursor: 'pointer', color: '#dc2626', fontWeight: 600 }}>Test Connection</button>
-                </div>
-                <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>Powers user intent identification and chat automation replies.</p>
-              </div>
-
               {/* Meta WhatsApp Token */}
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
@@ -765,37 +744,6 @@ function SettingsInner() {
                     style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fafafa', outline: 'none' }} 
                   />
                 </div>
-              </div>
-
-              {/* TikTok Business Link */}
-              <div style={{ paddingTop: 10, borderTop: '1px solid rgba(220,38,38,0.06)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-                  <Plug size={14} color="#dc2626" />
-                  <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151' }}>TikTok Business Client Key</label>
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input 
-                    type="password" 
-                    value={tiktokKey} 
-                    onChange={e => setTiktokKey(e.target.value)} 
-                    style={{ flex: 1, padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fafafa', outline: 'none' }} 
-                  />
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#fef2f2', border: '1px solid rgba(220,38,38,0.15)', color: '#dc2626', padding: '0 12px', borderRadius: 9, fontSize: 11.5, fontWeight: 700 }}>
-                    Active
-                  </div>
-                </div>
-                <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>Syncs customer query direct messages from TikTok Business Creator Suite.</p>
-              </div>
-
-              {/* Google Sheets */}
-              <div>
-                <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Google Sheets Sync API Key</label>
-                <input 
-                  type="password" 
-                  value={sheetKey} 
-                  onChange={e => setSheetKey(e.target.value)} 
-                  style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fafafa', outline: 'none' }} 
-                />
               </div>
             </div>
           </div>

@@ -17,7 +17,6 @@ const nav = [
   { href: '/templates',     icon: FileText,        label: 'Templates' },
   { href: '/media',         icon: Folder,          label: 'Media' },
   { href: '/reports',       icon: BarChart3,       label: 'Reports' },
-  { href: '/integrations',  icon: Plug,            label: 'Integrations' },
   { href: '/settings',      icon: Settings,        label: 'Settings' },
 ];
 

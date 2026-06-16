@@ -174,330 +174,150 @@ export default function TemplatesPage() {
   });
 
   return (
-    <div className="split-pane-root" style={{ display: 'flex', height: 'calc(100vh - 98px)', background: '#faf9f9' }}>
+    <div className="templates-page-wrap" style={{ padding: '28px', background: '#faf9f9', minHeight: 'calc(100vh - 98px)' }}>
       
-      <div className="split-left-panel" style={{ 
-        width: 320, background: '#fff', 
-        borderRight: '1px solid rgba(220,38,38,0.08)', 
-        display: 'flex', flexDirection: 'column', flexShrink: 0 
-      }}>
-        {/* Header Search Section */}
-        <div style={{ padding: '20px 18px', borderBottom: '1px solid rgba(220,38,38,0.06)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <h2 style={{ fontSize: 16.5, fontWeight: 800, color: '#111827', letterSpacing: '-0.3px' }}>WhatsApp Templates</h2>
-            <button 
-              onClick={() => setShowCreate(true)}
-              style={{
-                padding: '7px 11px', fontSize: 12, fontWeight: 700,
-                background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff',
-                border: 'none', borderRadius: 8, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 5,
-                boxShadow: '0 2px 8px rgba(220,38,38,0.2)',
-              }}
-            >
-              <Plus size={14} /> New
-            </button>
-          </div>
-
-          <div style={{ position: 'relative' }}>
-            <Search size={15} color="#9ca3af" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-            <input 
-              type="text" 
-              placeholder="Search templates..." 
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              style={{
-                width: '100%', padding: '9px 12px 9px 34px', fontSize: 12.5,
-                border: '1.5px solid rgba(220,38,38,0.08)', borderRadius: 9,
-                outline: 'none', background: '#fafafa', fontFamily: 'inherit'
-              }}
-            />
-          </div>
-
-          {/* Quick Segment Filter Pill Rows */}
-          <div style={{ display: 'flex', gap: 6, marginTop: 12, overflowX: 'auto', paddingBottom: 2 }}>
-            {['All', 'Marketing', 'Utility', 'Authentication'].map(cat => {
-              const act = selectedCategory === cat;
-              return (
-                <button 
-                  key={cat} 
-                  onClick={() => setSelectedCategory(cat)}
-                  style={{
-                    padding: '4px 10px', fontSize: 11, fontWeight: 650, borderRadius: 20,
-                    background: act ? '#dc2626' : '#f3f4f6',
-                    color: act ? '#fff' : '#6b7280',
-                    border: 'none', cursor: 'pointer', transition: 'all 0.12s',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {cat}
-                </button>
-              );
-            })}
-          </div>
+      <div className="templates-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <div>
+          <h1 style={{ fontSize: 20, fontWeight: 800, color: '#111827', letterSpacing: '-0.4px', margin: 0 }}>
+            WhatsApp Templates
+          </h1>
+          <p style={{ fontSize: 12.5, color: '#6b7280', marginTop: 3 }}>
+            Manage and submit Meta-approved message templates for campaigns.
+          </p>
         </div>
 
-        {/* Templates Scroll area */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {filteredTemplates.length > 0 ? (
-            filteredTemplates.map(tpl => {
-              const isSel = selectedTemplate?.id === tpl.id;
-              const isApproved = tpl.status === 'Approved';
-              const isPending = tpl.status === 'Pending';
-              
-              return (
-                <div
-                  key={tpl.id}
-                  onClick={() => setSelectedTemplate(tpl)}
-                  style={{
-                    padding: '12px 14px', borderRadius: 12, cursor: 'pointer',
-                    background: isSel ? '#fef2f2' : '#fff',
-                    border: isSel ? '1.5px solid rgba(220,38,38,0.18)' : '1.5px solid rgba(220,38,38,0.03)',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.015)',
-                    transition: 'all 0.15s'
-                  }}
-                  onMouseEnter={e => { if(!isSel) e.currentTarget.style.borderColor = 'rgba(220,38,38,0.1)'; }}
-                  onMouseLeave={e => { if(!isSel) e.currentTarget.style.borderColor = 'rgba(220,38,38,0.03)'; }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{tpl.name}</span>
-                    
-                    {/* Status Pill */}
-                    <span style={{
-                      fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10,
-                      background: isApproved ? '#d1fae5' : isPending ? '#fef3c7' : '#fee2e2',
-                      color: isApproved ? '#065f46' : isPending ? '#d97706' : '#991b1b',
-                    }}>
-                      {tpl.status}
-                    </span>
-                  </div>
+        <button 
+          onClick={() => { setSelectedTemplate(null); setShowCreate(true); }}
+          style={{
+            padding: '10px 18px', fontSize: 13, fontWeight: 700,
+            background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff',
+            border: 'none', borderRadius: 9, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 6,
+            boxShadow: '0 4px 14px rgba(220,38,38,0.2)',
+          }}
+        >
+          <Plus size={15} /> Create New Template
+        </button>
+      </div>
 
-                  <p style={{ 
-                    fontSize: 11.5, color: '#6b7280', 
-                    margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', 
-                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                    lineHeight: 1.5
-                  }}>
-                    {tpl.bodyText}
-                  </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+          {['All', 'Approved', 'Pending', 'Rejected'].map(status => {
+            const act = selectedStatus === status;
+            return (
+              <button 
+                key={status} 
+                onClick={() => setSelectedStatus(status)}
+                style={{
+                  padding: '6px 14px', fontSize: 12, fontWeight: 650, borderRadius: 20,
+                  background: act ? '#dc2626' : '#fff',
+                  color: act ? '#fff' : '#4b5563',
+                  border: act ? '1px solid #dc2626' : '1px solid #e5e7eb', cursor: 'pointer', transition: 'all 0.12s',
+                  whiteSpace: 'nowrap', boxShadow: act ? '0 2px 6px rgba(220,38,38,0.15)' : 'none'
+                }}
+              >
+                {status === 'Pending' ? 'Pending Review' : status}
+              </button>
+            );
+          })}
+        </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, fontSize: 10, color: '#9ca3af', fontWeight: 550 }}>
-                    <span>{tpl.category}</span>
-                    <span>{tpl.language}</span>
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <div style={{ textAlign: 'center', padding: '40px 10px', color: '#9ca3af' }}>
-              <FileText size={28} style={{ margin: '0 auto 10px' }} />
-              <div style={{ fontSize: 12.5, fontWeight: 600 }}>No templates matched</div>
-            </div>
-          )}
+        <div style={{ position: 'relative', width: 280 }}>
+          <Search size={15} color="#9ca3af" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+          <input 
+            type="text" 
+            placeholder="Search templates..." 
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%', padding: '9px 12px 9px 36px', fontSize: 12.5,
+              border: '1.5px solid rgba(220,38,38,0.08)', borderRadius: 9,
+              outline: 'none', background: '#fff', fontFamily: 'inherit'
+            }}
+          />
         </div>
       </div>
 
-      <div className="split-right-panel" style={{ flex: 1, overflowY: 'auto', padding: '28px', background: '#faf9f9' }}>
-        {selectedTemplate ? (
-          <div style={{ maxWidth: 780, margin: '0 auto' }}>
-            
-            <div className="templates-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-              <div>
-                <span style={{ 
-                  fontSize: 11, background: '#fef2f2', color: '#dc2626', 
-                  padding: '3px 9px', borderRadius: 12, fontWeight: 700,
-                  border: '1px solid rgba(220,38,38,0.1)'
-                }}>
-                  Meta Official API (WhatsApp Cloud)
-                </span>
-                <h1 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginTop: 8, letterSpacing: '-0.4px' }}>
-                  {selectedTemplate.name}
-                </h1>
-                <p style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>
-                  Category: <strong style={{ color: '#dc2626' }}>{selectedTemplate.category}</strong> · Last Approved: Just Now
-                </p>
-              </div>
-
-              <div className="templates-header-actions" style={{ display: 'flex', gap: 8 }}>
-                <button 
-                  onClick={() => copyToClipboard(selectedTemplate.bodyText)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', fontSize: 12.5, fontWeight: 650,
-                    background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', transition: 'all 0.15s'
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#fafafa'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
-                >
-                  <Copy size={13} />
-                  {isCopied ? 'Copied!' : 'Copy Body'}
-                </button>
-                <button 
-                  onClick={() => handleDeleteTemplate(selectedTemplate.id)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', fontSize: 12.5, fontWeight: 650,
-                    background: '#fff', border: '1px solid #fee2e2', color: '#ef4444', borderRadius: 8, cursor: 'pointer'
-                  }}
-                >
-                  <Trash2 size={13} />
-                  Delete Template
-                </button>
-              </div>
-            </div>
-
-              <div className="template-detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 310px', gap: 28, alignItems: 'start' }}>
-              
-              {/* Structural Details Panel */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                
-                {/* Meta details card */}
-                <div style={{ background: '#fff', padding: '20px 24px', borderRadius: 14, border: '1px solid rgba(220,38,38,0.06)', boxShadow: '0 2px 8px rgba(0,0,0,0.01)' }}>
-                  <h3 style={{ fontSize: 13.5, fontWeight: 700, color: '#111827', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Sparkles size={15} color="#dc2626" />
-                    Template Structure & Payload
-                  </h3>
-
-                  {selectedTemplate.headerType !== 'None' && (
-                    <div style={{ marginBottom: 12, paddingBottom: 12, borderBottom: '1px dashed #f3f4f6' }}>
-                      <span style={{ fontSize: 10.5, color: '#9ca3af', fontWeight: 750, display: 'block', textTransform: 'uppercase' }}>HEADER ({selectedTemplate.headerType})</span>
-                      <span style={{ fontSize: 13, color: '#1f2937', fontWeight: 600, display: 'block', marginTop: 4 }}>
-                        {selectedTemplate.headerText || `[WhatsApp ${selectedTemplate.headerType} Asset]`}
-                      </span>
-                    </div>
-                  )}
-
-                  <div style={{ marginBottom: 12 }}>
-                    <span style={{ fontSize: 10.5, color: '#9ca3af', fontWeight: 750, display: 'block', textTransform: 'uppercase' }}>BODY COMPONENT</span>
-                    <p style={{ fontSize: 13, color: '#1f2937', lineHeight: 1.6, marginTop: 4, whiteSpace: 'pre-wrap' }}>
-                      {selectedTemplate.bodyText}
-                    </p>
-                  </div>
-
-                  {selectedTemplate.footerText && (
-                    <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed #f3f4f6' }}>
-                      <span style={{ fontSize: 10.5, color: '#9ca3af', fontWeight: 750, display: 'block', textTransform: 'uppercase' }}>FOOTER</span>
-                      <span style={{ fontSize: 12, color: '#6b7280', display: 'block', marginTop: 2 }}>{selectedTemplate.footerText}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Buttons Config Card */}
-                {selectedTemplate.buttons.length > 0 && (
-                  <div style={{ background: '#fff', padding: '20px 24px', borderRadius: 14, border: '1px solid rgba(220,38,38,0.06)', boxShadow: '0 2px 8px rgba(0,0,0,0.01)' }}>
-                    <h3 style={{ fontSize: 13.5, fontWeight: 700, color: '#111827', marginBottom: 14 }}>Template Buttons</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {selectedTemplate.buttons.map((btn, index) => (
-                        <div 
-                          key={index}
-                          style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            padding: '10px 14px', borderRadius: 8, background: '#fdfcfc',
-                            border: '1.5px solid rgba(220,38,38,0.05)', fontSize: 12.5
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: 9.5, background: '#fee2e2', color: '#dc2626', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
-                              {btn.type}
-                            </span>
-                            <span style={{ fontWeight: 600, color: '#1f2937' }}>{btn.text}</span>
-                          </div>
-                          {btn.urlOrPhone && (
-                            <span style={{ fontSize: 11, color: '#9ca3af' }}>{btn.urlOrPhone}</span>
-                          )}
+      <div style={{ 
+        background: '#fff', borderRadius: 14, 
+        border: '1px solid rgba(220,38,38,0.06)', 
+        boxShadow: '0 2px 10px rgba(0,0,0,0.01)',
+        overflow: 'hidden'
+      }}>
+        <div className="templates-table-wrap" style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ background: '#faf9f9', borderBottom: '1px solid rgba(220,38,38,0.04)' }}>
+                <th style={{ padding: '14px 24px', fontSize: 11.5, fontWeight: 750, color: '#4b5563', textTransform: 'uppercase' }}>Template Name</th>
+                <th style={{ padding: '14px 24px', fontSize: 11.5, fontWeight: 750, color: '#4b5563', textTransform: 'uppercase' }}>Category</th>
+                <th style={{ padding: '14px 24px', fontSize: 11.5, fontWeight: 750, color: '#4b5563', textTransform: 'uppercase' }}>Language</th>
+                <th style={{ padding: '14px 24px', fontSize: 11.5, fontWeight: 750, color: '#4b5563', textTransform: 'uppercase' }}>Content Snippet</th>
+                <th style={{ padding: '14px 24px', fontSize: 11.5, fontWeight: 750, color: '#4b5563', textTransform: 'uppercase' }}>Status</th>
+                <th style={{ padding: '14px 24px', fontSize: 11.5, fontWeight: 750, color: '#4b5563', textTransform: 'uppercase', width: 100 }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredTemplates.length > 0 ? (
+                filteredTemplates.map(tpl => {
+                  const isApproved = tpl.status === 'Approved';
+                  const isPending = tpl.status === 'Pending';
+                  
+                  return (
+                    <tr key={tpl.id} style={{ borderBottom: '1px solid #f9f8f8', transition: 'background 0.15s' }}>
+                      <td style={{ padding: '16px 24px', fontSize: 13, fontWeight: 700, color: '#111827' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <FileText size={14} color="#dc2626" />
+                          {tpl.name}
+                        </span>
+                      </td>
+                      <td style={{ padding: '16px 24px', fontSize: 12.5, color: '#6b7280' }}>{tpl.category}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 12.5, color: '#6b7280' }}>{tpl.language}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 12.5, color: '#4b5563' }}>
+                        <div style={{ maxWidth: 280, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {tpl.bodyText}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* GORGEOUS LIVE MOBILE MOCKUP */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <span style={{ fontSize: 11.5, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Live Phone Preview</span>
-                
-                {/* Visual Phone Shell */}
-                <div style={{ 
-                  background: '#efeae2', width: '100%', borderRadius: 24, 
-                  border: '10px solid #1f2937', padding: '16px 12px 24px', 
-                  boxShadow: '0 12px 36px rgba(0,0,0,0.12)', height: 420,
-                  display: 'flex', flexDirection: 'column', position: 'relative'
-                }}>
-                  {/* Chat bubbles container */}
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-start' }}>
-                    
-                    {/* WhatsApp Bubble */}
-                    <div style={{ 
-                      background: '#fff', borderRadius: '0px 12px 12px 12px', 
-                      padding: '10px 12px', maxWidth: '90%', 
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
-                      display: 'flex', flexDirection: 'column', gap: 3
-                    }}>
-                      
-                      {/* Image header mock if headerType === Image */}
-                      {selectedTemplate.headerType === 'Image' && (
-                        <div style={{ 
-                          width: '100%', height: 100, background: '#ddd', borderRadius: 8, 
-                          marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 22, color: '#888'
+                      </td>
+                      <td style={{ padding: '16px 24px' }}>
+                        <span style={{
+                          fontSize: 10, fontWeight: 750, padding: '3px 8px', borderRadius: 20,
+                          background: isApproved ? '#d1fae5' : isPending ? '#fef3c7' : '#fee2e2',
+                          color: isApproved ? '#065f46' : isPending ? '#d97706' : '#991b1b',
                         }}>
-                          🖼️
-                        </div>
-                      )}
-
-                      {/* Header Text */}
-                      {selectedTemplate.headerType === 'Text' && selectedTemplate.headerText && (
-                        <span style={{ fontSize: 12, fontWeight: 750, color: '#111827', display: 'block', marginBottom: 2 }}>
-                          {selectedTemplate.headerText}
+                          {tpl.status === 'Pending' ? 'Pending Review' : tpl.status}
                         </span>
-                      )}
-
-                      {/* Body */}
-                      <p style={{ fontSize: 11.5, color: '#2b2b2b', margin: 0, lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>
-                        {selectedTemplate.bodyText.replace('{{1}}', 'Usama').replace('{{2}}', 'AUTOFEST15').replace('{{3}}', '1')}
-                      </p>
-
-                      {/* Footer Text */}
-                      {selectedTemplate.footerText && (
-                        <span style={{ fontSize: 9.5, color: '#8b8b8b', display: 'block', marginTop: 4 }}>
-                          {selectedTemplate.footerText}
-                        </span>
-                      )}
-
-                      {/* Time indicator */}
-                      <span style={{ fontSize: 8.5, color: '#999', alignSelf: 'flex-end', marginTop: 2 }}>12:45 PM</span>
-                    </div>
-                  </div>
-
-                  {/* Bubble Buttons render */}
-                  {selectedTemplate.buttons.length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
-                      {selectedTemplate.buttons.map((btn, idx) => (
-                        <div 
-                          key={idx}
-                          style={{
-                            background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(4px)',
-                            padding: '8px 10px', borderRadius: 8, textAlign: 'center',
-                            fontSize: 11.5, fontWeight: 650, color: '#dc2626',
-                            boxShadow: '0 1px 3px rgba(0,0,0,0.06)', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
-                          }}
-                        >
-                          <MessageSquare size={12} />
-                          {btn.text}
+                      </td>
+                      <td style={{ padding: '16px 24px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <button 
+                            onClick={() => { setSelectedTemplate(tpl); setShowCreate(false); }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
+                            title="View Template"
+                          >
+                            <Eye size={16} color="#6b7280" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteTemplate(tpl.id)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
+                            title="Delete Template"
+                          >
+                            <Trash2 size={16} color="#ef4444" />
+                          </button>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-            </div>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: '#9ca3af' }}>
-            <FileText size={48} />
-            <div style={{ fontSize: 14, marginTop: 12 }}>Select a template to view preview</div>
-          </div>
-        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '40px 10px', color: '#9ca3af' }}>
+                    <FileText size={28} style={{ margin: '0 auto 10px' }} />
+                    <div style={{ fontSize: 12.5, fontWeight: 600 }}>No templates found</div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* ── CREATE TEMPLATE SLIDE-OVER / MODAL ── */}
@@ -509,7 +329,7 @@ export default function TemplatesPage() {
           zIndex: 9999
         }}>
           <div className="template-modal-box" style={{
-            background: '#fff', width: 620, borderRadius: 16,
+            background: '#fff', width: 560, borderRadius: 16,
             padding: '24px 28px', border: '1px solid rgba(220,38,38,0.1)',
             boxShadow: '0 15px 45px rgba(0,0,0,0.2)',
             animation: 'fadeUp 0.15s ease-out'
@@ -672,7 +492,118 @@ export default function TemplatesPage() {
           </div>
         </div>
       )}
-      
+
+      {/* ── VIEW PREVIEW MODAL ── */}
+      {selectedTemplate && !showCreate && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999
+        }}>
+          <div className="template-modal-box" style={{
+            background: '#fff', width: 440, borderRadius: 16,
+            padding: '24px 28px', border: '1px solid rgba(220,38,38,0.1)',
+            boxShadow: '0 15px 45px rgba(0,0,0,0.2)',
+            animation: 'fadeUp 0.15s ease-out'
+          }}>
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: '#111827', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Eye size={18} color="#dc2626" />
+                Template Preview
+              </h3>
+              <button onClick={() => setSelectedTemplate(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+                <X size={18} color="#6b7280" />
+              </button>
+            </div>
+
+            <div style={{ 
+              background: '#efeae2', width: '100%', borderRadius: 24, 
+              border: '10px solid #1f2937', padding: '16px 12px 24px', 
+              boxShadow: '0 12px 36px rgba(0,0,0,0.12)', height: 420,
+              display: 'flex', flexDirection: 'column', position: 'relative'
+            }}>
+              {/* Chat bubbles container */}
+              <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-start' }}>
+                
+                {/* WhatsApp Bubble */}
+                <div style={{ 
+                  background: '#fff', borderRadius: '0px 12px 12px 12px', 
+                  padding: '10px 12px', maxWidth: '90%', 
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+                  display: 'flex', flexDirection: 'column', gap: 3
+                }}>
+                  
+                  {/* Image header mock if headerType === Image */}
+                  {selectedTemplate.headerType === 'Image' && (
+                    <div style={{ 
+                      width: '100%', height: 100, background: '#ddd', borderRadius: 8, 
+                      marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 22, color: '#888'
+                    }}>
+                      🖼️
+                    </div>
+                  )}
+
+                  {/* Header Text */}
+                  {selectedTemplate.headerType === 'Text' && selectedTemplate.headerText && (
+                    <span style={{ fontSize: 12, fontWeight: 750, color: '#111827', display: 'block', marginBottom: 2 }}>
+                      {selectedTemplate.headerText}
+                    </span>
+                  )}
+
+                  {/* Body */}
+                  <p style={{ fontSize: 11.5, color: '#2b2b2b', margin: 0, lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>
+                    {selectedTemplate.bodyText.replace('{{1}}', 'Usama').replace('{{2}}', 'AUTOFEST15').replace('{{3}}', '1')}
+                  </p>
+
+                  {/* Footer Text */}
+                  {selectedTemplate.footerText && (
+                    <span style={{ fontSize: 9.5, color: '#8b8b8b', display: 'block', marginTop: 4 }}>
+                      {selectedTemplate.footerText}
+                    </span>
+                  )}
+
+                  {/* Time indicator */}
+                  <span style={{ fontSize: 8.5, color: '#999', alignSelf: 'flex-end', marginTop: 2 }}>12:45 PM</span>
+                </div>
+              </div>
+
+              {/* Bubble Buttons render */}
+              {selectedTemplate.buttons.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
+                  {selectedTemplate.buttons.map((btn, idx) => (
+                    <div 
+                      key={idx}
+                      style={{
+                        background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(4px)',
+                        padding: '8px 10px', borderRadius: 8, textAlign: 'center',
+                        fontSize: 11.5, fontWeight: 650, color: '#dc2626',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.06)', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                      }}
+                    >
+                      <MessageSquare size={12} />
+                      {btn.text}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <div style={{ marginTop: 20, display: 'flex', justifyContent: 'center' }}>
+              <button 
+                onClick={() => setSelectedTemplate(null)}
+                style={{ padding: '10px 20px', fontSize: 13, fontWeight: 600, border: '1px solid #e5e7eb', background: '#fff', color: '#4b5563', borderRadius: 9, cursor: 'pointer' }}
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(12px); }

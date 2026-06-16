@@ -274,6 +274,10 @@ export default function AgentsPage() {
     localStorage.setItem('autoflow_team_members', JSON.stringify(updated));
     setSelectedTeamMember(newMember);
     setShowAddTeam(false);
+    
+    // Simulate sending email invitation
+    alert(`An invitation email has been successfully sent to ${addEmail}. The user can click the link in the email to join your workspace.`);
+
     setAddName('');
     setAddEmail('');
     setAddRole('Agent');
