@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Search, Send, MessageSquare, Loader2, ChevronDown, Check, Paperclip, FileText, Image as ImageIcon, File, Eye, ArrowLeft } from 'lucide-react';
+import { Search, Send, MessageSquare, Loader2, ChevronDown, Check, Paperclip, FileText, Image as ImageIcon, File, Eye, ArrowLeft, UserCheck, Bot, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { useNiche } from '@/context/NicheContext';
 
@@ -277,6 +277,40 @@ function ConversationsInner() {
     setSending(false);
   };
 
+  // ── Handoff actions ──────────────────────────────────────────────────
+  const handleTakeOver = async () => {
+    if (!selected) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from('conversations').update({
+      status: 'open',
+      assigned_to: user?.id ?? null,
+      assigned_at: new Date().toISOString(),
+    }).eq('id', selected.id);
+    setSelectedState(prev => prev ? { ...prev, status: 'open', assigned_to: user?.id } : prev);
+    setConversations(prev => prev.map(c => c.id === selected.id ? { ...c, status: 'open', assigned_to: user?.id } : c));
+  };
+
+  const handleHandBackToAI = async () => {
+    if (!selected) return;
+    await supabase.from('conversations').update({
+      status: 'open',
+      assigned_to: null,
+      assigned_at: null,
+    }).eq('id', selected.id);
+    setSelectedState(prev => prev ? { ...prev, status: 'open', assigned_to: null } : prev);
+    setConversations(prev => prev.map(c => c.id === selected.id ? { ...c, status: 'open', assigned_to: null } : c));
+  };
+
+  const handleResolve = async () => {
+    if (!selected) return;
+    await supabase.from('conversations').update({
+      status: 'resolved',
+      assigned_to: null,
+    }).eq('id', selected.id);
+    setSelectedState(prev => prev ? { ...prev, status: 'resolved' } : prev);
+    setConversations(prev => prev.map(c => c.id === selected.id ? { ...c, status: 'resolved' } : c));
+  };
+
   const triggerFileInput = () => {
     fileInputRef.current?.click();
   };
@@ -447,18 +481,18 @@ function ConversationsInner() {
             ) : filtered.map(c => {
               const isSelected = selected?.id === c.id;
               const p = PLATFORM[c.platform];
+              const isPending = c.status === 'pending';
               return (
                 <div key={c.id} onClick={() => setSelected(c)} style={{
                   padding: '11px 14px', cursor: 'pointer',
                   borderBottom: '1px solid rgba(220,38,38,0.05)',
-                  background: isSelected ? '#fef2f2' : 'transparent',
-                  borderLeft: isSelected ? '3px solid #dc2626' : '3px solid transparent',
+                  background: isSelected ? '#fef2f2' : isPending ? '#fffbeb' : 'transparent',
+                  borderLeft: isSelected ? '3px solid #dc2626' : isPending ? '3px solid #f59e0b' : '3px solid transparent',
                   transition: 'background 0.15s',
                 }}>
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                     <div style={{ position: 'relative', flexShrink: 0 }}>
                       <Avatar name={c.customer_name || '?'} size={38} />
-                      {/* Official platform icon dot */}
                       <span style={{
                         position: 'absolute', bottom: -1, right: -1,
                         width: 17, height: 17, borderRadius: '50%',
@@ -471,10 +505,13 @@ function ConversationsInner() {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: isPending ? '#92400e' : '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {c.customer_name || c.external_conversation_id}
                         </div>
-                        {c.unread_count > 0 && (
+                        {isPending && (
+                          <span style={{ fontSize: 9, fontWeight: 700, background: '#f59e0b', color: '#fff', borderRadius: 8, padding: '1px 5px', whiteSpace: 'nowrap' }}>NEEDS AGENT</span>
+                        )}
+                        {!isPending && c.unread_count > 0 && (
                           <div style={{
                             background: '#25d366', color: '#fff',
                             minWidth: 18, height: 18, borderRadius: 10,
@@ -485,8 +522,8 @@ function ConversationsInner() {
                           </div>
                         )}
                       </div>
-                      <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
-                        {p?.label ?? c.platform}
+                      <div style={{ fontSize: 11, color: isPending ? '#d97706' : '#9ca3af', marginTop: 2 }}>
+                        {isPending ? '⚠️ Human handoff requested' : (p?.label ?? c.platform)}
                       </div>
                     </div>
                   </div>
@@ -503,26 +540,71 @@ function ConversationsInner() {
             flexDirection: 'column', background: '#faf9f9', minWidth: 0,
           }}>
             {/* Chat header */}
-            <div style={{ padding: '10px 14px', background: '#fff', borderBottom: '1px solid rgba(220,38,38,0.08)', display: 'flex', alignItems: 'center', gap: 10 }}>
-              {/* Back button on mobile */}
+            <div style={{ padding: '10px 14px', background: '#fff', borderBottom: '1px solid rgba(220,38,38,0.08)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               {isMobile && (
-                <button
-                  onClick={() => setMobileView('list')}
-                  style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    color: '#dc2626', padding: '4px 2px', display: 'flex', alignItems: 'center',
-                    flexShrink: 0,
-                  }}
-                >
+                <button onClick={() => setMobileView('list')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', padding: '4px 2px', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
                   <ArrowLeft size={20} />
                 </button>
               )}
               <Avatar name={selected.customer_name || '?'} size={34} />
-              <div>
+              <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{selected.customer_name || selected.external_conversation_id}</div>
-                <PlatformBadge platform={selected.platform} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                  <PlatformBadge platform={selected.platform} />
+                  {selected.status === 'pending' && (
+                    <span style={{ fontSize: 10, fontWeight: 700, background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', borderRadius: 8, padding: '1px 7px' }}>⚠️ Awaiting Human Agent</span>
+                  )}
+                  {selected.status === 'resolved' && (
+                    <span style={{ fontSize: 10, fontWeight: 700, background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', borderRadius: 8, padding: '1px 7px' }}>✅ Resolved</span>
+                  )}
+                </div>
+              </div>
+              {/* Handoff action buttons */}
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                {selected.status === 'pending' && (
+                  <button onClick={handleTakeOver} style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                    background: '#dc2626', color: '#fff', fontSize: 12, fontWeight: 700,
+                    transition: 'opacity 0.15s',
+                  }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.85'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
+                    <UserCheck size={13} /> Take Over
+                  </button>
+                )}
+                {(selected.status === 'open' || !selected.status) && selected.assigned_to && (
+                  <button onClick={handleHandBackToAI} style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(220,38,38,0.2)', cursor: 'pointer',
+                    background: '#fef2f2', color: '#dc2626', fontSize: 12, fontWeight: 700,
+                  }}>
+                    <Bot size={13} /> Hand Back to AI
+                  </button>
+                )}
+                {selected.status !== 'resolved' && (
+                  <button onClick={handleResolve} style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(22,163,74,0.25)', cursor: 'pointer',
+                    background: '#f0fdf4', color: '#16a34a', fontSize: 12, fontWeight: 700,
+                  }}>
+                    <CheckCircle2 size={13} /> Resolve
+                  </button>
+                )}
               </div>
             </div>
+            {/* Pending handoff banner */}
+            {selected.status === 'pending' && (
+              <div style={{
+                padding: '10px 16px', background: '#fffbeb',
+                borderBottom: '1px solid #fcd34d',
+                display: 'flex', alignItems: 'center', gap: 10,
+              }}>
+                <AlertTriangle size={16} color="#d97706" />
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: '#92400e' }}>Human handoff requested — AI has stopped replying. </span>
+                  <span style={{ fontSize: 12, color: '#b45309' }}>Click <strong>Take Over</strong> to handle this conversation manually, or <strong>Hand Back to AI</strong> to resume AI replies.</span>
+                </div>
+              </div>
+            )}
 
             {/* Messages */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
