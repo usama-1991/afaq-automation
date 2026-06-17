@@ -286,8 +286,8 @@ function ConversationsInner() {
       assigned_to: user?.id ?? null,
       assigned_at: new Date().toISOString(),
     }).eq('id', selected.id);
-    setSelectedState(prev => prev ? { ...prev, status: 'open', assigned_to: user?.id } : prev);
-    setConversations(prev => prev.map(c => c.id === selected.id ? { ...c, status: 'open', assigned_to: user?.id } : c));
+    setSelectedState((prev: any) => prev ? { ...prev, status: 'open', assigned_to: user?.id } : prev);
+    setConversations((prev: any[]) => prev.map((c: any) => c.id === selected.id ? { ...c, status: 'open', assigned_to: user?.id } : c));
   };
 
   const handleHandBackToAI = async () => {
@@ -297,8 +297,8 @@ function ConversationsInner() {
       assigned_to: null,
       assigned_at: null,
     }).eq('id', selected.id);
-    setSelectedState(prev => prev ? { ...prev, status: 'open', assigned_to: null } : prev);
-    setConversations(prev => prev.map(c => c.id === selected.id ? { ...c, status: 'open', assigned_to: null } : c));
+    setSelectedState((prev: any) => prev ? { ...prev, status: 'open', assigned_to: null } : prev);
+    setConversations((prev: any[]) => prev.map((c: any) => c.id === selected.id ? { ...c, status: 'open', assigned_to: null } : c));
   };
 
   const handleResolve = async () => {
@@ -307,8 +307,8 @@ function ConversationsInner() {
       status: 'resolved',
       assigned_to: null,
     }).eq('id', selected.id);
-    setSelectedState(prev => prev ? { ...prev, status: 'resolved' } : prev);
-    setConversations(prev => prev.map(c => c.id === selected.id ? { ...c, status: 'resolved' } : c));
+    setSelectedState((prev: any) => prev ? { ...prev, status: 'resolved' } : prev);
+    setConversations((prev: any[]) => prev.map((c: any) => c.id === selected.id ? { ...c, status: 'resolved' } : c));
   };
 
   const triggerFileInput = () => {
