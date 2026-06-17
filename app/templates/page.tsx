@@ -221,7 +221,7 @@ export default function TemplatesPage() {
                       <td style={{ padding: '16px 24px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                           <button 
-                            onClick={() => { setSelectedTemplate(tpl); setShowCreate(false); }}
+                            onClick={() => { setSelectedTemplate(tpl); }}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
                             title="View Template"
                           >
