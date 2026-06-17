@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
-  Plus, Search, FileText, Check, Clock, AlertTriangle, 
-  Trash2, Copy, Send, Eye, X, Edit, MessageSquare, Sparkles 
+  Plus, Search, FileText, Trash2, Eye, X, MessageSquare, Sparkles 
 } from 'lucide-react';
 
 interface Template {
@@ -42,24 +42,12 @@ const mapDbToTemplate = (dbTpl: any): Template => {
 };
 
 export default function TemplatesPage() {
+  const router = useRouter();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
-  
-  // Create template modal state
-  const [showCreate, setShowCreate] = useState(false);
-  const [tplName, setTplName] = useState('');
-  const [tplCategory, setTplCategory] = useState<'Marketing' | 'Utility' | 'Authentication'>('Marketing');
-  const [tplHeaderType, setTplHeaderType] = useState<'None' | 'Text' | 'Image' | 'Document'>('None');
-  const [tplHeaderText, setTplHeaderText] = useState('');
-  const [tplBodyText, setTplBodyText] = useState('');
-  const [tplFooterText, setTplFooterText] = useState('');
-  const [buttonCount, setButtonCount] = useState<number>(0);
-  const [button1Text, setButton1Text] = useState('');
-  const [button1Type, setButton1Type] = useState<'QUICK_REPLY' | 'URL'>('QUICK_REPLY');
-  const [button1Val, setButton1Val] = useState('');
   const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
@@ -82,62 +70,6 @@ export default function TemplatesPage() {
     fetchTemplates();
   }, []);
 
-  const handleCreateTemplate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!tplName || !tplBodyText) return;
-
-    // Format buttons
-    const buttonsArray: any[] = [];
-    if (buttonCount > 0 && button1Text) {
-      buttonsArray.push({
-        type: button1Type,
-        text: button1Text,
-        urlOrPhone: button1Type === 'URL' ? button1Val : undefined
-      });
-    }
-
-    try {
-      const res = await fetch('/api/templates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: tplName,
-          category: tplCategory,
-          header_type: tplHeaderType,
-          header_text: tplHeaderText,
-          body_text: tplBodyText,
-          footer_text: tplFooterText,
-          buttons: buttonsArray
-        })
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const newTpl = mapDbToTemplate(data.template);
-        const updated = [newTpl, ...templates];
-        setTemplates(updated);
-        setSelectedTemplate(newTpl);
-        setShowCreate(false);
-        
-        // Reset Form
-        setTplName('');
-        setTplCategory('Marketing');
-        setTplHeaderType('None');
-        setTplHeaderText('');
-        setTplBodyText('');
-        setTplFooterText('');
-        setButtonCount(0);
-        setButton1Text('');
-        setButton1Val('');
-      } else {
-        const err = await res.json();
-        alert(`Failed to submit template: ${err.error || 'Unknown error'}`);
-      }
-    } catch (e) {
-      console.error(e);
-      alert('Network error submitting template');
-    }
-  };
 
   const handleDeleteTemplate = async (id: string) => {
     if (!confirm('Are you sure you want to delete this template?')) return;
@@ -187,7 +119,7 @@ export default function TemplatesPage() {
         </div>
 
         <button 
-          onClick={() => { setSelectedTemplate(null); setShowCreate(true); }}
+          onClick={() => router.push('/templates/new')}
           style={{
             padding: '10px 18px', fontSize: 13, fontWeight: 700,
             background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff',
@@ -320,181 +252,8 @@ export default function TemplatesPage() {
         </div>
       </div>
 
-      {/* ── CREATE TEMPLATE SLIDE-OVER / MODAL ── */}
-      {showCreate && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 9999
-        }}>
-          <div className="template-modal-box" style={{
-            background: '#fff', width: 560, borderRadius: 16,
-            padding: '24px 28px', border: '1px solid rgba(220,38,38,0.1)',
-            boxShadow: '0 15px 45px rgba(0,0,0,0.2)',
-            animation: 'fadeUp 0.15s ease-out'
-          }}>
-            {/* Modal Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 800, color: '#111827', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Sparkles size={18} color="#dc2626" />
-                Submit New Meta Message Template
-              </h3>
-              <button onClick={() => setShowCreate(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-                <X size={18} color="#6b7280" />
-              </button>
-            </div>
-
-            {/* Form */}
-            <form onSubmit={handleCreateTemplate} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              
-              <div className="template-modal-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Template Name</label>
-                  <input 
-                    type="text" required placeholder="e.g. order_completed_otp"
-                    value={tplName} onChange={e => setTplName(e.target.value)}
-                    style={{ width: '100%', padding: '9px 12px', fontSize: 12.5, border: '1.5px solid rgba(220,38,38,0.1)', borderRadius: 8, outline: 'none' }}
-                  />
-                  <span style={{ fontSize: 9.5, color: '#9ca3af', marginTop: 3, display: 'block' }}>Use lowercase and underscores only</span>
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Category</label>
-                  <select 
-                    value={tplCategory} onChange={e => setTplCategory(e.target.value as any)}
-                    style={{ width: '100%', padding: '9px 12px', fontSize: 12.5, border: '1.5px solid rgba(220,38,38,0.1)', borderRadius: 8, outline: 'none', background: '#fff' }}
-                  >
-                    <option>Marketing</option>
-                    <option>Utility</option>
-                    <option>Authentication</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Header Type</label>
-                  <select 
-                    value={tplHeaderType} onChange={e => setTplHeaderType(e.target.value as any)}
-                    style={{ width: '100%', padding: '9px 12px', fontSize: 12.5, border: '1.5px solid rgba(220,38,38,0.1)', borderRadius: 8, outline: 'none', background: '#fff' }}
-                  >
-                    <option>None</option>
-                    <option>Text</option>
-                    <option>Image</option>
-                    <option>Document</option>
-                  </select>
-                </div>
-                
-                {tplHeaderType === 'Text' && (
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Header Text</label>
-                    <input 
-                      type="text" required placeholder="e.g. Action Required"
-                      value={tplHeaderText} onChange={e => setTplHeaderText(e.target.value)}
-                      style={{ width: '100%', padding: '9px 12px', fontSize: 12.5, border: '1.5px solid rgba(220,38,38,0.1)', borderRadius: 8, outline: 'none' }}
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>Template Body Text</label>
-                  <span style={{ fontSize: 10, color: '#9ca3af' }}>Use {"{{1}}"}, {"{{2}}"} for dynamic parameters</span>
-                </div>
-                <textarea 
-                  required rows={4} 
-                  placeholder="e.g. Hello {{1}}, your booking for {{2}} is confirmed!"
-                  value={tplBodyText} onChange={e => setTplBodyText(e.target.value)}
-                  style={{ width: '100%', padding: '10px 12px', fontSize: 12.5, border: '1.5px solid rgba(220,38,38,0.1)', borderRadius: 8, outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Footer Text (Optional)</label>
-                  <input 
-                    type="text" placeholder="e.g. Marketing Dept."
-                    value={tplFooterText} onChange={e => setTplFooterText(e.target.value)}
-                    style={{ width: '100%', padding: '9px 12px', fontSize: 12.5, border: '1.5px solid rgba(220,38,38,0.1)', borderRadius: 8, outline: 'none' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Call To Action Buttons</label>
-                  <select 
-                    value={buttonCount} onChange={e => setButtonCount(Number(e.target.value))}
-                    style={{ width: '100%', padding: '9px 12px', fontSize: 12.5, border: '1.5px solid rgba(220,38,38,0.1)', borderRadius: 8, outline: 'none', background: '#fff' }}
-                  >
-                    <option value={0}>No Buttons</option>
-                    <option value={1}>1 CTA / Quick Reply Button</option>
-                  </select>
-                </div>
-              </div>
-
-              {buttonCount > 0 && (
-                <div className="template-btn-config-grid" style={{ 
-                  background: '#fdfcfc', padding: '12px 14px', borderRadius: 8, 
-                  border: '1px dashed rgba(220,38,38,0.15)', display: 'grid', 
-                  gridTemplateColumns: '130px 140px 1fr', gap: 10 
-                }}>
-                  <div>
-                    <label style={{ fontSize: 11, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>Button Type</label>
-                    <select 
-                      value={button1Type} onChange={e => setButton1Type(e.target.value as any)}
-                      style={{ width: '100%', padding: '6px 8px', fontSize: 11.5, border: '1.5px solid rgba(220,38,38,0.1)', borderRadius: 6, outline: 'none', background: '#fff' }}
-                    >
-                      <option value="QUICK_REPLY">Quick Reply</option>
-                      <option value="URL">CTA (Link URL)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ fontSize: 11, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>Button Text</label>
-                    <input 
-                      type="text" required placeholder="e.g. Chat with Us"
-                      value={button1Text} onChange={e => setButton1Text(e.target.value)}
-                      style={{ width: '100%', padding: '6px 8px', fontSize: 11.5, border: '1.5px solid rgba(220,38,38,0.1)', borderRadius: 6, outline: 'none' }}
-                    />
-                  </div>
-                  {button1Type === 'URL' && (
-                    <div>
-                      <label style={{ fontSize: 11, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>Destination URL</label>
-                      <input 
-                        type="url" required placeholder="https://autoflow.ai/..."
-                        value={button1Val} onChange={e => setButton1Val(e.target.value)}
-                        style={{ width: '100%', padding: '6px 8px', fontSize: 11.5, border: '1.5px solid rgba(220,38,38,0.1)', borderRadius: 6, outline: 'none' }}
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}>
-                <button 
-                  type="button" 
-                  onClick={() => setShowCreate(false)}
-                  style={{ padding: '10px 20px', fontSize: 13, fontWeight: 600, border: '1px solid #e5e7eb', background: '#fff', color: '#4b5563', borderRadius: 9, cursor: 'pointer' }}
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  style={{ 
-                    padding: '10px 24px', fontSize: 13, fontWeight: 700, 
-                    background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff', 
-                    border: 'none', borderRadius: 9, cursor: 'pointer', 
-                    boxShadow: '0 3px 10px rgba(220,38,38,0.2)' 
-                  }}
-                >
-                  Submit for Approval
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* ── VIEW PREVIEW MODAL ── */}
-      {selectedTemplate && !showCreate && (
+      {selectedTemplate && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
