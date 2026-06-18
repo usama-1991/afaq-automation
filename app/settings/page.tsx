@@ -138,6 +138,8 @@ function SettingsInner() {
   const [listingsLoading, setListingsLoading] = useState(false);
   const [listingForm, setListingForm] = useState({ id: '', title: '', area: '', type: 'flat', bedrooms: '2', price: '', description: '', status: 'available', photos_urls: [] as string[] });
   const [isEditingListing, setIsEditingListing] = useState(false);
+  const [pendingNicheChange, setPendingNicheChange] = useState<string | null>(null);
+  const [isChangingNiche, setIsChangingNiche] = useState(false);
 
   useEffect(() => {
     const t = searchParams.get('tab');
@@ -464,7 +466,42 @@ function SettingsInner() {
     setTimeout(() => setSaved(false), 2000); 
   };
   
-  const handleNicheChange = (id: string) => setNicheId(id);
+  const handleNicheChange = (id: string) => {
+    if (id === niche.id) return;
+    setPendingNicheChange(id);
+  };
+
+  const confirmNicheChange = async () => {
+    if (!pendingNicheChange || !tenantIdState) return;
+    setIsChangingNiche(true);
+    
+    try {
+      // 1. Delete old data to prevent mixing (Destructive reset)
+      await Promise.all([
+        supabase.from('orders').delete().eq('tenant_id', tenantIdState),
+        supabase.from('appointments').delete().eq('tenant_id', tenantIdState),
+        supabase.from('leads').delete().eq('tenant_id', tenantIdState),
+        supabase.from('knowledge_base').delete().eq('tenant_id', tenantIdState),
+        supabase.from('listings').delete().eq('tenant_id', tenantIdState)
+      ]);
+
+      // 2. Update niche in tenants table
+      await supabase.from('tenants').update({ niche: pendingNicheChange }).eq('id', tenantIdState);
+
+      // 3. Reset local context
+      setNicheId(pendingNicheChange);
+      setOnboarded(false);
+      
+      // 4. Redirect to onboarding
+      window.location.href = '/onboarding';
+    } catch (err) {
+      console.error('Error changing niche:', err);
+      alert('Failed to change business niche. Please try again.');
+      setIsChangingNiche(false);
+      setPendingNicheChange(null);
+    }
+  };
+
   const handleReset = () => { 
     setOnboarded(false); 
     window.location.href = '/onboarding'; 
@@ -1508,6 +1545,61 @@ function SettingsInner() {
         >
           {saved ? <><Check size={15} strokeWidth={3} /> Changes Saved</> : 'Save Changes'}
         </button>
+      )}
+
+      {/* ── NICHE CHANGE DESTRUCTIVE WARNING MODAL ── */}
+      {pendingNicheChange && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{
+            background: '#fff', width: 440, borderRadius: 16,
+            padding: '28px', border: '1px solid rgba(220,38,38,0.1)',
+            boxShadow: '0 15px 45px rgba(0,0,0,0.2)',
+            animation: 'fadeUp 0.15s ease-out'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: '#fef2f2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <AlertCircle size={20} />
+              </div>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#111827', margin: 0 }}>Change Business Type?</h3>
+            </div>
+            
+            <p style={{ fontSize: 13.5, color: '#4b5563', lineHeight: 1.5, marginBottom: 12 }}>
+              You are about to switch your business niche to <strong>{niches.find(n => n.id === pendingNicheChange)?.label}</strong>.
+            </p>
+            <div style={{ background: '#fef2f2', padding: 12, borderRadius: 8, border: '1px solid #fecaca', marginBottom: 24 }}>
+              <p style={{ fontSize: 13, color: '#991b1b', margin: 0, lineHeight: 1.5 }}>
+                <strong>Warning:</strong> This is a destructive action. Proceeding will permanently delete all your existing orders, appointments, leads, property listings, and AI knowledge base data. You will be redirected to the onboarding wizard.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => setPendingNicheChange(null)}
+                disabled={isChangingNiche}
+                style={{ padding: '10px 18px', fontSize: 13, fontWeight: 600, border: '1px solid #e5e7eb', background: '#fff', color: '#4b5563', borderRadius: 9, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmNicheChange}
+                disabled={isChangingNiche}
+                style={{ 
+                  padding: '10px 20px', fontSize: 13, fontWeight: 700, 
+                  background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff', 
+                  border: 'none', borderRadius: 9, cursor: isChangingNiche ? 'wait' : 'pointer', 
+                  display: 'flex', alignItems: 'center', gap: 6, opacity: isChangingNiche ? 0.7 : 1
+                }}
+              >
+                {isChangingNiche ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Processing...</> : 'Yes, Delete & Switch'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
