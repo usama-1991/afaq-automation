@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useNiche } from '@/context/NicheContext';
 import { 
-  Search, Loader2, Download, 
-  ShoppingBag, Calendar, Home, UtensilsCrossed, 
-  Phone, Clock, CheckCircle2, Truck, XCircle, ChevronRight, Check
+  Search, Loader2, Download, Filter, FileSpreadsheet, X,
+  ShoppingBag, Calendar, Home, UtensilsCrossed, Check,
+  Phone, Clock, CheckCircle2, Truck, XCircle, MoreVertical, MapPin, DollarSign, Activity
 } from 'lucide-react';
 
 export default function OrdersPage() {
@@ -15,7 +15,7 @@ export default function OrdersPage() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState<any | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const isRestaurant = niche.id === 'restaurant';
@@ -58,9 +58,6 @@ export default function OrdersPage() {
 
         if (!error && records) {
           setData(records);
-          if (records.length > 0 && !selected) {
-            setSelected(records[0]);
-          }
         }
       } catch (err) {
         console.error(err);
@@ -78,11 +75,11 @@ export default function OrdersPage() {
         }
         if (payload.eventType === 'UPDATE') {
           setData(prev => prev.map(o => o.id === payload.new.id ? payload.new : o));
-          setSelected((prev: any) => prev?.id === payload.new.id ? payload.new : prev);
+          setSelectedRecord((prev: any) => prev?.id === payload.new.id ? payload.new : prev);
         }
         if (payload.eventType === 'DELETE') {
           setData(prev => prev.filter(o => o.id !== payload.old.id));
-          setSelected((prev: any) => prev?.id === payload.old.id ? null : prev);
+          setSelectedRecord((prev: any) => prev?.id === payload.old.id ? null : prev);
         }
       })
       .subscribe();
@@ -121,6 +118,67 @@ export default function OrdersPage() {
     }
   };
 
+  const downloadCSV = () => {
+    if (data.length === 0) {
+      alert("No data available to download.");
+      return;
+    }
+    
+    let headers: string[] = [];
+    let csvData: string[][] = [];
+
+    if (tableName === 'orders') {
+      headers = ['Order ID', 'Date', 'Customer Name', 'Phone', 'Amount (PKR)', 'Status', 'Order Type', 'Delivery Address', 'Items'];
+      csvData = filtered.map(item => [
+        item.id,
+        new Date(item.created_at).toLocaleString(),
+        `"${(item.customer_name || '').replace(/"/g, '""')}"`,
+        `"${item.customer_phone || ''}"`,
+        item.order_amount || 0,
+        item.status || 'pending',
+        item.order_type || 'N/A',
+        `"${(item.delivery_address || '').replace(/"/g, '""')}"`,
+        `"${(Array.isArray(item.items) ? item.items.map((i:any) => `${i.qty||1}x ${i.name||i.title||'Item'}`).join(', ') : '')}"`
+      ]);
+    } else if (tableName === 'appointments') {
+      headers = ['Appointment ID', 'Date Created', 'Patient Name', 'Phone', 'Service Type', 'Doctor', 'Appointment Date', 'Time', 'Status'];
+      csvData = filtered.map(item => [
+        item.id,
+        new Date(item.created_at).toLocaleString(),
+        `"${(item.patient_name || '').replace(/"/g, '""')}"`,
+        `"${item.patient_phone || ''}"`,
+        `"${(item.service_type || '').replace(/"/g, '""')}"`,
+        `"${(item.doctor_name || '').replace(/"/g, '""')}"`,
+        item.appointment_date || '',
+        item.appointment_time || '',
+        item.status || 'pending'
+      ]);
+    } else if (tableName === 'leads') {
+      headers = ['Lead ID', 'Date', 'Name', 'Phone', 'Intent', 'Property Type', 'Budget', 'Area', 'Stage'];
+      csvData = filtered.map(item => [
+        item.id,
+        new Date(item.created_at).toLocaleString(),
+        `"${(item.customer_name || '').replace(/"/g, '""')}"`,
+        `"${item.customer_phone || ''}"`,
+        item.intent || '',
+        item.property_type || '',
+        `${item.budget_min||0}-${item.budget_max||'Any'}`,
+        `"${(item.area_preference || '').replace(/"/g, '""')}"`,
+        item.stage || 'new_inquiry'
+      ]);
+    }
+
+    const csvContent = [headers.join(','), ...csvData.map(row => row.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${tableName}_export_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const getStatusColor = (status: string) => {
     const s = (status || '').toLowerCase();
     if (['pending', 'pending_address', 'new_inquiry'].includes(s)) return { bg: '#fef3c7', text: '#92400e', border: '#fcd34d' };
@@ -137,13 +195,6 @@ export default function OrdersPage() {
     return name.includes(term) || phone.includes(term);
   });
 
-  const renderIcon = () => {
-    if (isRestaurant) return <UtensilsCrossed size={14} />;
-    if (isAppointment) return <Calendar size={14} />;
-    if (isRealEstate) return <Home size={14} />;
-    return <ShoppingBag size={14} />;
-  };
-
   const renderTitle = () => {
     if (isRestaurant) return 'Restaurant Orders';
     if (isEcommerce) return 'Store Orders';
@@ -152,6 +203,24 @@ export default function OrdersPage() {
     return 'Transactions';
   };
 
+  const getMetrics = () => {
+    const total = data.length;
+    let pending = 0;
+    let revenue = 0;
+    
+    data.forEach(item => {
+      const status = (item.status || item.stage || '').toLowerCase();
+      if (['pending', 'pending_address', 'new_inquiry'].includes(status)) pending++;
+      if (tableName === 'orders' && !['cancelled'].includes(status)) {
+        revenue += (Number(item.order_amount) || 0);
+      }
+    });
+
+    return { total, pending, revenue };
+  };
+
+  const metrics = getMetrics();
+
   const ActionButton = ({ onClick, loadingVal, text, icon: Icon, variant = 'primary' }: any) => {
     const isDanger = variant === 'danger';
     return (
@@ -159,14 +228,14 @@ export default function OrdersPage() {
         onClick={onClick}
         disabled={!!actionLoading}
         style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-          background: isDanger ? '#fee2e2' : '#dc2626',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+          background: isDanger ? '#fff' : '#dc2626',
           color: isDanger ? '#dc2626' : '#fff',
-          border: isDanger ? '1px solid #fca5a5' : '1px solid #b91c1c',
+          border: isDanger ? '1px solid #fecaca' : '1px solid #b91c1c',
           cursor: actionLoading ? 'not-allowed' : 'pointer',
           opacity: actionLoading && actionLoading !== loadingVal ? 0.6 : 1,
-          transition: 'all 0.2s'
+          flex: 1, transition: 'all 0.2s', boxShadow: isDanger ? 'none' : '0 2px 8px rgba(220,38,38,0.2)'
         }}
       >
         {actionLoading === loadingVal ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : Icon && <Icon size={14} />}
@@ -175,40 +244,40 @@ export default function OrdersPage() {
     );
   };
 
-  const renderActionButtons = () => {
+  const renderActionButtons = (selected: any) => {
     if (!selected) return null;
     const status = selected.status || selected.stage || '';
     
     return (
-      <div style={{ display: 'flex', gap: 12, marginTop: 24, flexWrap: 'wrap', padding: '16px 20px', background: '#fff', borderRadius: 12, border: '1px solid #f3f4f6' }}>
-        <div style={{ width: '100%', fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Actions</div>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', width: '100%' }}>
         {tableName === 'orders' && isEcommerce && (
           <>
             {status === 'pending_address' && <ActionButton loadingVal="confirmed" onClick={() => handleStatusUpdate(selected.id, 'confirmed')} text="Confirm Order" icon={CheckCircle2} />}
+            {status === 'pending' && <ActionButton loadingVal="confirmed" onClick={() => handleStatusUpdate(selected.id, 'confirmed')} text="Confirm Order" icon={CheckCircle2} />}
             {status === 'confirmed' && <ActionButton loadingVal="dispatched" onClick={() => handleStatusUpdate(selected.id, 'dispatched')} text="Dispatch" icon={Truck} />}
             {status === 'dispatched' && <ActionButton loadingVal="delivered" onClick={() => handleStatusUpdate(selected.id, 'delivered')} text="Mark Delivered" icon={Check} />}
-            {status !== 'cancelled' && status !== 'delivered' && <ActionButton variant="danger" loadingVal="cancelled" onClick={() => handleStatusUpdate(selected.id, 'cancelled')} text="Cancel Order" icon={XCircle} />}
+            {status !== 'cancelled' && status !== 'delivered' && <ActionButton variant="danger" loadingVal="cancelled" onClick={() => handleStatusUpdate(selected.id, 'cancelled')} text="Cancel" icon={XCircle} />}
           </>
         )}
         {tableName === 'orders' && isRestaurant && (
           <>
-            {status === 'pending' && <ActionButton loadingVal="confirmed" onClick={() => handleStatusUpdate(selected.id, 'confirmed')} text="Confirm Order" icon={CheckCircle2} />}
-            {status === 'confirmed' && <ActionButton loadingVal="preparing" onClick={() => handleStatusUpdate(selected.id, 'preparing')} text="Start Preparing" icon={UtensilsCrossed} />}
-            {status === 'preparing' && <ActionButton loadingVal="delivered" onClick={() => handleStatusUpdate(selected.id, 'delivered')} text="Mark Delivered" icon={Check} />}
-            {status !== 'cancelled' && status !== 'delivered' && <ActionButton variant="danger" loadingVal="cancelled" onClick={() => handleStatusUpdate(selected.id, 'cancelled')} text="Cancel Order" icon={XCircle} />}
+            {status === 'pending' && <ActionButton loadingVal="confirmed" onClick={() => handleStatusUpdate(selected.id, 'confirmed')} text="Confirm" icon={CheckCircle2} />}
+            {status === 'confirmed' && <ActionButton loadingVal="preparing" onClick={() => handleStatusUpdate(selected.id, 'preparing')} text="Prepare" icon={UtensilsCrossed} />}
+            {status === 'preparing' && <ActionButton loadingVal="delivered" onClick={() => handleStatusUpdate(selected.id, 'delivered')} text="Delivered" icon={Check} />}
+            {status !== 'cancelled' && status !== 'delivered' && <ActionButton variant="danger" loadingVal="cancelled" onClick={() => handleStatusUpdate(selected.id, 'cancelled')} text="Cancel" icon={XCircle} />}
           </>
         )}
         {tableName === 'appointments' && (
           <>
-            {status === 'pending' && <ActionButton loadingVal="confirmed" onClick={() => handleStatusUpdate(selected.id, 'confirmed')} text="Confirm Appointment" icon={CheckCircle2} />}
-            {status === 'confirmed' && <ActionButton loadingVal="completed" onClick={() => handleStatusUpdate(selected.id, 'completed')} text="Mark Completed" icon={Check} />}
+            {status === 'pending' && <ActionButton loadingVal="confirmed" onClick={() => handleStatusUpdate(selected.id, 'confirmed')} text="Confirm Appt." icon={CheckCircle2} />}
+            {status === 'confirmed' && <ActionButton loadingVal="completed" onClick={() => handleStatusUpdate(selected.id, 'completed')} text="Completed" icon={Check} />}
             {status !== 'cancelled' && status !== 'completed' && <ActionButton variant="danger" loadingVal="cancelled" onClick={() => handleStatusUpdate(selected.id, 'cancelled')} text="Cancel" icon={XCircle} />}
           </>
         )}
         {tableName === 'leads' && (
           <>
-            {status === 'new_inquiry' && <ActionButton loadingVal="qualified" onClick={() => handleStatusUpdate(selected.id, 'qualified')} text="Mark Qualified" icon={CheckCircle2} />}
-            {status === 'qualified' && <ActionButton loadingVal="properties_sent" onClick={() => handleStatusUpdate(selected.id, 'properties_sent')} text="Properties Sent" icon={Home} />}
+            {status === 'new_inquiry' && <ActionButton loadingVal="qualified" onClick={() => handleStatusUpdate(selected.id, 'qualified')} text="Qualify Lead" icon={CheckCircle2} />}
+            {status === 'qualified' && <ActionButton loadingVal="properties_sent" onClick={() => handleStatusUpdate(selected.id, 'properties_sent')} text="Props Sent" icon={Home} />}
             {status === 'properties_sent' && <ActionButton loadingVal="visit_scheduled" onClick={() => handleStatusUpdate(selected.id, 'visit_scheduled')} text="Schedule Visit" icon={Calendar} />}
             {status === 'visit_scheduled' && <ActionButton loadingVal="closed_won" onClick={() => handleStatusUpdate(selected.id, 'closed_won')} text="Closed Won" icon={Check} />}
             {status !== 'closed_lost' && status !== 'closed_won' && <ActionButton variant="danger" loadingVal="closed_lost" onClick={() => handleStatusUpdate(selected.id, 'closed_lost')} text="Closed Lost" icon={XCircle} />}
@@ -219,188 +288,241 @@ export default function OrdersPage() {
   };
 
   return (
-    <div className="split-pane-root" style={{ display: 'flex', height: 'calc(100vh - 98px)' }}>
-      {/* Left Panel */}
-      <div className="split-left-panel" style={{ width: 340, background: '#fff', borderRight: '1px solid rgba(220,38,38,0.08)', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-        <div style={{ padding: '18px 16px 12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111827', display: 'flex', alignItems: 'center', gap: 6 }}>
-              {renderTitle()}
-            </h2>
-            <button style={{ width: 30, height: 30, borderRadius: 8, background: '#fef2f2', border: '1px solid rgba(220,38,38,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Download size={14} color="#dc2626" />
-            </button>
-          </div>
-          <div style={{ position: 'relative', marginBottom: 12 }}>
-            <Search size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or phone..." style={{ width: '100%', padding: '8px 10px 8px 28px', fontSize: 12.5, border: '1px solid rgba(220,38,38,0.15)', borderRadius: 8, background: '#fff5f5', color: '#111', outline: 'none' }} />
-          </div>
+    <div style={{ background: '#f9fafb', minHeight: 'calc(100vh - 98px)', padding: '32px' }}>
+      
+      {/* ── Page Header & Stats ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
+        <div>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#111827', margin: 0, letterSpacing: '-0.5px' }}>{renderTitle()}</h1>
+          <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>Manage, track, and update your {tableName.replace('_', ' ')}.</p>
         </div>
-
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          {loading ? (
-            <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af', display: 'flex', justifyContent: 'center' }}><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /></div>
-          ) : filtered.length === 0 ? (
-            <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af', fontSize: 12.5 }}>No records found</div>
-          ) : filtered.map(item => {
-            const name = item.customer_name || item.patient_name || 'Unknown';
-            const phone = item.customer_phone || item.patient_phone || 'No phone';
-            const status = item.status || item.stage || 'pending';
-            const color = getStatusColor(status);
-            
-            let primaryInfo = '';
-            if (isEcommerce) primaryInfo = `PKR ${item.order_amount || 0}`;
-            if (isRestaurant) primaryInfo = `PKR ${item.order_amount || 0} • ${item.order_type || 'Delivery'}`;
-            if (isAppointment) primaryInfo = `${item.service_type || 'Consultation'}`;
-            if (isRealEstate) primaryInfo = `${item.property_type || 'Property'} • ${item.intent || 'Buy'}`;
-
-            return (
-              <div key={item.id} onClick={() => setSelected(item)} style={{ padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid rgba(220,38,38,0.05)', background: selected?.id === item.id ? '#fef2f2' : 'transparent', borderLeft: selected?.id === item.id ? '3px solid #dc2626' : '3px solid transparent', transition: 'all 0.12s' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{name}</div>
-                  <span style={{ fontSize: 9.5, fontWeight: 600, padding: '2px 6px', borderRadius: 10, background: color.bg, color: color.text, border: `1px solid ${color.border}` }}>
-                    {(status).replace('_', ' ').toUpperCase()}
-                  </span>
-                </div>
-                <div style={{ fontSize: 11, color: '#4b5563', fontWeight: 500, marginBottom: 4 }}>{primaryInfo}</div>
-                <div style={{ fontSize: 10.5, color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 4 }}><Phone size={10} /> {phone}</div>
-              </div>
-            );
-          })}
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button onClick={downloadCSV} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', transition: 'all 0.15s' }}>
+            <FileSpreadsheet size={16} color="#10b981" /> Export CSV
+          </button>
         </div>
       </div>
 
-      {/* Right Panel */}
-      {selected ? (
-        <div className="split-right-panel" style={{ flex: 1, background: '#fafafa', overflowY: 'auto', padding: '24px 32px' }}>
-          <div style={{ background: '#fff', borderRadius: 16, border: '1px solid rgba(220,38,38,0.1)', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
-            <div style={{ padding: '24px 28px', borderBottom: '1px solid rgba(220,38,38,0.08)', background: 'linear-gradient(to right, #ffffff, #fef2f2)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 8, background: '#dc2626', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {renderIcon()}
-                    </div>
-                    <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', margin: 0 }}>
-                      {selected.customer_name || selected.patient_name || 'Record Details'}
-                    </h2>
-                  </div>
-                  <div style={{ fontSize: 13, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Phone size={12} /> {selected.customer_phone || selected.patient_phone}</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={12} /> {new Date(selected.created_at).toLocaleString()}</span>
-                  </div>
-                </div>
-                <div>
-                  <span style={{ fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 12, background: getStatusColor(selected.status || selected.stage).bg, color: getStatusColor(selected.status || selected.stage).text, border: `1px solid ${getStatusColor(selected.status || selected.stage).border}` }}>
-                    {(selected.status || selected.stage || 'PENDING').replace('_', ' ').toUpperCase()}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ padding: '24px 28px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-                <div style={{ background: '#fff', border: '1px solid #f3f4f6', borderRadius: 12, padding: 16 }}>
-                  <h3 style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Summary</h3>
-                  {(tableName === 'orders') && (
-                    <>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <span style={{ fontSize: 14, color: '#4b5563', fontWeight: 500 }}>Total Amount</span>
-                        <span style={{ fontSize: 18, color: '#dc2626', fontWeight: 800 }}>PKR {selected.order_amount || 0}</span>
-                      </div>
-                      {isRestaurant && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-                          <span style={{ color: '#6b7280' }}>Order Type</span>
-                          <span style={{ fontWeight: 600, color: '#111', textTransform: 'capitalize' }}>{selected.order_type || 'Delivery'}</span>
-                        </div>
-                      )}
-                      {selected.delivery_address && (
-                        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f3f4f6' }}>
-                          <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>Delivery Address</div>
-                          <div style={{ fontSize: 13, color: '#111', fontWeight: 500, lineHeight: 1.4 }}>{selected.delivery_address}</div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                  {tableName === 'appointments' && (
-                    <>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14 }}>
-                        <span style={{ color: '#6b7280' }}>Treatment</span>
-                        <span style={{ fontWeight: 600, color: '#111' }}>{selected.service_type || 'N/A'}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14 }}>
-                        <span style={{ color: '#6b7280' }}>Provider</span>
-                        <span style={{ fontWeight: 600, color: '#111' }}>{selected.doctor_name || 'N/A'}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-                        <span style={{ color: '#6b7280' }}>Date & Time</span>
-                        <span style={{ fontWeight: 600, color: '#111' }}>{selected.appointment_date} {selected.appointment_time}</span>
-                      </div>
-                    </>
-                  )}
-                  {tableName === 'leads' && (
-                    <>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14 }}>
-                        <span style={{ color: '#6b7280' }}>Intent</span>
-                        <span style={{ fontWeight: 600, color: '#111', textTransform: 'capitalize' }}>{selected.intent || 'N/A'}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14 }}>
-                        <span style={{ color: '#6b7280' }}>Property Type</span>
-                        <span style={{ fontWeight: 600, color: '#111', textTransform: 'capitalize' }}>{selected.property_type || 'N/A'}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-                        <span style={{ color: '#6b7280' }}>Budget Range</span>
-                        <span style={{ fontWeight: 600, color: '#111' }}>{selected.budget_min || 0} - {selected.budget_max || 'Any'}</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                <div style={{ background: '#fff', border: '1px solid #f3f4f6', borderRadius: 12, padding: 16 }}>
-                  <h3 style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
-                    {tableName === 'orders' ? 'Items' : 'Additional Details'}
-                  </h3>
-                  {tableName === 'orders' ? (
-                    <div>
-                      {Array.isArray(selected.items) && selected.items.length > 0 ? selected.items.map((item: any, idx: number) => (
-                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: idx !== selected.items.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
-                          <span style={{ fontSize: 13, color: '#374151', fontWeight: 500 }}>{item.qty || 1}x {item.name || item.title || 'Item'}</span>
-                          <span style={{ fontSize: 13, color: '#111', fontWeight: 600 }}>{item.price ? `PKR ${item.price}` : ''}</span>
-                        </div>
-                      )) : <div style={{ fontSize: 13, color: '#9ca3af', fontStyle: 'italic' }}>No items recorded.</div>}
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: 13, color: '#4b5563', lineHeight: 1.5 }}>
-                      {tableName === 'leads' && (
-                        <div>
-                          <strong>Area Preference:</strong> {selected.area_preference || 'Not specified'}<br/>
-                          <strong>Bedrooms:</strong> {selected.bedrooms || 'Any'}<br/>
-                          <strong>Temperature:</strong> <span style={{ textTransform: 'capitalize', color: selected.temperature === 'hot' ? '#ef4444' : selected.temperature === 'cold' ? '#3b82f6' : '#f59e0b', fontWeight: 600 }}>{selected.temperature || 'Warm'}</span>
-                        </div>
-                      )}
-                      {tableName === 'appointments' && (
-                        <div>
-                          <strong>New Patient:</strong> {selected.is_new_patient ? 'Yes' : 'No'}<br/>
-                          <strong>Notes:</strong> {selected.notes || 'No notes provided by AI.'}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {renderActionButtons()}
-            </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20, marginBottom: 32 }}>
+        <div style={{ background: '#fff', padding: '20px', borderRadius: 16, border: '1px solid #f3f4f6', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+            <div style={{ background: '#fef2f2', padding: 8, borderRadius: 10, color: '#dc2626' }}><ShoppingBag size={18} /></div>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#6b7280' }}>Total Records</span>
           </div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#111827' }}>{metrics.total}</div>
         </div>
-      ) : (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fafafa' }}>
-          <div style={{ textAlign: 'center', color: '#9ca3af' }}>
-            <ShoppingBag size={48} style={{ opacity: 0.2, marginBottom: 16 }} />
-            <div style={{ fontSize: 15, fontWeight: 500 }}>Select a record to view details</div>
+        <div style={{ background: '#fff', padding: '20px', borderRadius: 16, border: '1px solid #f3f4f6', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+            <div style={{ background: '#fffbeb', padding: 8, borderRadius: 10, color: '#d97706' }}><Clock size={18} /></div>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#6b7280' }}>Action Required</span>
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#111827' }}>{metrics.pending}</div>
+        </div>
+        {tableName === 'orders' && (
+          <div style={{ background: '#fff', padding: '20px', borderRadius: 16, border: '1px solid #f3f4f6', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+              <div style={{ background: '#f0fdf4', padding: 8, borderRadius: 10, color: '#16a34a' }}><DollarSign size={18} /></div>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#6b7280' }}>Estimated Revenue</span>
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#111827' }}>PKR {metrics.revenue.toLocaleString()}</div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Data Table Area ── */}
+      <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e5e7eb', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
+        
+        {/* Table Toolbar */}
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fafafa' }}>
+          <div style={{ position: 'relative', width: 320 }}>
+            <Search size={15} color="#9ca3af" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
+            <input 
+              value={search} 
+              onChange={e => setSearch(e.target.value)} 
+              placeholder="Search customers by name or phone..." 
+              style={{ width: '100%', padding: '10px 14px 10px 40px', fontSize: 13, border: '1.5px solid #e5e7eb', borderRadius: 10, outline: 'none', transition: 'border-color 0.2s' }} 
+              onFocus={e => e.currentTarget.style.borderColor = '#dc2626'}
+              onBlur={e => e.currentTarget.style.borderColor = '#e5e7eb'}
+            />
+          </div>
+          <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#4b5563', cursor: 'pointer' }}>
+            <Filter size={14} /> Filter
+          </button>
+        </div>
+
+        {/* Table */}
+        <div style={{ overflowX: 'auto', minHeight: 400 }}>
+          {loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300, color: '#9ca3af' }}>
+              <Loader2 size={28} style={{ animation: 'spin 1s linear infinite' }} />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: 300, color: '#9ca3af' }}>
+              <Search size={40} style={{ opacity: 0.2, marginBottom: 16 }} />
+              <div style={{ fontSize: 14, fontWeight: 500 }}>No records found matching your search.</div>
+            </div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ background: '#fff', borderBottom: '1px solid #e5e7eb' }}>
+                  <th style={{ padding: '16px 24px', fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Customer</th>
+                  <th style={{ padding: '16px 24px', fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{tableName === 'orders' ? 'Items' : 'Service/Intent'}</th>
+                  <th style={{ padding: '16px 24px', fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{tableName === 'orders' ? 'Amount' : (tableName === 'leads' ? 'Budget' : 'Date')}</th>
+                  <th style={{ padding: '16px 24px', fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Status</th>
+                  <th style={{ padding: '16px 24px', fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Received</th>
+                  <th style={{ padding: '16px 24px', width: 60 }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((item, idx) => {
+                  const name = item.customer_name || item.patient_name || 'Unknown';
+                  const phone = item.customer_phone || item.patient_phone || 'No phone';
+                  const status = item.status || item.stage || 'pending';
+                  const color = getStatusColor(status);
+                  
+                  let col2 = '';
+                  if (tableName === 'orders') {
+                    if (Array.isArray(item.items) && item.items.length > 0) {
+                      col2 = item.items.map((i:any) => `${i.qty||1}x ${i.name||i.title||'Item'}`).join(', ');
+                      if (col2.length > 35) col2 = col2.substring(0, 35) + '...';
+                    } else {
+                      col2 = 'No items listed';
+                    }
+                  } else if (tableName === 'appointments') {
+                    col2 = item.service_type || 'Consultation';
+                  } else {
+                    col2 = `${item.intent || 'Buy'} ${item.property_type || 'Property'}`;
+                  }
+
+                  let col3 = '';
+                  if (tableName === 'orders') col3 = `PKR ${item.order_amount || 0}`;
+                  else if (tableName === 'leads') col3 = `${item.budget_min||0} - ${item.budget_max||'Any'}`;
+                  else col3 = `${item.appointment_date || ''} ${item.appointment_time || ''}`;
+
+                  return (
+                    <tr 
+                      key={item.id} 
+                      onClick={() => setSelectedRecord(item)}
+                      style={{ borderBottom: '1px solid #f3f4f6', cursor: 'pointer', transition: 'background 0.15s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
+                      onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                    >
+                      <td style={{ padding: '16px 24px' }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 2 }}>{name}</div>
+                        <div style={{ fontSize: 12, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 4 }}><Phone size={11} /> {phone}</div>
+                      </td>
+                      <td style={{ padding: '16px 24px', fontSize: 13, color: '#4b5563', fontWeight: 500 }}>{col2}</td>
+                      <td style={{ padding: '16px 24px', fontSize: 13, color: '#111827', fontWeight: 600 }}>{col3}</td>
+                      <td style={{ padding: '16px 24px' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, background: color.bg, color: color.text, border: `1px solid ${color.border}`, display: 'inline-block', whiteSpace: 'nowrap' }}>
+                          {(status).replace(/_/g, ' ').toUpperCase()}
+                        </span>
+                      </td>
+                      <td style={{ padding: '16px 24px', fontSize: 12.5, color: '#6b7280' }}>
+                        {new Date(item.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
+                      </td>
+                      <td style={{ padding: '16px 24px' }}>
+                        <button style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer' }}><MoreVertical size={18} /></button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      {/* ── Slide-Over Detail Drawer ── */}
+      {selectedRecord && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, display: 'flex', justifyContent: 'flex-end', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)' }}>
+          <div 
+            style={{ width: '100%', maxWidth: 500, background: '#f9fafb', height: '100%', boxShadow: '-5px 0 25px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', animation: 'slideIn 0.25s ease-out' }}
+          >
+            {/* Drawer Header */}
+            <div style={{ padding: '24px 28px', background: '#fff', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: getStatusColor(selectedRecord.status || selectedRecord.stage).text, background: getStatusColor(selectedRecord.status || selectedRecord.stage).bg, padding: '4px 10px', borderRadius: 20, border: `1px solid ${getStatusColor(selectedRecord.status || selectedRecord.stage).border}`, display: 'inline-block', marginBottom: 12 }}>
+                  {(selectedRecord.status || selectedRecord.stage || 'PENDING').replace(/_/g, ' ').toUpperCase()}
+                </span>
+                <h2 style={{ fontSize: 22, fontWeight: 800, color: '#111827', margin: '0 0 6px 0' }}>
+                  {selectedRecord.customer_name || selectedRecord.patient_name || 'Record Details'}
+                </h2>
+                <div style={{ fontSize: 13, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Phone size={13} /> {selectedRecord.customer_phone || selectedRecord.patient_phone}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Clock size={13} /> {new Date(selectedRecord.created_at).toLocaleString()}</span>
+                </div>
+              </div>
+              <button onClick={() => setSelectedRecord(null)} style={{ background: '#f3f4f6', border: 'none', width: 32, height: 32, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#6b7280' }}>
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Drawer Body */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+              
+              {/* Bifurcated Content Cards */}
+              
+              {tableName === 'orders' && (
+                <>
+                  <div style={{ background: '#fff', borderRadius: 14, padding: 20, border: '1px solid #e5e7eb', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                      <ShoppingBag size={16} color="#dc2626" />
+                      <h3 style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>Order Summary</h3>
+                    </div>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px dashed #e5e7eb', marginBottom: 16 }}>
+                      <span style={{ fontSize: 14, color: '#4b5563' }}>Total Amount</span>
+                      <span style={{ fontSize: 20, fontWeight: 800, color: '#dc2626' }}>PKR {selectedRecord.order_amount || 0}</span>
+                    </div>
+
+                    <h4 style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Items Ordered</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {Array.isArray(selectedRecord.items) && selectedRecord.items.length > 0 ? selectedRecord.items.map((item: any, idx: number) => (
+                        <div key={idx} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                          <div style={{ background: '#fef2f2', color: '#dc2626', fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 6 }}>{item.qty || 1}x</div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 13.5, fontWeight: 600, color: '#1f2937', lineHeight: 1.3 }}>{item.name || item.title || 'Product Item'}</div>
+                            {item.price && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>PKR {item.price} each</div>}
+                          </div>
+                        </div>
+                      )) : (
+                        <div style={{ fontSize: 13, color: '#9ca3af', fontStyle: 'italic', padding: '10px 0' }}>No specific items parsed from chat.</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {selectedRecord.delivery_address && (
+                    <div style={{ background: '#fff', borderRadius: 14, padding: 20, border: '1px solid #e5e7eb', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                        <MapPin size={16} color="#dc2626" />
+                        <h3 style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>Delivery Details</h3>
+                      </div>
+                      <p style={{ fontSize: 13.5, color: '#374151', lineHeight: 1.6, margin: 0 }}>
+                        {selectedRecord.delivery_address}
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Action Banner Sticky Bottom */}
+            </div>
+            
+            <div style={{ padding: '20px 28px', background: '#fff', borderTop: '1px solid #e5e7eb' }}>
+              {renderActionButtons(selectedRecord)}
+            </div>
+
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes slideIn {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+      `}</style>
     </div>
   );
 }
