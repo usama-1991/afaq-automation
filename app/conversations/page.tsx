@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Search, Send, MessageSquare, Loader2, ChevronDown, Check, Paperclip, FileText, Image as ImageIcon, File, Eye, ArrowLeft, UserCheck, Bot, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Search, Send, MessageSquare, Loader2, ChevronDown, Check, Paperclip, FileText, Image as ImageIcon, File, Eye, ArrowLeft, UserCheck, Bot, CheckCircle2, AlertTriangle, UserPlus, X as XIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { useNiche } from '@/context/NicheContext';
 
@@ -185,6 +185,10 @@ function ConversationsInner() {
   const [loading, setLoading] = useState(true);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [activeQuickCategory, setActiveQuickCategory] = useState(0);
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [showAssignDropdown, setShowAssignDropdown] = useState(false);
+  const [assignLoading, setAssignLoading] = useState(false);
+  const assignRef = useRef<HTMLDivElement>(null);
   const { niche } = useNiche();
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -214,6 +218,36 @@ function ConversationsInner() {
     fetchConversations();
     const sub = supabase.channel('conversations_rt').on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, fetchConversations).subscribe();
     return () => { supabase.removeChannel(sub); };
+  }, []);
+
+  // Fetch team members (all users in the tenant)
+  useEffect(() => {
+    const fetchTeam = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data: profile } = await supabase.from('users').select('tenant_id').eq('id', user.id).single();
+        if (!profile?.tenant_id) return;
+        const { data: members } = await supabase
+          .from('users')
+          .select('id, full_name, email, role')
+          .eq('tenant_id', profile.tenant_id)
+          .order('full_name');
+        if (members) setTeamMembers(members);
+      } catch (e) { console.error('Error fetching team:', e); }
+    };
+    fetchTeam();
+  }, []);
+
+  // Close assign dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (assignRef.current && !assignRef.current.contains(e.target as Node)) {
+        setShowAssignDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
   // Auto-select conversation from URL param (deep-link from Contacts page)
@@ -278,6 +312,22 @@ function ConversationsInner() {
   };
 
   // ── Handoff actions ──────────────────────────────────────────────────
+  const handleAssign = async (memberId: string | null) => {
+    if (!selected) return;
+    setAssignLoading(true);
+    setShowAssignDropdown(false);
+    try {
+      await supabase.from('conversations').update({
+        status: memberId ? 'open' : 'open',
+        assigned_to: memberId,
+        assigned_at: memberId ? new Date().toISOString() : null,
+      }).eq('id', selected.id);
+      setSelectedState((prev: any) => prev ? { ...prev, assigned_to: memberId } : prev);
+      setConversations((prev: any[]) => prev.map((c: any) => c.id === selected.id ? { ...c, assigned_to: memberId } : c));
+    } catch (e) { console.error('Assign error:', e); }
+    setAssignLoading(false);
+  };
+
   const handleTakeOver = async () => {
     if (!selected) return;
     const { data: { user } } = await supabase.auth.getUser();
@@ -522,8 +572,16 @@ function ConversationsInner() {
                           </div>
                         )}
                       </div>
-                      <div style={{ fontSize: 11, color: isPending ? '#d97706' : '#9ca3af', marginTop: 2 }}>
+                      <div style={{ fontSize: 11, color: isPending ? '#d97706' : '#9ca3af', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}>
                         {isPending ? '⚠️ Human handoff requested' : (p?.label ?? c.platform)}
+                        {c.assigned_to && (() => {
+                          const agent = teamMembers.find(m => m.id === c.assigned_to);
+                          return agent ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: '#fef2f2', color: '#dc2626', borderRadius: 8, padding: '1px 6px', fontSize: 10, fontWeight: 700, border: '1px solid rgba(220,38,38,0.15)' }}>
+                              <UserCheck size={9} /> {(agent.full_name || agent.email || '').split(' ')[0]}
+                            </span>
+                          ) : null;
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -560,7 +618,111 @@ function ConversationsInner() {
                 </div>
               </div>
               {/* Handoff action buttons */}
-              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+
+                {/* ── Assigned-to badge ── */}
+                {selected.assigned_to && (() => {
+                  const agent = teamMembers.find(m => m.id === selected.assigned_to);
+                  return agent ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fef2f2', border: '1px solid rgba(220,38,38,0.2)', borderRadius: 20, padding: '4px 10px 4px 6px' }}>
+                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'linear-gradient(135deg,#dc2626,#ef4444)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
+                        {(agent.full_name || agent.email || '?').slice(0,2).toUpperCase()}
+                      </div>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, color: '#dc2626', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {agent.full_name || agent.email}
+                      </span>
+                      <button onClick={() => handleAssign(null)} title="Unassign" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', display: 'flex', padding: 0 }}>
+                        <XIcon size={12} />
+                      </button>
+                    </div>
+                  ) : null;
+                })()}
+
+                {/* ── Assign dropdown ── */}
+                {selected.status !== 'resolved' && (
+                  <div ref={assignRef} style={{ position: 'relative' }}>
+                    <button
+                      onClick={() => setShowAssignDropdown(o => !o)}
+                      disabled={assignLoading}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 5,
+                        padding: '6px 12px', borderRadius: 8,
+                        border: '1px solid rgba(220,38,38,0.2)', cursor: 'pointer',
+                        background: showAssignDropdown ? '#fef2f2' : '#fff',
+                        color: '#dc2626', fontSize: 12, fontWeight: 700,
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {assignLoading ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <UserPlus size={12} />}
+                      Assign
+                      <ChevronDown size={11} style={{ transform: showAssignDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+                    </button>
+
+                    {showAssignDropdown && (
+                      <div style={{
+                        position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 300,
+                        background: '#fff', borderRadius: 12, width: 220,
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.13)', border: '1px solid rgba(220,38,38,0.1)',
+                        overflow: 'hidden',
+                      }}>
+                        <div style={{ padding: '10px 14px 6px', borderBottom: '1px solid #f3f4f6' }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Assign to Team Member</div>
+                        </div>
+                        <div style={{ maxHeight: 240, overflowY: 'auto' }}>
+                          {teamMembers.length === 0 ? (
+                            <div style={{ padding: '12px 14px', fontSize: 12.5, color: '#9ca3af' }}>No team members found.</div>
+                          ) : teamMembers.map(member => {
+                            const isAssigned = selected.assigned_to === member.id;
+                            const initials = (member.full_name || member.email || '?').slice(0, 2).toUpperCase();
+                            return (
+                              <button
+                                key={member.id}
+                                onClick={() => handleAssign(member.id)}
+                                style={{
+                                  width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                                  padding: '9px 14px', background: isAssigned ? '#fef2f2' : 'transparent',
+                                  border: 'none', cursor: 'pointer', textAlign: 'left',
+                                  transition: 'background 0.12s',
+                                }}
+                                onMouseEnter={e => { if (!isAssigned) (e.currentTarget as HTMLElement).style.background = '#fafafa'; }}
+                                onMouseLeave={e => { if (!isAssigned) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                              >
+                                <div style={{ width: 28, height: 28, borderRadius: '50%', background: isAssigned ? '#dc2626' : '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: isAssigned ? '#fff' : '#374151', flexShrink: 0 }}>
+                                  {initials}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontSize: 13, fontWeight: 600, color: isAssigned ? '#dc2626' : '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {member.full_name || member.email}
+                                  </div>
+                                  <div style={{ fontSize: 10.5, color: '#9ca3af', textTransform: 'capitalize' }}>{member.role || 'Agent'}</div>
+                                </div>
+                                {isAssigned && <Check size={13} color="#dc2626" style={{ flexShrink: 0 }} />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {selected.assigned_to && (
+                          <div style={{ borderTop: '1px solid #f3f4f6' }}>
+                            <button
+                              onClick={() => handleAssign(null)}
+                              style={{
+                                width: '100%', padding: '9px 14px', background: 'transparent',
+                                border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 600,
+                                color: '#9ca3af', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8,
+                                transition: 'background 0.12s',
+                              }}
+                              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#fafafa'}
+                              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+                            >
+                              <XIcon size={12} /> Unassign
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {selected.status === 'pending' && (
                   <button onClick={handleTakeOver} style={{
                     display: 'flex', alignItems: 'center', gap: 5,
