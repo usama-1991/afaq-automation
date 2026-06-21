@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { useNiche } from '@/context/NicheContext';
+import { usePlan } from '@/context/PlanContext';
+import { useRouter } from 'next/navigation';
 
 // ── Design Tokens ─────────────────────────────────────────────
 const RED = '#dc2626';
@@ -127,7 +129,7 @@ function ChartTooltip({ active, payload, label }: any) {
   return (
     <div style={{
       background: '#111827', borderRadius: 12, padding: '10px 16px',
-      color: '#white', fontSize: 12, lineHeight: 1.6,
+      color: '#fff', fontSize: 12, lineHeight: 1.6,
       boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
       border: '1px solid rgba(255,255,255,0.08)'
     }}>
@@ -142,8 +144,160 @@ function ChartTooltip({ active, payload, label }: any) {
   );
 }
 
+// ── Action Center Dashboard (Fallback when not set up) ──────────
+function ActionCenterDashboard({ userName }: { userName: string }) {
+  const { tenantInfo } = usePlan();
+  const router = useRouter();
+  
+  const fbConnected = !!tenantInfo?.fb_page_id;
+  const igConnected = !!tenantInfo?.ig_page_id;
+  const qrLink = tenantInfo?.business_phone ? `https://wa.me/${tenantInfo.business_phone.replace(/[^0-9]/g, '')}` : null;
+
+  return (
+    <div style={{ padding: '32px 32px 50px', minHeight: '100%', background: '#faf9f9', maxWidth: 1100, margin: '0 auto' }}>
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 800, color: '#111827', letterSpacing: '-0.5px' }}>
+          Hey {userName}, Welcome to AutoFlow AI!
+        </h1>
+        <p style={{ fontSize: 14, color: '#6b7280', marginTop: 4 }}>
+          Connect your business to get your business phone number and unlock AI features.
+        </p>
+      </div>
+
+      {/* Top 3 Action Blocks */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
+        {/* WhatsApp Block */}
+        <div style={{ background: '#10b981', borderRadius: 16, padding: '24px', color: '#fff', boxShadow: '0 4px 14px rgba(16,185,129,0.2)' }}>
+          <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 8 }}>Start WhatsApp Engagement for your Business</div>
+          <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 20, lineHeight: 1.5 }}>
+            You'll need to Apply for WhatsApp Business API to use AutoFlow AI for your Business.
+          </div>
+          <button 
+            onClick={() => router.push('/settings?tab=Channels+%26+APIs')}
+            style={{ background: '#fff', color: '#10b981', border: 'none', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+          >
+            Apply for WhatsApp Business
+          </button>
+        </div>
+
+        {/* Marketing API Block */}
+        <div style={{ background: '#3b82f6', borderRadius: 16, padding: '24px', color: '#fff', boxShadow: '0 4px 14px rgba(59,130,246,0.2)' }}>
+          <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 8 }}>Unlock Marketing Messages API</div>
+          <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 20, lineHeight: 1.5 }}>
+            Apply now to start sending marketing campaigns.
+          </div>
+          <button 
+            onClick={() => router.push('/settings?tab=Channels+%26+APIs')}
+            style={{ background: '#fff', color: '#3b82f6', border: 'none', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+          >
+            Apply for Marketing Messages API
+          </button>
+        </div>
+
+        {/* Plan Block */}
+        <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 16, padding: '24px', boxShadow: '0 4px 14px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <div style={{ width: 24, height: 24, borderRadius: 6, background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Sparkles size={14} color="#dc2626" />
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#111827' }}>
+              {tenantInfo?.plan_status === 'active' ? `${tenantInfo.plan.toUpperCase()} Plan Active` : 'No Plan Active'}
+            </div>
+          </div>
+          <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 20, lineHeight: 1.5, flex: 1 }}>
+            {tenantInfo?.plan_status === 'active' 
+              ? 'You are currently subscribed to a premium plan.' 
+              : 'You don\'t have an active plan. Subscribe to unlock messaging, leads, and more.'}
+          </div>
+          <button 
+            onClick={() => router.push('/pricing')}
+            style={{ background: '#111827', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+          >
+            <Sparkles size={14} /> View Plans & Subscribe
+          </button>
+        </div>
+      </div>
+
+      {/* Middle Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 16 }}>
+        {/* Social Media Gradient Block */}
+        <div style={{ background: 'linear-gradient(135deg, #f5f3ff, #fdf2f8)', border: '1px solid #fbcfe8', borderRadius: 16, padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: '#111827', marginBottom: 8 }}>Connect Social Media for your Business</div>
+          <div style={{ fontSize: 13, color: '#4b5563', marginBottom: 20 }}>
+            You'll need to Connect Facebook & Instagram Business accounts to use social features.
+          </div>
+          <button 
+            onClick={() => router.push('/settings?tab=Channels+%26+APIs')}
+            style={{ background: 'linear-gradient(135deg, #8b5cf6, #ec4899)', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <Sparkles size={14} /> Upgrade to setup Instagram & Facebook
+          </button>
+        </div>
+
+        {/* QR Code Block */}
+        <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 16, padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 4px 14px rgba(0,0,0,0.02)' }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: '#111827', width: '100%', marginBottom: 16 }}>Download your QR code</div>
+          <div style={{ width: 140, height: 140, background: '#fafafa', border: '1px dashed #d1d5db', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            {qrLink ? (
+              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(qrLink)}`} alt="QR" style={{ width: '100%', height: '100%', borderRadius: 12 }} />
+            ) : (
+              <span style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center', padding: 10 }}>Connect WhatsApp first</span>
+            )}
+          </div>
+          <button style={{ background: '#111827', color: '#fff', border: 'none', padding: '10px 18px', width: '100%', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', marginBottom: 8 }}>
+            Download QR Code
+          </button>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, width: '100%' }}>
+            <button 
+              onClick={() => qrLink && window.open(qrLink, '_blank')}
+              style={{ background: '#fff', border: '1px solid #e5e7eb', color: '#374151', padding: '8px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+            >
+              Open in WhatsApp
+            </button>
+            <button 
+              onClick={() => qrLink && navigator.clipboard.writeText(qrLink)}
+              style={{ background: '#fff', border: '1px solid #e5e7eb', color: '#374151', padding: '8px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+            >
+              Copy Link
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Connected Accounts List */}
+      <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 16, padding: '24px', boxShadow: '0 4px 14px rgba(0,0,0,0.02)' }}>
+        <div style={{ fontSize: 16, fontWeight: 800, color: '#111827', marginBottom: 16 }}>Connected Social Accounts</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', border: '1px solid #f3f4f6', borderRadius: 12, background: fbConnected ? '#f0fdf4' : '#fafafa' }}>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ color: '#3b82f6', fontWeight: 800 }}>f</span>
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Facebook Page</div>
+              <div style={{ fontSize: 11.5, color: fbConnected ? '#10b981' : '#ef4444', fontWeight: 500 }}>{fbConnected ? 'Connected' : 'Not Connected'}</div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', border: '1px solid #f3f4f6', borderRadius: 12, background: igConnected ? '#f0fdf4' : '#fafafa' }}>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ color: '#fff', fontWeight: 800, fontSize: 16 }}>ig</span>
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Instagram Business</div>
+              <div style={{ fontSize: 11.5, color: igConnected ? '#10b981' : '#ef4444', fontWeight: 500 }}>{igConnected ? 'Connected' : 'Not Connected'}</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { nicheId, niche } = useNiche();
+  const { tenantInfo, planLoaded } = usePlan();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -323,6 +477,11 @@ export default function DashboardPage() {
   const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening';
   const dateLabel = now.toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
   const displayName = userDisplayName ? ` ${userDisplayName}` : '';
+
+  // ── Show Action Center if missing Meta Connection or Plan ──
+  if (planLoaded && tenantInfo && (!tenantInfo.meta_connected || tenantInfo.plan_status !== 'active')) {
+    return <ActionCenterDashboard userName={userDisplayName || 'User'} />;
+  }
 
   // Derived live stat values
   const todayWcRevenue = wcOrders.filter((o: any) => o.status === 'processing' || o.status === 'completed').reduce((sum: number, o: any) => sum + parseFloat(o.total || 0), 0);

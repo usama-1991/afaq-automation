@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { NicheProvider } from '@/context/NicheContext';
+import { PlanProvider } from '@/context/PlanContext';
 import AppShell from '@/components/AppShell';
 
 export const metadata: Metadata = {
@@ -16,7 +17,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={inter.className}>
       <body>
         <NicheProvider>
-          <AppShell>{children}</AppShell>
+          <PlanProvider>
+            <AppShell>{children}</AppShell>
+          </PlanProvider>
         </NicheProvider>
       </body>
     </html>

@@ -53,7 +53,10 @@ export default function OnboardingPage() {
         .update({
           niche: selected,
           business_name: businessName || niches.find(n => n.id === selected)?.label || 'My Business',
-          business_phone: phone || ''
+          business_phone: phone || '',
+          onboarding_completed: true,
+          plan: 'trial',
+          plan_status: 'active'
         })
         .eq('id', tenantId);
 

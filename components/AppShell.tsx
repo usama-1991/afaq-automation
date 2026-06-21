@@ -3,10 +3,12 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { useNiche } from '@/context/NicheContext';
+import { usePlan } from '@/context/PlanContext';
 import { supabase } from '@/lib/supabase/client';
 import Sidebar from './Sidebar';
 import TopBanner from './TopBanner';
-import { User, Bot, Plug, Settings, LogOut, ChevronDown, Building, ShieldAlert } from 'lucide-react';
+import MetaGateBanner from './MetaGateBanner';
+import { User, Bot, Plug, Settings, LogOut, ChevronDown, Building, ShieldAlert, AlertCircle } from 'lucide-react';
 
 function Spinner() {
   return (
@@ -39,6 +41,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { onboarded, hydrated, niche, setNicheId, setOnboarded } = useNiche();
+  const { tenantInfo, planLoaded } = usePlan();
   const [session, setSession] = useState<any>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -225,6 +228,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <TopBanner />
+      {planLoaded && tenantInfo && tenantInfo.plan_status !== 'active' && !isAdminRoute && (
+        <div style={{ background: '#fef2f2', borderBottom: '1px solid #fecaca', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+          <AlertCircle size={16} color="#dc2626" />
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#b91c1c' }}>
+            (!) No Subscription Found. Please <a href="/dashboard" style={{ textDecoration: 'underline', color: '#b91c1c', cursor: 'pointer' }}>subscribe</a> to use the service.
+          </span>
+        </div>
+      )}
       <div style={{ display: 'flex', flex: 1 }}>
         <Sidebar />
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, marginLeft: 'var(--sidebar-w)', position: 'relative' }}>
@@ -363,15 +374,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </header>
           
           {/* Main Content Area */}
-          <main
-            className="main-content-area"
-            style={{
-              flex: 1,
-              background: '#faf9f9',
-              overflowY: 'auto',
-            }}
-          >
-            {children}
+          <main style={{ flex: 1, overflowY: 'auto', background: '#faf9f9', position: 'relative' }}>
+            <div style={{ padding: '24px' }}>
+              {!isAdminRoute && <MetaGateBanner />}
+              {children}
+            </div>
           </main>
         </div>
       </div>
