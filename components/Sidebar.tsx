@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, MessageSquare, Users, Bot, Plug, Settings, LogOut, FileText, Megaphone, Folder, BarChart3, Menu, X, ShoppingBag } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Users, Bot, Plug, Settings, LogOut, FileText, Megaphone, Folder, BarChart3, Menu, X, ShoppingBag, Crown } from 'lucide-react';
 import { useNiche } from '@/context/NicheContext';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
@@ -76,6 +76,18 @@ export default function Sidebar() {
   const router = useRouter();
   const { niche } = useNiche();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from('users').select('role').eq('id', user.id).single();
+        if (data) setUserRole(data.role);
+      }
+    };
+    fetchRole();
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -110,10 +122,14 @@ export default function Sidebar() {
 
         {/* Nav */}
         <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '14px 0' }}>
-          {nav.map(({ href, icon, label }) => {
-            const active = pathname === href || pathname.startsWith(href + '/');
-            return <NavItem key={href} href={href} icon={icon} label={label} active={active} />;
-          })}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
+            {nav.map(item => (
+              <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
+            ))}
+            {userRole === 'super_admin' && (
+              <NavItem href="/admin" icon={Crown} label="Super Admin" active={pathname.startsWith('/admin')} />
+            )}
+          </div>
         </nav>
 
         {/* Avatar & Logout */}
@@ -252,6 +268,25 @@ export default function Sidebar() {
                 );
               })}
             </div>
+
+            {userRole === 'super_admin' && (
+              <div style={{ marginBottom: 16 }}>
+                <Link
+                  href="/admin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12, padding: '14px', borderRadius: 12,
+                    textDecoration: 'none', fontWeight: 600, fontSize: 14,
+                    background: pathname.startsWith('/admin') ? '#fef2f2' : '#111827',
+                    color: pathname.startsWith('/admin') ? '#dc2626' : '#fff',
+                    transition: 'background 0.2s', border: pathname.startsWith('/admin') ? '1px solid #fecaca' : 'none'
+                  }}
+                >
+                  <Crown size={18} />
+                  Super Admin
+                </Link>
+              </div>
+            )}
 
             {/* Logout */}
             <button

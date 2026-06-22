@@ -1,377 +1,247 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase/client";
-import { Shield, Building, Users, Activity, RefreshCw, Plus, Check, AlertCircle, Loader2 } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase/client';
+import SuperAdminGuard from '@/components/SuperAdminGuard';
+import { Crown, Search, Building2, Calendar, MessageSquare, Zap, Activity, AlertCircle, Save, X } from 'lucide-react';
 
 interface Tenant {
   id: string;
   name: string;
-  business_name?: string;
-  niche?: string;
+  plan: string;
+  plan_status: string;
+  trial_ends_at: string;
+  meta_connected: boolean;
+  business_name: string;
+  admin_notes: string;
   created_at: string;
 }
 
-interface AdminUser {
-  id: string;
-  full_name: string | null;
-  role: string;
-  created_at: string;
-  tenant_name: string | null;
-  email: string | null;
-}
-
-interface AuditLog {
-  id: string;
-  tenant_id: string;
-  user_id: string;
-  action: string;
-  details: any;
-  created_at: string;
-}
-
-const tabs = ['Tenants', 'Users', 'Audit'] as const;
-type Tab = typeof tabs[number];
-
-export default function AdminPage() {
+export default function SuperAdminPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<Tab>('Tenants');
+  const [search, setSearch] = useState('');
+  const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // Edit states
+  const [editPlan, setEditPlan] = useState('');
+  const [editStatus, setEditStatus] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+
+  const fetchTenants = async () => {
+    const { data, error } = await supabase
+      .from('tenants')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (data) setTenants(data as Tenant[]);
+  };
 
   useEffect(() => {
-    fetchAllData();
+    fetchTenants();
   }, []);
 
-  const fetchAllData = async () => {
-    setLoading(true);
+  const handleManage = (t: Tenant) => {
+    setSelectedTenant(t);
+    setEditPlan(t.plan || 'trial');
+    setEditStatus(t.plan_status || 'active');
+    setEditNotes(t.admin_notes || '');
+  };
 
-    // Fetch tenants
-    const { data: tenantsData } = await supabase.from("tenants").select("*");
-    if (tenantsData) setTenants(tenantsData);
+  const handleSave = async () => {
+    if (!selectedTenant) return;
+    setSaving(true);
+    
+    const { error } = await supabase
+      .from('tenants')
+      .update({
+        plan: editPlan,
+        plan_status: editStatus,
+        admin_notes: editNotes,
+        plan_changed_at: new Date().toISOString()
+      })
+      .eq('id', selectedTenant.id);
 
-    // Fetch users (try RPC first, fallback to direct query)
-    try {
-      const { data: usersRPC } = await supabase.rpc("get_admin_users");
-      if (usersRPC) setUsers(usersRPC);
-    } catch {
-      try {
-        const { data: usersData } = await supabase.from("users").select("*");
-        if (usersData) {
-          setUsers(usersData.map((u: any) => ({
-            id: u.id,
-            full_name: u.full_name,
-            role: u.role,
-            created_at: u.created_at,
-            tenant_name: null,
-            email: null,
-          })));
-        }
-      } catch { /* silently fail */ }
+    if (!error) {
+      setTenants(prev => prev.map(t => t.id === selectedTenant.id ? { ...t, plan: editPlan, plan_status: editStatus, admin_notes: editNotes } : t));
+      setSelectedTenant(null);
+    } else {
+      alert('Failed to save changes. Are you sure you are a Super Admin?');
     }
-
-    // Fetch audit logs
-    try {
-      const { data: auditData } = await supabase
-        .from("audit_logs")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(50);
-      if (auditData) setAuditLogs(auditData);
-    } catch { /* audit_logs table may not exist yet */ }
-
-    setLoading(false);
+    setSaving(false);
   };
 
-  const roleColors: Record<string, { bg: string; color: string; border: string }> = {
-    super_admin: { bg: '#fffbeb', color: '#92400e', border: '#fde68a' },
-    admin:       { bg: '#eff6ff', color: '#1e40af', border: '#bfdbfe' },
-    agent:       { bg: '#f8fafc', color: '#475569', border: '#e2e8f0' },
-  };
+  const filteredTenants = tenants.filter(t => 
+    t.name?.toLowerCase().includes(search.toLowerCase()) || 
+    t.business_name?.toLowerCase().includes(search.toLowerCase())
+  );
 
-  const statCards = [
-    { label: 'Total Clients', value: tenants.length || 0, icon: Building, iconBg: '#eef2ff', iconColor: '#6366f1' },
-    { label: 'Active Clients', value: tenants.length || 0, icon: Check, iconBg: '#ecfdf5', iconColor: '#10b981' },
-    { label: 'Audit Events', value: auditLogs.length || 0, icon: Activity, iconBg: '#fffbeb', iconColor: '#f59e0b' },
-    { label: 'Total Users', value: users.length || 0, icon: Users, iconBg: '#f5f3ff', iconColor: '#8b5cf6' },
-  ];
+  const activeSubs = tenants.filter(t => t.plan_status === 'active' && t.plan !== 'trial').length;
+  const trialSubs = tenants.filter(t => t.plan === 'trial').length;
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 1100 }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#f59e0b', fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
-            <Shield size={14} /> Super Admin
+    <SuperAdminGuard>
+      <div style={{ padding: '32px 32px 100px', minHeight: '100vh', background: '#111827' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 30 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg, #dc2626, #b91c1c)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Crown size={24} color="#fff" />
+            </div>
+            <div>
+              <h1 style={{ fontSize: 28, fontWeight: 900, color: '#fff', margin: 0, letterSpacing: '-0.5px' }}>Platform Control</h1>
+              <p style={{ fontSize: 14, color: '#9ca3af', margin: 0, marginTop: 4 }}>Super Admin Dashboard</p>
+            </div>
           </div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#111827', letterSpacing: '-0.5px' }}>Admin Panel</h1>
-        </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button
-            onClick={fetchAllData}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '8px 16px', fontSize: 13, fontWeight: 600,
-              background: '#fff', color: '#6b7280',
-              border: '1px solid rgba(220,38,38,0.15)', borderRadius: 9,
-              cursor: 'pointer', transition: 'all 0.15s',
-            }}
-          >
-            <RefreshCw size={13} style={loading ? { animation: 'spin 0.8s linear infinite' } : {}} /> Refresh
-          </button>
-          <button style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '8px 16px', fontSize: 13, fontWeight: 700,
-            background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff',
-            border: 'none', borderRadius: 9, cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(220,38,38,0.2)',
-          }}>
-            <Plus size={14} /> New Client
-          </button>
-        </div>
-      </div>
 
-      {/* Stats Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
-        {statCards.map(card => {
-          const Icon = card.icon;
-          return (
-            <div key={card.label} style={{
-              background: '#fff', padding: '18px 20px', borderRadius: 14,
-              border: '1px solid rgba(220,38,38,0.06)',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
-            }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: 9,
-                background: card.iconBg,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                marginBottom: 14,
-              }}>
-                <Icon size={16} color={card.iconColor} />
-              </div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
-                {card.label}
-              </div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>
-                {card.value}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginBottom: 40 }}>
+            <div style={{ background: '#1f2937', borderRadius: 16, padding: '24px', border: '1px solid #374151' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#9ca3af', marginBottom: 12 }}><Building2 size={16} /> Total Workspaces</div>
+              <div style={{ fontSize: 36, fontWeight: 800, color: '#fff' }}>{tenants.length}</div>
+            </div>
+            <div style={{ background: '#1f2937', borderRadius: 16, padding: '24px', border: '1px solid #374151' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#9ca3af', marginBottom: 12 }}><Zap size={16} /> Active Subscriptions</div>
+              <div style={{ fontSize: 36, fontWeight: 800, color: '#10b981' }}>{activeSubs} <span style={{ fontSize: 16, color: '#6b7280', fontWeight: 600 }}>PAID</span></div>
+            </div>
+            <div style={{ background: '#1f2937', borderRadius: 16, padding: '24px', border: '1px solid #374151' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#9ca3af', marginBottom: 12 }}><Calendar size={16} /> Users on Trial</div>
+              <div style={{ fontSize: 36, fontWeight: 800, color: '#f59e0b' }}>{trialSubs} <span style={{ fontSize: 16, color: '#6b7280', fontWeight: 600 }}>TRIAL</span></div>
+            </div>
+          </div>
+
+          <div style={{ background: '#1f2937', borderRadius: 16, border: '1px solid #374151', overflow: 'hidden' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #374151', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: 0 }}>Registered Businesses</h2>
+              <div style={{ position: 'relative', width: 300 }}>
+                <Search size={16} color="#9ca3af" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+                <input 
+                  type="text" 
+                  placeholder="Search tenants..." 
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px 8px 36px', borderRadius: 8, background: '#111827', border: '1px solid #4b5563', color: '#fff', outline: 'none', fontSize: 14 }}
+                />
               </div>
             </div>
-          );
-        })}
-      </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 2, borderBottom: '1px solid rgba(220,38,38,0.08)', marginBottom: 24 }}>
-        {tabs.map(t => {
-          const active = activeTab === t;
-          return (
-            <button
-              key={t}
-              onClick={() => setActiveTab(t)}
-              style={{
-                padding: '10px 20px', fontSize: 13,
-                fontWeight: active ? 700 : 500,
-                color: active ? '#dc2626' : '#6b7280',
-                background: 'none', border: 'none',
-                borderBottom: active ? '2.5px solid #dc2626' : '2.5px solid transparent',
-                marginBottom: -1.5, cursor: 'pointer', transition: 'all 0.15s',
-              }}
-            >
-              {t}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Tab Content */}
-      {loading ? (
-        <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Loading data...
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ background: '#111827', borderBottom: '1px solid #374151' }}>
+                  <th style={{ padding: '14px 24px', fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase' }}>Workspace</th>
+                  <th style={{ padding: '14px 24px', fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase' }}>Current Plan</th>
+                  <th style={{ padding: '14px 24px', fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase' }}>Status</th>
+                  <th style={{ padding: '14px 24px', fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase' }}>Meta Setup</th>
+                  <th style={{ padding: '14px 24px', fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTenants.map(t => (
+                  <tr key={t.id} style={{ borderBottom: '1px solid #374151', background: '#1f2937' }}>
+                    <td style={{ padding: '16px 24px' }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{t.business_name || t.name}</div>
+                      <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2, fontFamily: 'monospace' }}>ID: {t.id.slice(0,8)}...</div>
+                    </td>
+                    <td style={{ padding: '16px 24px' }}>
+                      <span style={{ 
+                        background: t.plan === 'enterprise' ? '#1e1b4b' : t.plan === 'growth' ? '#172554' : t.plan === 'trial' ? '#422006' : '#111827',
+                        color: t.plan === 'enterprise' ? '#818cf8' : t.plan === 'growth' ? '#60a5fa' : t.plan === 'trial' ? '#facc15' : '#e5e7eb',
+                        padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, border: '1px solid rgba(255,255,255,0.1)' 
+                      }}>
+                        {t.plan ? t.plan.toUpperCase() : 'NONE'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '16px 24px' }}>
+                      <span style={{ 
+                        background: t.plan_status === 'active' ? '#064e3b' : t.plan_status === 'suspended' ? '#7f1d1d' : '#4b5563',
+                        color: t.plan_status === 'active' ? '#34d399' : t.plan_status === 'suspended' ? '#fca5a5' : '#fff',
+                        padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700 
+                      }}>
+                        {t.plan_status ? t.plan_status.toUpperCase() : 'UNKNOWN'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '16px 24px' }}>
+                      {t.meta_connected ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#34d399', fontSize: 13, fontWeight: 600 }}><Check size={14} /> Connected</div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#9ca3af', fontSize: 13 }}><AlertCircle size={14} /> Pending</div>
+                      )}
+                    </td>
+                    <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                      <button 
+                        onClick={() => handleManage(t)}
+                        style={{ background: '#374151', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        Manage
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      ) : (
-        <>
-          {/* Tenants Tab */}
-          {activeTab === 'Tenants' && (
-            <div style={{ background: '#fff', borderRadius: 14, border: '1px solid rgba(220,38,38,0.06)', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid rgba(220,38,38,0.08)' }}>
-                    {['Client', 'Niche', 'Plan', 'Status', 'Created', 'Actions'].map(h => (
-                      <th key={h} style={{ padding: '12px 16px', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'left' }}>
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {tenants.map(t => (
-                    <tr key={t.id} style={{ borderBottom: '1px solid rgba(220,38,38,0.04)' }}>
-                      <td style={{ padding: '14px 16px' }}>
-                        <div style={{ fontSize: 13.5, fontWeight: 600, color: '#111827' }}>{t.business_name || t.name}</div>
-                        <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{t.id.split('-')[0]}...</div>
-                      </td>
-                      <td style={{ padding: '14px 16px' }}>
-                        <span style={{
-                          fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 6,
-                          background: '#fef2f2', color: '#dc2626', textTransform: 'capitalize',
-                        }}>
-                          {t.niche || 'general'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '14px 16px' }}>
-                        <select style={{
-                          fontSize: 12, border: '1px solid rgba(220,38,38,0.12)', borderRadius: 7,
-                          padding: '5px 8px', background: '#fafafa', color: '#374151', outline: 'none',
-                          fontFamily: 'inherit',
-                        }}>
-                          <option>starter</option>
-                          <option>pro</option>
-                          <option>enterprise</option>
-                        </select>
-                      </td>
-                      <td style={{ padding: '14px 16px' }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: '#10b981' }}>active</span>
-                      </td>
-                      <td style={{ padding: '14px 16px', fontSize: 12.5, color: '#6b7280' }}>
-                        {new Date(t.created_at).toLocaleDateString()}
-                      </td>
-                      <td style={{ padding: '14px 16px' }}>
-                        <button style={{
-                          fontSize: 12, fontWeight: 600, color: '#ef4444', background: 'none',
-                          border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 6,
-                          transition: 'all 0.15s',
-                        }}>
-                          Suspend
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {tenants.length === 0 && (
-                    <tr>
-                      <td colSpan={6} style={{ padding: '32px 16px', textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
-                        No tenants found.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
 
-          {/* Users Tab */}
-          {activeTab === 'Users' && (
-            <div style={{ background: '#fff', borderRadius: 14, border: '1px solid rgba(220,38,38,0.06)', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid rgba(220,38,38,0.08)' }}>
-                    {['Name', 'Email', 'Role', 'Tenant', 'Created'].map(h => (
-                      <th key={h} style={{ padding: '12px 16px', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'left' }}>
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map(u => {
-                    const rc = roleColors[u.role] || roleColors.agent;
-                    return (
-                      <tr key={u.id} style={{ borderBottom: '1px solid rgba(220,38,38,0.04)' }}>
-                        <td style={{ padding: '14px 16px', fontSize: 13.5, fontWeight: 600, color: '#111827' }}>
-                          {u.full_name || 'Anonymous'}
-                        </td>
-                        <td style={{ padding: '14px 16px', fontSize: 12.5, color: '#6b7280' }}>
-                          {u.email || '—'}
-                        </td>
-                        <td style={{ padding: '14px 16px' }}>
-                          <span style={{
-                            fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 6,
-                            background: rc.bg, color: rc.color, border: `1px solid ${rc.border}`,
-                          }}>
-                            {u.role}
-                          </span>
-                        </td>
-                        <td style={{ padding: '14px 16px', fontSize: 12.5, color: '#6b7280' }}>
-                          {u.tenant_name || 'N/A'}
-                        </td>
-                        <td style={{ padding: '14px 16px', fontSize: 12.5, color: '#6b7280' }}>
-                          {new Date(u.created_at).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {users.length === 0 && (
-                    <tr>
-                      <td colSpan={5} style={{ padding: '32px 16px', textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
-                        No users found.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
+        {/* Manage Modal */}
+        {selectedTenant && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ background: '#1f2937', borderRadius: 16, width: '100%', maxWidth: 500, border: '1px solid #374151', overflow: 'hidden' }}>
+              <div style={{ padding: '20px 24px', borderBottom: '1px solid #374151', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: 0 }}>Manage Workspace</h2>
+                <button onClick={() => setSelectedTenant(null)} style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer' }}><X size={20} /></button>
+              </div>
+              <div style={{ padding: '24px' }}>
+                
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#d1d5db', marginBottom: 8 }}>Subscription Plan</label>
+                  <select 
+                    value={editPlan} 
+                    onChange={e => setEditPlan(e.target.value)}
+                    style={{ width: '100%', padding: '12px', background: '#111827', border: '1px solid #4b5563', borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none' }}
+                  >
+                    <option value="trial">Trial (14 Days)</option>
+                    <option value="starter">Starter</option>
+                    <option value="growth">Growth</option>
+                    <option value="enterprise">Enterprise</option>
+                  </select>
+                </div>
 
-          {/* Audit Tab */}
-          {activeTab === 'Audit' && (
-            <div style={{ background: '#fff', borderRadius: 14, border: '1px solid rgba(220,38,38,0.06)', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid rgba(220,38,38,0.08)' }}>
-                    {['Timestamp', 'Action', 'User', 'Tenant ID', 'Details'].map(h => (
-                      <th key={h} style={{ padding: '12px 16px', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'left' }}>
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {auditLogs.map(log => (
-                    <tr key={log.id} style={{ borderBottom: '1px solid rgba(220,38,38,0.04)' }}>
-                      <td style={{ padding: '14px 16px', fontSize: 12.5, color: '#6b7280', whiteSpace: 'nowrap' }}>
-                        {new Date(log.created_at).toLocaleString()}
-                      </td>
-                      <td style={{ padding: '14px 16px' }}>
-                        <span style={{
-                          fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 6,
-                          background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0',
-                        }}>
-                          {log.action}
-                        </span>
-                      </td>
-                      <td style={{ padding: '14px 16px', fontSize: 11.5, color: '#6b7280', fontFamily: 'monospace' }}>
-                        {log.user_id ? log.user_id.split('-')[0] + '...' : 'System'}
-                      </td>
-                      <td style={{ padding: '14px 16px', fontSize: 11.5, color: '#6b7280', fontFamily: 'monospace' }}>
-                        {log.tenant_id ? log.tenant_id.split('-')[0] + '...' : 'System'}
-                      </td>
-                      <td style={{ padding: '14px 16px' }}>
-                        <pre style={{
-                          fontSize: 11, background: '#fafafa', padding: '6px 8px', borderRadius: 6,
-                          maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                          border: '1px solid rgba(220,38,38,0.06)', margin: 0,
-                        }}>
-                          {JSON.stringify(log.details)}
-                        </pre>
-                      </td>
-                    </tr>
-                  ))}
-                  {auditLogs.length === 0 && (
-                    <tr>
-                      <td colSpan={5} style={{ padding: '32px 16px', textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                          <AlertCircle size={20} color="#d1d5db" />
-                          <span>No audit logs found. Run the Supabase SQL migration to start capturing events.</span>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#d1d5db', marginBottom: 8 }}>Account Status</label>
+                  <select 
+                    value={editStatus} 
+                    onChange={e => setEditStatus(e.target.value)}
+                    style={{ width: '100%', padding: '12px', background: '#111827', border: '1px solid #4b5563', borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none' }}
+                  >
+                    <option value="active">Active (Good Standing)</option>
+                    <option value="suspended">Suspended (Lock out user)</option>
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#d1d5db', marginBottom: 8 }}>Admin Notes (Internal)</label>
+                  <textarea 
+                    value={editNotes} 
+                    onChange={e => setEditNotes(e.target.value)}
+                    rows={4}
+                    placeholder="E.g. Paid via bank transfer on June 20th"
+                    style={{ width: '100%', padding: '12px', background: '#111827', border: '1px solid #4b5563', borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none', resize: 'vertical' }}
+                  />
+                </div>
+
+                <button 
+                  onClick={handleSave}
+                  disabled={saving}
+                  style={{ width: '100%', background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff', border: 'none', padding: '12px', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                >
+                  {saving ? 'Saving...' : <><Save size={16} /> Save Changes</>}
+                </button>
+
+              </div>
             </div>
-          )}
-        </>
-      )}
-    </div>
+          </div>
+        )}
+
+      </div>
+    </SuperAdminGuard>
   );
 }
