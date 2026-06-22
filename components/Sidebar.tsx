@@ -14,6 +14,7 @@ const nav = [
   { href: '/orders',        icon: ShoppingBag,     label: 'Orders' },
   { href: '/campaigns',     icon: Megaphone,       label: 'Campaigns' },
   { href: '/agents',        icon: Bot,             label: 'AI Agents' },
+  { href: '/team',          icon: Users,           label: 'Team' },
   { href: '/templates',     icon: FileText,        label: 'Templates' },
   { href: '/media',         icon: Folder,          label: 'Media' },
   { href: '/reports',       icon: BarChart3,       label: 'Reports' },

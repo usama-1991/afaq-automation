@@ -307,29 +307,15 @@ export default function AgentsPage() {
             onClick={() => setActiveTab('ai')} 
             style={{ 
               flex: 1, padding: '15px 6px', fontSize: 13, fontWeight: 700, 
-              color: activeTab === 'ai' ? '#dc2626' : '#6b7280', 
+              color: '#dc2626', 
               border: 'none', background: 'none', 
-              borderBottom: activeTab === 'ai' ? '2.5px solid #dc2626' : 'none', 
+              borderBottom: '2.5px solid #dc2626', 
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               transition: 'all 0.15s'
             }}
           >
             <Bot size={15} />
             AI Config
-          </button>
-          <button 
-            onClick={() => setActiveTab('team')} 
-            style={{ 
-              flex: 1, padding: '15px 6px', fontSize: 13, fontWeight: 700, 
-              color: activeTab === 'team' ? '#dc2626' : '#6b7280', 
-              border: 'none', background: 'none', 
-              borderBottom: activeTab === 'team' ? '2.5px solid #dc2626' : 'none', 
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              transition: 'all 0.15s'
-            }}
-          >
-            <Users size={15} />
-            Team Capacity
           </button>
         </div>
 
