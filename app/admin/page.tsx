@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import SuperAdminGuard from '@/components/SuperAdminGuard';
-import { Crown, Search, Building2, Calendar, MessageSquare, Zap, Activity, AlertCircle, Save, X } from 'lucide-react';
+import { Crown, Search, Building2, Calendar, MessageSquare, Zap, Activity, AlertCircle, Save, X, Check } from 'lucide-react';
 
 interface Tenant {
   id: string;
