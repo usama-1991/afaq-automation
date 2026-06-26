@@ -23,13 +23,29 @@ ALTER TABLE public.tenants
   ADD COLUMN IF NOT EXISTS wa_account_id  TEXT,
   ADD COLUMN IF NOT EXISTS meta_connected  BOOLEAN DEFAULT false;
 
--- 2. Add RLS policy so tenants can update their own row
-CREATE POLICY IF NOT EXISTS "Tenants can update own row"
-  ON public.tenants FOR UPDATE
-  USING (id IN (SELECT tenant_id FROM public.users WHERE users.id = auth.uid()));
+-- 2. Add RLS policies (using DO block because IF NOT EXISTS is not supported for POLICY)
+DO $$
+BEGIN
+  -- Policy: tenants can update their own row
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE schemaname = 'public' AND tablename = 'tenants' AND policyname = 'Tenants can update own row'
+  ) THEN
+    CREATE POLICY "Tenants can update own row"
+      ON public.tenants FOR UPDATE
+      USING (id IN (SELECT tenant_id FROM public.users WHERE users.id = auth.uid()));
+  END IF;
 
--- 3. Allow tenants to read their own row  
-CREATE POLICY IF NOT EXISTS "Tenants can read own row"
-  ON public.tenants FOR SELECT
-  USING (id IN (SELECT tenant_id FROM public.users WHERE users.id = auth.uid())
-         OR EXISTS (SELECT 1 FROM public.users WHERE users.id = auth.uid() AND role = 'super_admin'));
+  -- Policy: tenants can read their own row; super admins can read all
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE schemaname = 'public' AND tablename = 'tenants' AND policyname = 'Tenants can read own row'
+  ) THEN
+    CREATE POLICY "Tenants can read own row"
+      ON public.tenants FOR SELECT
+      USING (
+        id IN (SELECT tenant_id FROM public.users WHERE users.id = auth.uid())
+        OR EXISTS (SELECT 1 FROM public.users WHERE users.id = auth.uid() AND role = 'super_admin')
+      );
+  END IF;
+END $$;
