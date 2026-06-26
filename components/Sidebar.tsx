@@ -232,7 +232,7 @@ export default function Sidebar() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 16, color: '#fff', fontWeight: 800,
                 }}>A</div>
-                <span style={{ fontWeight: 700, fontSize: 16, color: '#111827' }}>AutoFlow AI</span>
+                <span style={{ fontWeight: 700, fontSize: 16, color: '#111827' }}>Ittisalo</span>
               </div>
               <button
                 onClick={() => setMobileMenuOpen(false)}

@@ -13,8 +13,8 @@ interface Agent {
 }
 
 const defaultAgents: Agent[] = [
-  { id: '1', name: 'Jason Brown', email: 'jason.b@autoflow.ai', role: 'Agent', permissions: { 'Lead Management': 14, 'Live Chat': 5, 'Templates': 6, 'Campaigns': 1, 'Flows': 1, 'Reports': 2, 'User Management': 1 } },
-  { id: '2', name: 'Sarah Connor', email: 'sarah.c@autoflow.ai', role: 'Team Lead', permissions: { 'Lead Management': 14, 'Live Chat': 5, 'Templates': 6, 'Campaigns': 4, 'Flows': 4, 'Reports': 2, 'User Management': 1 } },
+  { id: '1', name: 'Jason Brown', email: 'jason.b@ittisalo.io', role: 'Agent', permissions: { 'Lead Management': 14, 'Live Chat': 5, 'Templates': 6, 'Campaigns': 1, 'Flows': 1, 'Reports': 2, 'User Management': 1 } },
+  { id: '2', name: 'Sarah Connor', email: 'sarah.c@ittisalo.io', role: 'Team Lead', permissions: { 'Lead Management': 14, 'Live Chat': 5, 'Templates': 6, 'Campaigns': 4, 'Flows': 4, 'Reports': 2, 'User Management': 1 } },
 ];
 
 const PERMISSION_CATEGORIES = [
@@ -312,7 +312,7 @@ export default function TeamPage() {
               </div>
 
               <p style={{ fontSize: 12.5, color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-                A confirmation email has been sent to the team member. They can use these credentials to sign in to AutoFlow AI at app.autoflow.ai/login and will be prompted to reset their password on their first login.
+                A confirmation email has been sent to the team member. They can use these credentials to sign in to Ittisalo at app.ittisalo.io/login and will be prompted to reset their password on their first login.
               </p>
             </div>
             <div style={{ padding: '16px 32px', background: '#f9fafb', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'flex-end' }}>
@@ -329,3 +329,4 @@ export default function TeamPage() {
     </div>
   );
 }
+

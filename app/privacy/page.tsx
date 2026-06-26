@@ -8,7 +8,7 @@ export default function PrivacyPolicy() {
 
       <section style={{ marginBottom: 32 }}>
         <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>1. Information We Collect</h2>
-        <p style={{ marginBottom: 12 }}>When you use AutoFlow AI, we may collect the following types of information:</p>
+        <p style={{ marginBottom: 12 }}>When you use Ittisalo, we may collect the following types of information:</p>
         <ul style={{ paddingLeft: 20, marginBottom: 12 }}>
           <li><strong>Account Information:</strong> Name, email address, and company details provided during registration.</li>
           <li><strong>Messaging Data:</strong> Content, metadata, and communication history from connected channels (e.g., WhatsApp Business API) to facilitate AI-driven responses.</li>
@@ -20,7 +20,7 @@ export default function PrivacyPolicy() {
         <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>2. How We Use Your Information</h2>
         <p style={{ marginBottom: 12 }}>We use the collected information to:</p>
         <ul style={{ paddingLeft: 20, marginBottom: 12 }}>
-          <li>Provide, maintain, and improve the AutoFlow AI platform.</li>
+          <li>Provide, maintain, and improve the Ittisalo platform.</li>
           <li>Process and deliver AI-generated responses to your end-users via integrated messaging channels.</li>
           <li>Ensure compliance with Meta's Business policies and other third-party API requirements.</li>
           <li>Communicate with you regarding account updates, billing, and support.</li>
@@ -49,11 +49,12 @@ export default function PrivacyPolicy() {
 
       <section style={{ marginBottom: 32 }}>
         <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>6. Contact Us</h2>
-        <p style={{ marginBottom: 12 }}>If you have any questions or concerns about this Privacy Policy, please contact our privacy team at <strong>privacy@autoflow.ai</strong> (or your updated contact email).</p>
+        <p style={{ marginBottom: 12 }}>If you have any questions or concerns about this Privacy Policy, please contact our privacy team at <strong>privacy@ittisalo.io</strong> (or your updated contact email).</p>
       </section>
 
       <hr style={{ border: 'none', borderTop: '1px solid #e5e7eb', margin: '40px 0' }} />
-      <p style={{ textAlign: 'center', fontSize: 14, color: '#9ca3af' }}>&copy; {new Date().getFullYear()} AutoFlow AI. All rights reserved.</p>
+      <p style={{ textAlign: 'center', fontSize: 14, color: '#9ca3af' }}>&copy; {new Date().getFullYear()} Ittisalo. All rights reserved.</p>
     </div>
   );
 }
+

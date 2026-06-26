@@ -21,9 +21,9 @@ interface TeamMember {
 
 const defaultTeam: TeamMember[] = [
   { id: '1', name: 'Usama Habib', email: 'usamahabib1991@gmail.com', role: 'Admin', capacity: 15, activeChats: 4, online: true },
-  { id: '2', name: 'Sarah Connor', email: 'sarah.c@autoflow.ai', role: 'Manager', capacity: 10, activeChats: 6, online: true },
-  { id: '3', name: 'John Doe', email: 'john.doe@autoflow.ai', role: 'Agent', capacity: 8, activeChats: 8, online: false },
-  { id: '4', name: 'Alina Khan', email: 'alina.k@autoflow.ai', role: 'Agent', capacity: 12, activeChats: 3, online: true },
+  { id: '2', name: 'Sarah Connor', email: 'sarah.c@ittisalo.io', role: 'Manager', capacity: 10, activeChats: 6, online: true },
+  { id: '3', name: 'John Doe', email: 'john.doe@ittisalo.io', role: 'Agent', capacity: 8, activeChats: 8, online: false },
+  { id: '4', name: 'Alina Khan', email: 'alina.k@ittisalo.io', role: 'Agent', capacity: 12, activeChats: 3, online: true },
 ];
 
 function Toggle({ checked, onChange, disabled = false }: { checked: boolean; onChange: () => void; disabled?: boolean }) {
@@ -774,7 +774,7 @@ export default function AgentsPage() {
                         required 
                         value={addEmail} 
                         onChange={e => setAddEmail(e.target.value)} 
-                        placeholder="usama@autoflow.ai"
+                        placeholder="usama@ittisalo.io"
                         style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.1)', borderRadius: 9, outline: 'none' }}
                       />
                     </div>
@@ -1003,3 +1003,4 @@ export default function AgentsPage() {
     </div>
   );
 }
+

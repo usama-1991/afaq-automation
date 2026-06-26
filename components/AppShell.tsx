@@ -24,7 +24,7 @@ function Spinner() {
         fontSize: 22, color: '#fff', fontWeight: 800,
         boxShadow: '0 4px 14px rgba(220,38,38,0.3)',
       }}>A</div>
-      <div style={{ fontSize: 14, color: '#6b7280', fontWeight: 500 }}>Loading AutoFlow AI…</div>
+      <div style={{ fontSize: 14, color: '#6b7280', fontWeight: 500 }}>Loading Ittisalo…</div>
       <div style={{
         width: 32, height: 32,
         border: '3px solid #fecaca',
@@ -198,7 +198,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           }}>⚠️</div>
           <h2 style={{ fontSize: 20, fontWeight: 700, color: '#111827', margin: 0 }}>Supabase Configuration Missing</h2>
           <p style={{ fontSize: 14, color: '#4b5563', maxWidth: 450, lineHeight: 1.5, margin: 0 }}>
-            AutoFlow AI could not initialize the database client because environment variables are not configured on your Railway server.
+            Ittisalo could not initialize the database client because environment variables are not configured on your server.
           </p>
           <div style={{
             background: '#fff', border: '1px solid rgba(220,38,38,0.15)',
@@ -264,7 +264,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 {niche?.label || 'General'}
               </div>
               <div className="desktop-only" style={{ fontSize: 14.5, fontWeight: 700, color: '#1f2937', letterSpacing: '-0.3px' }}>
-                AutoFlow Studio <span style={{ fontSize: 11.5, color: '#dc2626', fontWeight: 600 }}>(Admin)</span>
+                Ittisalo Studio <span style={{ fontSize: 11.5, color: '#dc2626', fontWeight: 600 }}>(Admin)</span>
               </div>
             </div>
 

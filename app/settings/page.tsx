@@ -65,42 +65,42 @@ function SettingsInner() {
   const [tab, setTab] = useState<Tab>('Business Profile');
   const [saved, setSaved] = useState(false);
 
-  // Business settings
-  const [businessName, setBusinessName] = useState('AutoFlow Solutions');
-  const [ownerName, setOwnerName] = useState('Usama Habib');
-  const [waNumber, setWaNumber] = useState('+92 300 0000000');
-  const [location, setLocation] = useState('Karachi, Pakistan');
-  const [website, setWebsite] = useState('https://autoflow.ai');
+  // Business settings — start empty, loaded from DB per tenant
+  const [businessName, setBusinessName] = useState('');
+  const [ownerName, setOwnerName] = useState('');
+  const [waNumber, setWaNumber] = useState('');
+  const [location, setLocation] = useState('');
+  const [website, setWebsite] = useState('');
 
-  // Dynamic niche fields
-  const [menuLink, setMenuLink] = useState('https://menus.autoflow.ai/spice-garden');
+  // Dynamic niche fields — start empty
+  const [menuLink, setMenuLink] = useState('');
   const [slotCapacity, setSlotCapacity] = useState('8');
   const [isHalal, setIsHalal] = useState(true);
 
-  const [dentalEmergency, setDentalEmergency] = useState('+92 300 9991112');
+  const [dentalEmergency, setDentalEmergency] = useState('');
   const [slotLength, setSlotLength] = useState('30');
-  const [insurances, setInsurances] = useState('Jubilee Life, EFU Life, Adamjee Insurance');
+  const [insurances, setInsurances] = useState('');
 
-  const [catalogLink, setCatalogLink] = useState('https://shop.autoflow.ai/lawn-collection');
+  const [catalogLink, setCatalogLink] = useState('');
   const [codEnabled, setCodEnabled] = useState(true);
   const [deliveryDays, setDeliveryDays] = useState('3');
-  const [minOrder, setMinOrder] = useState('1500');
+  const [minOrder, setMinOrder] = useState('0');
 
-  const [agencyLicense, setAgencyLicense] = useState('RE-2026-9842');
-  const [operatingCities, setOperatingCities] = useState('Karachi, Lahore, Islamabad');
-  const [propertyTypes, setPropertyTypes] = useState('Luxury Apartments, Residential Plots');
+  const [agencyLicense, setAgencyLicense] = useState('');
+  const [operatingCities, setOperatingCities] = useState('');
+  const [propertyTypes, setPropertyTypes] = useState('');
 
   const [stylistsCount, setStylistsCount] = useState('5');
-  const [bridalPackages, setBridalPackages] = useState(true);
+  const [bridalPackages, setBridalPackages] = useState(false);
 
-  const [opdHours, setOpdHours] = useState('9:00 AM - 5:00 PM');
-  const [emergencyPhone, setEmergencyPhone] = useState('+92 21 111 222 333');
-  const [specialties, setSpecialties] = useState('Pediatrics, Cardiology, General Medicine');
+  const [opdHours, setOpdHours] = useState('');
+  const [emergencyPhone, setEmergencyPhone] = useState('');
+  const [specialties, setSpecialties] = useState('');
 
-  // APIs state
-  const [waToken, setWaToken] = useState('EAAGm••••••••••••3kL');
-  const [waPhoneId, setWaPhoneId] = useState('108253102123984');
-  const [waAccountId, setWaAccountId] = useState('109283019238472');
+  // APIs state — start empty, loaded from DB per tenant
+  const [waToken, setWaToken] = useState('');
+  const [waPhoneId, setWaPhoneId] = useState('');
+  const [waAccountId, setWaAccountId] = useState('');
 
   // AI Knowledge Base state
   interface KBEntry { id: string; kb_type: string; title: string; content: string; source_url?: string; is_active: boolean; created_at: string; }
@@ -182,6 +182,33 @@ function SettingsInner() {
             if (tenant) {
               if (tenant.business_name) setBusinessName(tenant.business_name);
               if (tenant.business_phone) setWaNumber(tenant.business_phone);
+              if (tenant.website) setWebsite(tenant.website);
+              if (tenant.location) setLocation(tenant.location);
+              if (tenant.owner_name) setOwnerName(tenant.owner_name);
+              if (tenant.catalog_link) setCatalogLink(tenant.catalog_link);
+              if (tenant.menu_link) setMenuLink(tenant.menu_link);
+              if (tenant.delivery_days) setDeliveryDays(String(tenant.delivery_days));
+              if (tenant.min_order) setMinOrder(String(tenant.min_order));
+              if (tenant.cod_enabled !== undefined) setCodEnabled(tenant.cod_enabled);
+              // Load per-tenant Meta API tokens
+              if (tenant.wa_token_enc) setWaToken('••••••••••••••••');
+              if (tenant.wa_phone_number_id) setWaPhoneId(tenant.wa_phone_number_id);
+              if (tenant.wa_account_id) setWaAccountId(tenant.wa_account_id);
+              // Load niche_settings JSONB
+              const ns = tenant.niche_settings || {};
+              if (ns.dentalEmergency) setDentalEmergency(ns.dentalEmergency);
+              if (ns.slotLength) setSlotLength(ns.slotLength);
+              if (ns.insurances) setInsurances(ns.insurances);
+              if (ns.agencyLicense) setAgencyLicense(ns.agencyLicense);
+              if (ns.operatingCities) setOperatingCities(ns.operatingCities);
+              if (ns.propertyTypes) setPropertyTypes(ns.propertyTypes);
+              if (ns.stylistsCount) setStylistsCount(ns.stylistsCount);
+              if (ns.bridalPackages !== undefined) setBridalPackages(ns.bridalPackages);
+              if (ns.opdHours) setOpdHours(ns.opdHours);
+              if (ns.emergencyPhone) setEmergencyPhone(ns.emergencyPhone);
+              if (ns.specialties) setSpecialties(ns.specialties);
+              if (ns.slotCapacity) setSlotCapacity(ns.slotCapacity);
+              if (ns.isHalal !== undefined) setIsHalal(ns.isHalal);
             }
 
             // Load knowledge base entries
@@ -439,13 +466,32 @@ function SettingsInner() {
           .single();
 
         if (profile?.tenant_id) {
-          // Update tenants table with basic profile data
+          // Update tenants table with all per-tenant settings
+          const nicheSettings = {
+            dentalEmergency, slotLength, insurances, agencyLicense,
+            operatingCities, propertyTypes, stylistsCount, bridalPackages,
+            opdHours, emergencyPhone, specialties, slotCapacity, isHalal
+          };
+          const updatePayload: Record<string, any> = {
+            business_name: businessName,
+            business_phone: waNumber,
+            website,
+            location,
+            owner_name: ownerName,
+            catalog_link: catalogLink,
+            menu_link: menuLink,
+            delivery_days: parseInt(deliveryDays) || 3,
+            min_order: parseInt(minOrder) || 0,
+            cod_enabled: codEnabled,
+            niche_settings: nicheSettings,
+          };
+          // Only update Meta tokens if user typed something new (not the masked placeholder)
+          if (waPhoneId && !waPhoneId.includes('•')) updatePayload.wa_phone_number_id = waPhoneId;
+          if (waAccountId && !waAccountId.includes('•')) updatePayload.wa_account_id = waAccountId;
+          if (waToken && !waToken.includes('•')) updatePayload.wa_token_enc = waToken;
           await supabase
             .from('tenants')
-            .update({
-              business_name: businessName,
-              business_phone: waNumber
-            })
+            .update(updatePayload)
             .eq('id', profile.tenant_id);
         }
       }
@@ -460,7 +506,7 @@ function SettingsInner() {
       propertyTypes, stylistsCount, bridalPackages, opdHours, emergencyPhone, specialties,
       businessName, ownerName, waNumber, location, website
     };
-    localStorage.setItem(`autoflow_custom_settings_${niche.id}`, JSON.stringify(localSettings));
+    localStorage.setItem(`ittisalo_custom_settings_${niche.id}`, JSON.stringify(localSettings));
 
     setSaved(true); 
     setTimeout(() => setSaved(false), 2000); 
@@ -515,7 +561,7 @@ function SettingsInner() {
           <h1 style={{ fontSize: 24, fontWeight: 800, color: '#111827', letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Settings size={24} color="#dc2626" /> System Settings
           </h1>
-          <p style={{ fontSize: 13.5, color: '#6b7280', marginTop: 3 }}>Configure your AutoFlow AI channels, integrations, and preferences.</p>
+          <p style={{ fontSize: 13.5, color: '#6b7280', marginTop: 3 }}>Configure your Ittisalo channels, integrations, and preferences.</p>
         </div>
 
         {saved && (
@@ -796,7 +842,7 @@ function SettingsInner() {
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Website URL Scraper</div>
               </div>
               <p style={{ fontSize: 12.5, color: '#6b7280', marginBottom: 16 }}>
-                Paste your business website URL. AutoFlow will crawl the page and import all text content into the AI knowledge base.
+                Paste your business website URL. Ittisalo will crawl the page and import all text content into the AI knowledge base.
               </p>
               <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                 <input

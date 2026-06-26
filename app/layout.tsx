@@ -6,8 +6,8 @@ import { PlanProvider } from '@/context/PlanContext';
 import AppShell from '@/components/AppShell';
 
 export const metadata: Metadata = {
-  title: 'AutoFlow AI — WhatsApp Business Dashboard',
-  description: 'AI-powered WhatsApp bot and CRM for your business',
+  title: 'Ittisalo — AI-Powered WhatsApp Business Dashboard',
+  description: 'Ittisalo: AI-powered omnichannel CRM and WhatsApp automation for your business',
 };
 
 const inter = Inter({ subsets: ['latin'] });
