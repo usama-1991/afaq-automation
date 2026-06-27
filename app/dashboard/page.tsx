@@ -101,24 +101,18 @@ function SectionCard({ title, subtitle, children, action, fullHeight }: {
 }) {
   return (
     <div style={{
-      background: 'white', borderRadius: 20, padding: '26px 28px',
+      background: 'white', borderRadius: 20, padding: '22px 24px',
       border: '1px solid rgba(220,38,38,0.06)',
       boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
-      display: 'flex', flexDirection: 'column',
-      height: fullHeight ? '100%' : 'auto',
-      minHeight: '100%',
-      justifyContent: 'space-between'
     }}>
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#111827', letterSpacing: '-0.3px' }}>{title}</div>
-            {subtitle && <div style={{ fontSize: 12.5, color: '#6b7280', marginTop: 4, fontWeight: 500 }}>{subtitle}</div>}
-          </div>
-          {action && <div style={{ flexShrink: 0 }}>{action}</div>}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: '#111827', letterSpacing: '-0.3px' }}>{title}</div>
+          {subtitle && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 3, fontWeight: 500 }}>{subtitle}</div>}
         </div>
-        <div style={{ flex: 1 }}>{children}</div>
+        {action && <div style={{ flexShrink: 0 }}>{action}</div>}
       </div>
+      <div>{children}</div>
     </div>
   );
 }
@@ -797,13 +791,7 @@ export default function DashboardPage() {
                 </div>
               </SectionCard>
 
-              <SectionCard title="Product Intelligence">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <div style={{ color: '#9ca3af', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>
-                    Connect your WooCommerce store to see top search queries, popular products, and out-of-stock pain points from customer conversations.
-                  </div>
-                </div>
-              </SectionCard>
+
             </>
           )}
 
@@ -1084,48 +1072,65 @@ export default function DashboardPage() {
 
         </div>
 
-        {/* Right Column: Universal AI & Sentiment Stats */}
+        {/* Right Column: AI Stats + Channel Overview + Chart */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          
+
           <SectionCard title="🤖 AI Agent Performance" subtitle="Calculated from your live conversation data">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: RED_LIGHT, borderRadius: 12 }}>
-                <span style={{ fontSize: 13, fontWeight: 750, color: '#374151' }}>Resolved by AI</span>
-                <span style={{ fontSize: 14, fontWeight: 900, color: RED }}>{aiStats.resolvedPct > 0 ? `${aiStats.resolvedPct}%` : stats.conversations > 0 ? 'In progress' : '—'}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: '#faf9f9', borderRadius: 12 }}>
-                <span style={{ fontSize: 13, fontWeight: 750, color: '#374151' }}>Escalated to Human</span>
-                <span style={{ fontSize: 14, fontWeight: 900, color: AMBER }}>{aiStats.escalatedPct > 0 ? `${aiStats.escalatedPct}%` : '—'}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: '#faf9f9', borderRadius: 12 }}>
-                <span style={{ fontSize: 13, fontWeight: 750, color: '#374151' }}>Total Conversations</span>
-                <span style={{ fontSize: 14, fontWeight: 900, color: GREEN }}>{stats.conversations > 0 ? `${stats.conversations} chats` : '—'}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: '#faf9f9', borderRadius: 12 }}>
-                <span style={{ fontSize: 13, fontWeight: 750, color: '#374151' }}>AI Messages Sent Today</span>
-                <span style={{ fontSize: 14, fontWeight: 900, color: '#111827' }}>{aiStats.aiMsgsToday > 0 ? `${aiStats.aiMsgsToday} msgs` : '—'}</span>
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[
+                { label: 'Resolved by AI', val: aiStats.resolvedPct > 0 ? `${aiStats.resolvedPct}%` : stats.conversations > 0 ? 'In progress' : '—', color: RED, bg: RED_LIGHT },
+                { label: 'Escalated to Human', val: aiStats.escalatedPct > 0 ? `${aiStats.escalatedPct}%` : '—', color: AMBER, bg: '#faf9f9' },
+                { label: 'Total Conversations', val: stats.conversations > 0 ? `${stats.conversations} chats` : '—', color: GREEN, bg: '#faf9f9' },
+                { label: 'AI Messages Today', val: aiStats.aiMsgsToday > 0 ? `${aiStats.aiMsgsToday} msgs` : '—', color: '#111827', bg: '#faf9f9' },
+              ].map(row => (
+                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: row.bg, borderRadius: 10 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 650, color: '#374151' }}>{row.label}</span>
+                  <span style={{ fontSize: 13, fontWeight: 900, color: row.color }}>{row.val}</span>
+                </div>
+              ))}
             </div>
           </SectionCard>
 
-          <SectionCard title="📊 Channel Overview">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <SectionCard title="📊 Channel Breakdown">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {channels.length === 0 ? (
-                <div style={{ color: '#9ca3af', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>No channels connected yet</div>
+                <div style={{ color: '#9ca3af', fontSize: 13, textAlign: 'center', padding: '12px 0' }}>No channels yet</div>
               ) : channels.map((c, idx) => (
-                <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ width: 10, height: 10, borderRadius: 3, background: c.color }} />
+                <div key={idx}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 5 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <div style={{ width: 9, height: 9, borderRadius: 3, background: c.color }} />
                       <span style={{ fontWeight: 700, color: '#374151' }}>{c.name}</span>
                     </div>
-                    <strong style={{ color: '#111827' }}>{c.value} convs</strong>
+                    <strong style={{ color: '#111827' }}>{c.value}</strong>
                   </div>
-                  <div style={{ width: '100%', height: 6, background: '#f3f4f6', borderRadius: 3, overflow: 'hidden' }}>
-                    <div style={{ width: `${Math.round((c.value / channels.reduce((s, ch) => s + ch.value, 0)) * 100)}%`, height: '100%', background: c.color }} />
+                  <div style={{ width: '100%', height: 5, background: '#f3f4f6', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.round((c.value / Math.max(channels.reduce((s, ch) => s + ch.value, 0), 1)) * 100)}%`, height: '100%', background: c.color }} />
                   </div>
                 </div>
               ))}
+            </div>
+          </SectionCard>
+
+          {/* Message Volume Chart — now in right column, no wasted row */}
+          <SectionCard title="Message Volume" subtitle="Inbound vs outbound over 7 days">
+            <div style={{ height: 160 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={volumeData} margin={{ top: 4, right: 0, left: -28, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="gInbound" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={RED} stopOpacity={0.18} />
+                      <stop offset="100%" stopColor={RED} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" vertical={false} />
+                  <XAxis dataKey="time" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Area type="monotone" dataKey="inbound" name="Inbound" stroke={RED} strokeWidth={2} fill="url(#gInbound)" dot={false} />
+                  <Area type="monotone" dataKey="outbound" name="Outbound" stroke={BLUE} strokeWidth={1.5} fill="none" dot={false} />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </SectionCard>
 
@@ -1133,82 +1138,7 @@ export default function DashboardPage() {
 
       </div>
 
-      {/* ── Universal Performance Dashboard Rows ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 24 }}>
-        
-        {/* Hourly Volume Chart */}
-        <SectionCard title="Hourly AI Conversational Peak Rush Hours" subtitle="AI agent activity volume mapped by hour to help manage human backup staffing schedules">
-          <div style={{ height: 210 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={volumeData} margin={{ top: 0, right: 0, left: -22, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="gInbound" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={RED} stopOpacity={0.18} />
-                    <stop offset="100%" stopColor={RED} stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="gOutbound" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={BLUE} stopOpacity={0.14} />
-                    <stop offset="100%" stopColor={BLUE} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" vertical={false} />
-                <XAxis dataKey="time" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip content={<ChartTooltip />} />
-                <Area type="monotone" dataKey="inbound" name="Inbound Messages" stroke={RED} strokeWidth={2.5} fill="url(#gInbound)" dot={false} />
-                <Area type="monotone" dataKey="outbound" name="Outbound Agent" stroke={BLUE} strokeWidth={2} fill="url(#gOutbound)" dot={false} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-          <div style={{ display: 'flex', gap: 18, marginTop: 10 }}>
-            {[{ color: RED, label: 'Inbound WhatsApp/Meta API' }, { color: BLUE, label: 'Outbound AI Agent' }].map(l => (
-              <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{ width: 10, height: 3, borderRadius: 2, background: l.color }} />
-                <span style={{ fontSize: 11.5, color: '#9ca3af', fontWeight: 650 }}>{l.label}</span>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
 
-        {/* Channel Breakdown */}
-        <SectionCard title="Live Multi-Channel Engagement" subtitle="Real-time incoming message source share">
-          {channels.length === 0 ? (
-            <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: 13 }}>
-              No message channels connected yet
-            </div>
-          ) : (
-            <>
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-                <PieChart width={170} height={170}>
-                  <Pie
-                    data={channels} cx={80} cy={80}
-                    innerRadius={50} outerRadius={76}
-                    paddingAngle={3} dataKey="value"
-                    strokeWidth={0}
-                  >
-                    {channels.map((c, i) => <Cell key={i} fill={c.color} />)}
-                  </Pie>
-                </PieChart>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-                {channels.map(c => (
-                  <div key={c.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ width: 10, height: 10, borderRadius: 3, background: c.color }} />
-                      <span style={{ fontSize: 12.5, color: '#374151', fontWeight: 650 }}>{c.name}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 12.5, fontWeight: 800, color: '#111827' }}>{c.value}</span>
-                      <span style={{ fontSize: 11, color: '#9ca3af' }}>convs</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </SectionCard>
-
-      </div>
 
       <style>{`
         .niche-stat-card:hover {
