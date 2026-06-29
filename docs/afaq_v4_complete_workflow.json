@@ -6,7 +6,8 @@
         "httpMethod": "POST",
         "path": "afaq-ai-agent",
         "responseMode": "responseNode",
-        "options": {}
+        "options": {},
+        "authentication": "headerAuth"
       },
       "id": "node-01",
       "name": "Webhook Trigger",
@@ -68,13 +69,7 @@
         -1000,
         480
       ],
-      "continueOnFail": true,
-      "credentials": {
-        "supabaseApi": {
-          "id": "SqPZLoJsxHTK57M1",
-          "name": "Raziq Supabase"
-        }
-      }
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -119,13 +114,7 @@
         480
       ],
       "continueOnFail": true,
-      "alwaysOutputData": true,
-      "credentials": {
-        "supabaseApi": {
-          "id": "SqPZLoJsxHTK57M1",
-          "name": "Raziq Supabase"
-        }
-      }
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -157,13 +146,7 @@
         480
       ],
       "continueOnFail": true,
-      "alwaysOutputData": true,
-      "credentials": {
-        "supabaseApi": {
-          "id": "SqPZLoJsxHTK57M1",
-          "name": "Raziq Supabase"
-        }
-      }
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -210,13 +193,7 @@
         480
       ],
       "continueOnFail": true,
-      "alwaysOutputData": true,
-      "credentials": {
-        "openAiApi": {
-          "id": "SXYVhIejxxByLhly",
-          "name": "OpenAi account tps"
-        }
-      }
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -263,13 +240,7 @@
         480
       ],
       "continueOnFail": true,
-      "alwaysOutputData": true,
-      "credentials": {
-        "supabaseApi": {
-          "id": "SqPZLoJsxHTK57M1",
-          "name": "Raziq Supabase"
-        }
-      }
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -309,13 +280,7 @@
         480
       ],
       "continueOnFail": true,
-      "alwaysOutputData": true,
-      "credentials": {
-        "supabaseApi": {
-          "id": "SqPZLoJsxHTK57M1",
-          "name": "Raziq Supabase"
-        }
-      }
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -376,13 +341,7 @@
       ],
       "retryOnFail": true,
       "maxTries": 3,
-      "waitBetweenTries": 2000,
-      "credentials": {
-        "openAiApi": {
-          "id": "SXYVhIejxxByLhly",
-          "name": "OpenAi account tps"
-        }
-      }
+      "waitBetweenTries": 2000
     },
     {
       "parameters": {
@@ -445,13 +404,7 @@
         2000,
         480
       ],
-      "continueOnFail": true,
-      "credentials": {
-        "supabaseApi": {
-          "id": "SqPZLoJsxHTK57M1",
-          "name": "Raziq Supabase"
-        }
-      }
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -514,13 +467,7 @@
         2600,
         480
       ],
-      "continueOnFail": true,
-      "credentials": {
-        "supabaseApi": {
-          "id": "SqPZLoJsxHTK57M1",
-          "name": "Raziq Supabase"
-        }
-      }
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -652,13 +599,7 @@
         2050,
         -50
       ],
-      "continueOnFail": true,
-      "credentials": {
-        "supabaseApi": {
-          "id": "SqPZLoJsxHTK57M1",
-          "name": "Raziq Supabase"
-        }
-      }
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -692,13 +633,7 @@
         2050,
         100
       ],
-      "continueOnFail": true,
-      "credentials": {
-        "supabaseApi": {
-          "id": "SqPZLoJsxHTK57M1",
-          "name": "Raziq Supabase"
-        }
-      }
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -732,13 +667,7 @@
         2050,
         250
       ],
-      "continueOnFail": true,
-      "credentials": {
-        "supabaseApi": {
-          "id": "SqPZLoJsxHTK57M1",
-          "name": "Raziq Supabase"
-        }
-      }
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -772,13 +701,7 @@
         2250,
         100
       ],
-      "continueOnFail": true,
-      "credentials": {
-        "supabaseApi": {
-          "id": "SqPZLoJsxHTK57M1",
-          "name": "Raziq Supabase"
-        }
-      }
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -828,13 +751,7 @@
         2050,
         700
       ],
-      "continueOnFail": true,
-      "credentials": {
-        "supabaseApi": {
-          "id": "SqPZLoJsxHTK57M1",
-          "name": "Raziq Supabase"
-        }
-      }
+      "continueOnFail": true
     }
   ],
   "connections": {
