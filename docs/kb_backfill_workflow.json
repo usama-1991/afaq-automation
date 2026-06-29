@@ -7,7 +7,10 @@
       "name": "On clicking 'Test Workflow'",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [400, 300]
+      "position": [
+        400,
+        300
+      ]
     },
     {
       "parameters": {
@@ -16,8 +19,11 @@
         "returnAll": true,
         "filters": {
           "conditions": [
-            { "keyName": "embedding", "condition": "is", "keyValue": "null" },
-            { "keyName": "is_active", "condition": "eq", "keyValue": "true" }
+            {
+              "keyName": "embedding",
+              "condition": "is",
+              "keyValue": "null"
+            }
           ]
         }
       },
@@ -25,8 +31,10 @@
       "name": "Get KB Rows",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [600, 300],
-      "credentials": { "supabaseApi": { "id": "SqPZLoJsxHTK57M1", "name": "Raziq Supabase" } }
+      "position": [
+        600,
+        300
+      ]
     },
     {
       "parameters": {
@@ -37,27 +45,25 @@
       "name": "Loop Over Rows",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [800, 300]
+      "position": [
+        800,
+        300
+      ]
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://api.openai.com/v1/embeddings",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "openAiApi",
-        "sendHeaders": true,
-        "headerParameters": { "parameters": [ { "name": "Content-Type", "value": "application/json" } ] },
-        "sendBody": true,
-        "contentType": "raw",
-        "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ model: 'text-embedding-3-small', input: `[${$json.title}]\\n${$json.content}` }) }}"
+        "resource": "embedding",
+        "model": "text-embedding-3-small",
+        "input": "=[{{ $json.title }}]\\n{{ $json.content }}"
       },
       "id": "node-4",
       "name": "Generate Vector",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1000, 300],
-      "credentials": { "openAiApi": { "id": "SXYVhIejxxByLhly", "name": "OpenAi account tps" } }
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.1,
+      "position": [
+        1000,
+        300
+      ]
     },
     {
       "parameters": {
@@ -70,30 +76,67 @@
       "name": "Save Vector",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [1200, 300],
-      "credentials": { "supabaseApi": { "id": "SqPZLoJsxHTK57M1", "name": "Raziq Supabase" } }
-    },
-    {
-      "parameters": {
-        "jsCode": "return [{ json: { id: $('Loop Over Rows').first().json.id, embedding: $('Generate Vector').first().json.data[0].embedding } }];"
-      },
-      "id": "node-6",
-      "name": "Map Vector to Row",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1100, 450]
+      "position": [
+        1200,
+        300
+      ]
     }
   ],
   "connections": {
-    "On clicking 'Test Workflow'": { "main": [ [ { "node": "Get KB Rows", "type": "main", "index": 0 } ] ] },
-    "Get KB Rows": { "main": [ [ { "node": "Loop Over Rows", "type": "main", "index": 0 } ] ] },
-    "Loop Over Rows": {
+    "On clicking 'Test Workflow'": {
       "main": [
-        [ { "node": "Generate Vector", "type": "main", "index": 0 } ]
+        [
+          {
+            "node": "Get KB Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Generate Vector": { "main": [ [ { "node": "Map Vector to Row", "type": "main", "index": 0 } ] ] },
-    "Map Vector to Row": { "main": [ [ { "node": "Save Vector", "type": "main", "index": 0 } ] ] },
-    "Save Vector": { "main": [ [ { "node": "Loop Over Rows", "type": "main", "index": 0 } ] ] }
+    "Get KB Rows": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Rows": {
+      "main": [
+        [
+          {
+            "node": "Generate Vector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Vector": {
+      "main": [
+        [
+          {
+            "node": "Save Vector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Vector": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   }
 }
