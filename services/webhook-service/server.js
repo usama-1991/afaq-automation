@@ -259,54 +259,17 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
         .eq('conversation_id', conversation.id)
         .maybeSingle();
 
+      // Use simpler payload for v4 workflow
       const n8nPayload = {
-        // ── Core identifiers ──────────────────────────────────────────
         tenant_id: tenantId,
-        conversation_id: conversation.id,
-        message_id: savedMessage?.id || null,
-
-        // ── Customer context ──────────────────────────────────────────
         customer_phone: customerId,
         customer_name: customerName,
-        message_text: messageText,
         platform: platform,
-        timestamp: new Date().toISOString(),
-
-        // ── Business / niche context ──────────────────────────────────
-        niche: tenantNiche,
-        business_name: tenantBusinessName,
-        tenant_metadata: tenantMetadata,
-
-        // ── AI agent configuration ────────────────────────────────────
-        agent_config: {
-          name: agentConfig.name || 'AutoFlow Assistant',
-          prompt: agentConfig.prompt || 'You are a helpful business assistant.',
-          tone: agentConfig.tone || 'professional',
-          language: agentConfig.language || 'auto',
-        },
-
-        // ── Knowledge base (n8n builds knowledge_base_text from this) ─
-        knowledge_base: knowledgeBase,
-
-        // ── Conversation history (last 10 messages) ───────────────────
-        conversation_history: conversationHistory,
-
-        // ── Previous AI context (intent, funnel stage) ────────────────
-        existing_context: existingContext || null,
-
-        // ── Integration credentials (WooCommerce, Google Calendar etc) ─
-        integrations: {
-          woocommerce: integMap['woocommerce'] || null,
-          google_calendar: integMap['google_calendar'] || null,
-          google_sheets: integMap['google_sheets'] || null,
-        },
-
-        // ── Meta credentials per tenant (used by n8n to send WhatsApp) ─
-        meta_credentials: {
-          phone_number_id: metaCreds.phone_number_id || process.env.META_PHONE_NUMBER_ID,
-          access_token: metaCreds.access_token || process.env.META_ACCESS_TOKEN,
-          instagram_user_id: metaCreds.instagram_user_id || process.env.INSTAGRAM_USER_ID,
-        },
+        message_type: 'text',
+        message: messageText,
+        external_message_id: messageId,
+        phone_number_id: metaCreds.phone_number_id || process.env.META_PHONE_NUMBER_ID || '',
+        timestamp: new Date().toISOString()
       };
 
       fastify.log.info(`[${platform}] Firing n8n with niche="${tenantNiche}", kb=${knowledgeBase.length} items, history=${conversationHistory.length} msgs`);
@@ -328,23 +291,14 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
         headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.N8N_API_KEY || '' },
         body: JSON.stringify({
           tenant_id: tenantId,
-          conversation_id: conversation.id,
           customer_phone: customerId,
           customer_name: customerName,
-          message_text: messageText,
           platform: platform,
-          niche: tenantNiche,
-          business_name: tenantBusinessName,
-          agent_config: { name: 'AutoFlow Assistant', prompt: 'You are a helpful assistant.' },
-          knowledge_base: [],
-          conversation_history: [],
-          existing_context: null,
-          integrations: {},
-          meta_credentials: {
-            phone_number_id: process.env.META_PHONE_NUMBER_ID,
-            access_token: process.env.META_ACCESS_TOKEN,
-            instagram_user_id: process.env.INSTAGRAM_USER_ID,
-          },
+          message_type: 'text',
+          message: messageText,
+          external_message_id: messageId,
+          phone_number_id: process.env.META_PHONE_NUMBER_ID || '',
+          timestamp: new Date().toISOString()
         }),
       }).catch(err => fastify.log.error(`Fallback n8n trigger failed: ${err.message}`));
     }

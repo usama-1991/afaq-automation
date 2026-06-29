@@ -1,0 +1,575 @@
+{
+  "name": "Afaq AI Agent — v3 Production (Migrated Schema)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "afaq-ai-agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-01",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-1600, 480],
+      "webhookId": "afaq-production-v3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 2: Validate & normalise incoming payload\n// ─────────────────────────────────────────────\nconst body = $input.first().json.body || $input.first().json;\n\nfunction makeUUID() {\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {\n    const r = Math.random() * 16 | 0;\n    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);\n  });\n}\n\nconst required = ['tenant_id', 'customer_phone', 'platform', 'message_type'];\nconst missing = required.filter(f => !body[f]);\nif (missing.length > 0) {\n  throw new Error('Missing required fields: ' + missing.join(', '));\n}\n\nif (body.message_type === 'text' && !body.message) {\n  throw new Error('Message content is empty');\n}\n\nreturn [{\n  json: {\n    tenant_id:           body.tenant_id,\n    customer_phone:      String(body.customer_phone),\n    customer_name:       body.customer_name || 'Customer',\n    platform:            body.platform || 'whatsapp',\n    message_type:        body.message_type || 'text',\n    message:             body.message || '',\n    external_message_id: body.external_message_id || makeUUID(),\n    phone_number_id:     body.phone_number_id || '',\n    timestamp:           body.timestamp || new Date().toISOString(),\n    processed_at:        new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-02",
+      "name": "Validate Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1400, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 3: Detect language from message content\n// ─────────────────────────────────────────────\nconst body = $input.first().json;\nconst message = body.message || '';\n\nlet detected_language = 'en';\nconst arabicChars = (message.match(/[\\u0600-\\u06FF]/g) || []).length;\nconst urduChars   = (message.match(/[\\u067E\\u0686\\u0698\\u06AF\\u06BA\\u06C1\\u06BE\\u06CC]/g) || []).length;\n\nif (arabicChars > 0) {\n  detected_language = (urduChars / arabicChars > 0.15) ? 'ur' : 'ar';\n}\n\nreturn [{ json: { ...body, detected_language, normalized_message: message.trim() } }];"
+      },
+      "id": "node-03",
+      "name": "Detect Language",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1200, 480]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "tenants",
+        "returnAll": false,
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.tenant_id }}"
+            }
+          ]
+        }
+      },
+      "id": "node-04",
+      "name": "Load Tenant",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [-1000, 480],
+      "continueOnFail": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "SqPZLoJsxHTK57M1",
+          "name": "Raziq Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 5: Merge tenant with request + status check\n// ─────────────────────────────────────────────\nconst requestData  = $('Detect Language').first().json;\nconst tenantItems  = $input.all();\n\nif (!tenantItems || tenantItems.length === 0 || !tenantItems[0].json.id) {\n  throw new Error('Tenant not found for id: ' + requestData.tenant_id);\n}\n\nconst tenant = tenantItems[0].json;\n\nif (tenant.status && tenant.status !== 'active') {\n  throw new Error('TENANT_SUSPENDED');\n}\n\nreturn [{\n  json: {\n    // Request fields\n    tenant_id:           requestData.tenant_id,\n    customer_phone:      requestData.customer_phone,\n    customer_name:       requestData.customer_name,\n    platform:            requestData.platform,\n    message_type:        requestData.message_type,\n    message:             requestData.message,\n    external_message_id: requestData.external_message_id,\n    phone_number_id:     requestData.phone_number_id,\n    processed_at:        requestData.processed_at,\n    detected_language:   requestData.detected_language,\n    normalized_message:  requestData.normalized_message,\n\n    // Tenant fields\n    tenant:              tenant,\n    business_name:       tenant.business_name || tenant.name,\n    niche:               tenant.niche || 'general',\n    wa_phone_number_id:  tenant.wa_phone_number_id,\n    wa_access_token:     tenant.wa_access_token,\n\n    // AI config — from migrated columns (fallback to safe defaults)\n    ai_model:            tenant.ai_model       || 'gpt-4o-mini',\n    ai_temperature:      parseFloat(tenant.ai_temperature) || 0.7,\n    ai_max_tokens:       parseInt(tenant.ai_max_tokens)    || 500,\n    ai_language:         tenant.ai_language    || requestData.detected_language || 'ar'\n  }\n}];"
+      },
+      "id": "node-05",
+      "name": "Merge Tenant",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-800, 480]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "agents",
+        "returnAll": false,
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "tenant_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.tenant_id }}"
+            },
+            {
+              "keyName": "is_active",
+              "condition": "eq",
+              "keyValue": "true"
+            }
+          ]
+        }
+      },
+      "id": "node-06",
+      "name": "Load Agent",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [-600, 480],
+      "continueOnFail": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "SqPZLoJsxHTK57M1",
+          "name": "Raziq Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "conversations",
+        "returnAll": false,
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "tenant_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Merge Tenant').first().json.tenant_id }}"
+            },
+            {
+              "keyName": "external_conversation_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Merge Tenant').first().json.customer_phone }}"
+            }
+          ]
+        }
+      },
+      "id": "node-07",
+      "name": "Find Conversation",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [-400, 480],
+      "continueOnFail": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "SqPZLoJsxHTK57M1",
+          "name": "Raziq Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 8: Prepare OpenAI embedding request body\n// ─────────────────────────────────────────────\nconst ctx = $('Merge Tenant').first().json;\n\nconst embedBody = JSON.stringify({\n  model: 'text-embedding-3-small',\n  input: ctx.normalized_message\n});\n\nreturn [{ json: { ...ctx, embed_request_body: embedBody } }];"
+      },
+      "id": "node-08",
+      "name": "Prepare Embed Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-200, 480]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/embeddings",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.embed_request_body }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "node-09",
+      "name": "Embed Customer Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [0, 480],
+      "continueOnFail": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "openAiApi": {
+          "id": "SXYVhIejxxByLhly",
+          "name": "OpenAi account tps"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 10: Prepare vector search request body\n// ─────────────────────────────────────────────\nconst ctx       = $('Merge Tenant').first().json;\nconst embedResp = $input.first().json;\n\n// Extract embedding vector — gracefully handle embedding failure\nconst embedding = embedResp?.data?.[0]?.embedding || [];\n\nconst searchBody = JSON.stringify({\n  query_embedding: embedding,\n  p_tenant_id:     ctx.tenant_id,\n  match_threshold: 0.70,\n  match_count:     5\n});\n\nreturn [{ json: { ...ctx, embedding, search_request_body: searchBody } }];"
+      },
+      "id": "node-10",
+      "name": "Prepare Search Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [200, 480]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://YOUR_SUPABASE_URL/rest/v1/rpc/search_knowledge_base",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_SUPABASE_SERVICE_ROLE_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.search_request_body }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "node-11",
+      "name": "Search Knowledge Base",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [400, 480],
+      "continueOnFail": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "SqPZLoJsxHTK57M1",
+          "name": "Raziq Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 12: Assemble full context for AI\n// ─────────────────────────────────────────────\nconst ctx       = $('Merge Tenant').first().json;\nconst agentItem = $('Load Agent').first().json;\nconst convItem  = $('Find Conversation').first().json;\nconst kbResult  = $input.first().json;\n\n// Agent prompt — from agents table\nconst agent      = agentItem?.id ? agentItem : null;\nconst agentPrompt = agent?.prompt ||\n  `You are a helpful AI assistant for ${ctx.business_name}. Answer customer questions professionally.`;\n\n// Knowledge base — from vector search results\nconst kbDocs = Array.isArray(kbResult) ? kbResult : [];\nconst kbEntries = kbDocs.length > 0\n  ? kbDocs.map((kb, i) => `[${i + 1}] ${kb.title}:\\n${kb.content}`).join('\\n\\n')\n  : '';\n\n// Existing conversation\nconst existingConv      = convItem?.id ? convItem : null;\nconst conversation_id   = existingConv?.id || null;\nconst is_new_conversation = !existingConv;\n\nreturn [{\n  json: {\n    ...ctx,\n    agent_prompt:       agentPrompt,\n    kb_entries:         kbEntries,\n    kb_count:           kbDocs.length,\n    conversation_id:    conversation_id,\n    is_new_conversation: is_new_conversation\n  }\n}];"
+      },
+      "id": "node-12",
+      "name": "Assemble Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 480]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "messages",
+        "returnAll": false,
+        "limit": 10,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "conversation_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.conversation_id }}"
+            }
+          ]
+        }
+      },
+      "id": "node-13",
+      "name": "Load Message History",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [800, 480],
+      "continueOnFail": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "SqPZLoJsxHTK57M1",
+          "name": "Raziq Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 14: Build complete AI prompt\n// ─────────────────────────────────────────────\nconst ctx          = $('Assemble Context').first().json;\nconst historyItems = $input.all();\n\n// Parse conversation history from messages table\nconst history = historyItems\n  .map(item => item.json)\n  .filter(m => m.id && m.content)\n  .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));\n\nconst language = ctx.detected_language || 'ar';\n\nconst nicheInstructions = {\n  restaurant:    'You help customers with menu items, prices, opening hours, delivery, and reservations.',\n  dental:        'You help patients with appointments, treatments, pricing, and clinic hours. Always recommend professional consultation.',\n  real_estate:   'You help clients find properties, understand pricing, and arrange viewings.',\n  salon:         'You help with bookings, services, available slots, and pricing.',\n  ecommerce:     'You help with products, availability, orders, delivery, and returns.',\n  food_delivery: 'You help with order tracking, menu items, delivery times, and issues.',\n  medical:       'You help with appointments and general clinic information. Always recommend professional medical consultation.',\n  general:       'You help customers with their inquiries professionally and helpfully.'\n};\n\nconst languageInstructions = {\n  ar: 'يجب أن تجيب باللغة العربية الفصحى أو بنفس لهجة العميل. اجعل ردودك طبيعية ودافئة.',\n  ur: 'آپ کو اردو میں جواب دینا ہے۔ قدرتی اور دوستانہ زبان استعمال کریں۔',\n  en: 'Reply in clear, warm, conversational English.'\n};\n\n// Build knowledge base section\nconst kbSection = ctx.kb_entries\n  ? `KNOWLEDGE BASE (${ctx.kb_count} relevant results):\\n${ctx.kb_entries}`\n  : 'KNOWLEDGE BASE: No specific content found. Answer only from what you know about this business from the system prompt above.';\n\nconst systemPrompt = [\n  `You are the AI assistant for ${ctx.business_name}.`,\n  `Business type: ${ctx.niche || 'general'}`,\n  '',\n  ctx.agent_prompt,\n  '',\n  nicheInstructions[ctx.niche] || nicheInstructions.general,\n  languageInstructions[language] || languageInstructions.en,\n  '',\n  '--- RULES ---',\n  '1. Answer ONLY using the knowledge base content provided below.',\n  '2. If the answer is not in the knowledge base, say you will connect the customer with a team member.',\n  '3. NEVER invent prices, hours, availability, or contact details.',\n  '4. Keep responses under 3 short paragraphs — be concise.',\n  '5. Be warm, human, and conversational. Never sound robotic.',\n  `6. Channel: ${ctx.platform}`,\n  '',\n  kbSection\n].join('\\n');\n\n// Build messages array for OpenAI\nconst messages = [{ role: 'system', content: systemPrompt }];\n\n// Add previous turns from messages table\nfor (const msg of history) {\n  if (msg.sender_type === 'customer') {\n    messages.push({ role: 'user', content: msg.content });\n  } else if (msg.sender_type === 'bot') {\n    messages.push({ role: 'assistant', content: msg.content });\n  }\n}\n\n// Add current customer message\nmessages.push({ role: 'user', content: ctx.normalized_message });\n\nreturn [{\n  json: {\n    ...ctx,\n    prompt_messages: messages,\n    system_prompt:   systemPrompt\n  }\n}];"
+      },
+      "id": "node-14",
+      "name": "Build AI Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 15: Prepare GPT request body\n// Uses ai_model, ai_temperature, ai_max_tokens from migrated tenant columns\n// ─────────────────────────────────────────────\nconst ctx = $input.first().json;\n\n// These values come from tenants.ai_model / ai_temperature / ai_max_tokens\n// set in Merge Tenant node — falls back to safe defaults\nconst model       = ctx.ai_model       || 'gpt-4o-mini';\nconst temperature = parseFloat(ctx.ai_temperature) || 0.7;\nconst max_tokens  = parseInt(ctx.ai_max_tokens)    || 500;\n\nconst gptBody = JSON.stringify({\n  model:       model,\n  messages:    ctx.prompt_messages,\n  temperature: temperature,\n  max_tokens:  max_tokens\n});\n\nreturn [{\n  json: {\n    ...ctx,\n    gpt_request_body: gptBody,\n    model_used:       model\n  }\n}];"
+      },
+      "id": "node-15",
+      "name": "Prepare GPT Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 480]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.gpt_request_body }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "node-16",
+      "name": "Ask GPT-4o",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1400, 480],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "openAiApi": {
+          "id": "SXYVhIejxxByLhly",
+          "name": "OpenAi account tps"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 17: Extract AI reply from OpenAI response\n// ─────────────────────────────────────────────\nconst response = $input.first().json;\nconst ctx      = $('Build AI Prompt').first().json;\n\nif (!response.choices || !response.choices[0]) {\n  throw new Error('GPT returned no response: ' + JSON.stringify(response).slice(0, 300));\n}\n\nconst ai_reply         = response.choices[0].message.content;\nconst prompt_tokens    = response.usage?.prompt_tokens    || 0;\nconst completion_tokens = response.usage?.completion_tokens || 0;\nconst latency_ms       = Date.now() - new Date(ctx.processed_at).getTime();\n\nreturn [{\n  json: {\n    ...ctx,\n    ai_reply,\n    prompt_tokens,\n    completion_tokens,\n    latency_ms\n  }\n}];"
+      },
+      "id": "node-17",
+      "name": "Extract AI Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1600, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 18: Prepare conversation upsert body\n// Uses migrated columns: customer_phone, detected_language, last_message_at\n// ─────────────────────────────────────────────\nconst ctx = $input.first().json;\n\nconst convBody = JSON.stringify({\n  tenant_id:                ctx.tenant_id,\n  platform:                 ctx.platform,\n  external_conversation_id: ctx.customer_phone,\n  customer_name:            ctx.customer_name,\n  customer_phone:           ctx.customer_phone,\n  detected_language:        ctx.detected_language,\n  status:                   'open',\n  bot_enabled:              true,\n  last_message_at:          new Date().toISOString(),\n  last_message_preview:     ctx.normalized_message.slice(0, 100),\n  updated_at:               new Date().toISOString()\n});\n\nreturn [{ json: { ...ctx, conv_request_body: convBody } }];"
+      },
+      "id": "node-18",
+      "name": "Prepare Conversation Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1800, 480]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://YOUR_SUPABASE_URL/rest/v1/conversations",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_SUPABASE_SERVICE_ROLE_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.conv_request_body }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "node-19",
+      "name": "Upsert Conversation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2000, 480],
+      "continueOnFail": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "SqPZLoJsxHTK57M1",
+          "name": "Raziq Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 20: Resolve conversation ID from upsert result\n// ─────────────────────────────────────────────\nconst ctx          = $('Extract AI Reply').first().json;\nconst upsertResult = $input.first().json;\n\n// Supabase returns array when Prefer: return=representation\nconst conv_id =\n  (Array.isArray(upsertResult) && upsertResult[0]?.id)\n    ? upsertResult[0].id\n    : (upsertResult?.id || ctx.conversation_id || null);\n\nreturn [{ json: { ...ctx, resolved_conversation_id: conv_id } }];"
+      },
+      "id": "node-20",
+      "name": "Get Conversation ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2200, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 21: Prepare messages insert body\n// Saves BOTH customer message AND bot reply in one request\n// Uses migrated columns: model_used, prompt_tokens, completion_tokens,\n//   latency_ms, kb_chunks_used, detected_language\n// ─────────────────────────────────────────────\nconst ctx   = $input.first().json;\nconst conv_id = ctx.resolved_conversation_id;\n\nconst messagesBody = JSON.stringify([\n  {\n    conversation_id:    conv_id,\n    sender_type:        'customer',\n    content:            ctx.normalized_message,\n    external_message_id: ctx.external_message_id,\n    detected_language:  ctx.detected_language,\n    is_read:            false\n  },\n  {\n    conversation_id:   conv_id,\n    sender_type:       'bot',\n    content:           ctx.ai_reply,\n    model_used:        ctx.model_used,\n    prompt_tokens:     ctx.prompt_tokens,\n    completion_tokens: ctx.completion_tokens,\n    latency_ms:        ctx.latency_ms,\n    kb_chunks_used:    ctx.kb_count || 0,\n    detected_language: ctx.detected_language,\n    is_read:           true\n  }\n]);\n\nreturn [{ json: { ...ctx, messages_request_body: messagesBody } }];"
+      },
+      "id": "node-21",
+      "name": "Prepare Messages Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2400, 480]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://YOUR_SUPABASE_URL/rest/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_SUPABASE_SERVICE_ROLE_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.messages_request_body }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "node-22",
+      "name": "Save Messages",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2600, 480],
+      "continueOnFail": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "SqPZLoJsxHTK57M1",
+          "name": "Raziq Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 23: Build final response JSON\n// ─────────────────────────────────────────────\nconst ctx = $('Get Conversation ID').first().json;\n\nreturn [{\n  json: {\n    success:         true,\n    reply:           ctx.ai_reply,\n    language:        ctx.detected_language,\n    conversation_id: ctx.resolved_conversation_id,\n    tenant_id:       ctx.tenant_id,\n    model_used:      ctx.model_used,\n    kb_chunks_used:  ctx.kb_count || 0,\n    latency_ms:      ctx.latency_ms\n  }\n}];"
+      },
+      "id": "node-23",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2800, 480]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.success !== undefined ? JSON.stringify($json) : JSON.stringify({ success: false, error: 'Unexpected response format' }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "node-24",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [3000, 480]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [[{ "node": "Validate Payload", "type": "main", "index": 0 }]]
+    },
+    "Validate Payload": {
+      "main": [[{ "node": "Detect Language", "type": "main", "index": 0 }]]
+    },
+    "Detect Language": {
+      "main": [[{ "node": "Load Tenant", "type": "main", "index": 0 }]]
+    },
+    "Load Tenant": {
+      "main": [[{ "node": "Merge Tenant", "type": "main", "index": 0 }]]
+    },
+    "Merge Tenant": {
+      "main": [[{ "node": "Load Agent", "type": "main", "index": 0 }]]
+    },
+    "Load Agent": {
+      "main": [[{ "node": "Find Conversation", "type": "main", "index": 0 }]]
+    },
+    "Find Conversation": {
+      "main": [[{ "node": "Prepare Embed Body", "type": "main", "index": 0 }]]
+    },
+    "Prepare Embed Body": {
+      "main": [[{ "node": "Embed Customer Message", "type": "main", "index": 0 }]]
+    },
+    "Embed Customer Message": {
+      "main": [[{ "node": "Prepare Search Body", "type": "main", "index": 0 }]]
+    },
+    "Prepare Search Body": {
+      "main": [[{ "node": "Search Knowledge Base", "type": "main", "index": 0 }]]
+    },
+    "Search Knowledge Base": {
+      "main": [[{ "node": "Assemble Context", "type": "main", "index": 0 }]]
+    },
+    "Assemble Context": {
+      "main": [[{ "node": "Load Message History", "type": "main", "index": 0 }]]
+    },
+    "Load Message History": {
+      "main": [[{ "node": "Build AI Prompt", "type": "main", "index": 0 }]]
+    },
+    "Build AI Prompt": {
+      "main": [[{ "node": "Prepare GPT Body", "type": "main", "index": 0 }]]
+    },
+    "Prepare GPT Body": {
+      "main": [[{ "node": "Ask GPT-4o", "type": "main", "index": 0 }]]
+    },
+    "Ask GPT-4o": {
+      "main": [[{ "node": "Extract AI Reply", "type": "main", "index": 0 }]]
+    },
+    "Extract AI Reply": {
+      "main": [[{ "node": "Prepare Conversation Body", "type": "main", "index": 0 }]]
+    },
+    "Prepare Conversation Body": {
+      "main": [[{ "node": "Upsert Conversation", "type": "main", "index": 0 }]]
+    },
+    "Upsert Conversation": {
+      "main": [[{ "node": "Get Conversation ID", "type": "main", "index": 0 }]]
+    },
+    "Get Conversation ID": {
+      "main": [[{ "node": "Prepare Messages Body", "type": "main", "index": 0 }]]
+    },
+    "Prepare Messages Body": {
+      "main": [[{ "node": "Save Messages", "type": "main", "index": 0 }]]
+    },
+    "Save Messages": {
+      "main": [[{ "node": "Format Response", "type": "main", "index": 0 }]]
+    },
+    "Format Response": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "timezone": "Asia/Dubai"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
