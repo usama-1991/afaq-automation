@@ -241,10 +241,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "apikey",
-              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
-            },
-            {
               "name": "Content-Type",
               "value": "application/json"
             }
@@ -424,10 +420,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "apikey",
-              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
-            },
-            {
               "name": "Content-Type",
               "value": "application/json"
             },
@@ -496,10 +488,6 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "apikey",
-              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
-            },
             {
               "name": "Content-Type",
               "value": "application/json"
@@ -632,14 +620,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "apikey",
-              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
-            },
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
-            },
-            {
               "name": "Content-Type",
               "value": "application/json"
             },
@@ -660,7 +640,9 @@
         },
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify($json.record_data) }}"
+        "body": "={{ JSON.stringify($json.record_data) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "id": "node-add-4a",
       "name": "Insert Order",
@@ -670,7 +652,13 @@
         2050,
         -50
       ],
-      "continueOnFail": true
+      "continueOnFail": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "SqPZLoJsxHTK57M1",
+          "name": "Raziq Supabase"
+        }
+      }
     },
     {
       "parameters": {
@@ -680,14 +668,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "apikey",
-              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
-            },
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
-            },
-            {
               "name": "Content-Type",
               "value": "application/json"
             },
@@ -700,7 +680,9 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify($json.record_data) }}"
+        "body": "={{ JSON.stringify($json.record_data) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "id": "node-add-4b",
       "name": "Insert Appointment",
@@ -710,7 +692,13 @@
         2050,
         100
       ],
-      "continueOnFail": true
+      "continueOnFail": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "SqPZLoJsxHTK57M1",
+          "name": "Raziq Supabase"
+        }
+      }
     },
     {
       "parameters": {
@@ -719,14 +707,6 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "apikey",
-              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
-            },
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
-            },
             {
               "name": "Content-Type",
               "value": "application/json"
@@ -740,7 +720,9 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify($json.record_data) }}"
+        "body": "={{ JSON.stringify($json.record_data) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "id": "node-add-4c",
       "name": "Insert Lead",
@@ -750,7 +732,13 @@
         2050,
         250
       ],
-      "continueOnFail": true
+      "continueOnFail": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "SqPZLoJsxHTK57M1",
+          "name": "Raziq Supabase"
+        }
+      }
     },
     {
       "parameters": {
@@ -759,14 +747,6 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "apikey",
-              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
-            },
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
-            },
             {
               "name": "Content-Type",
               "value": "application/json"
@@ -780,7 +760,9 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({\n  conversation_id: $('Detect Intent & Create Record').first().json.conversation_id || $('Extract AI Reply').first().json.conversation_id || $json.conversation_id,\n  tenant_id: $json.tenant_id,\n  context_type: 'chat',\n  last_intent: $('Detect Intent & Create Record').first().json.detected_intent,\n  context_data: {\n    extracted_info: $json.record_data || {},\n    updated_at: new Date().toISOString()\n  },\n  updated_at: new Date().toISOString()\n}) }}"
+        "body": "={{ JSON.stringify({\n  conversation_id: $('Detect Intent & Create Record').first().json.conversation_id || $('Extract AI Reply').first().json.conversation_id || $json.conversation_id,\n  tenant_id: $json.tenant_id,\n  context_type: 'chat',\n  last_intent: $('Detect Intent & Create Record').first().json.detected_intent,\n  context_data: {\n    extracted_info: $json.record_data || {},\n    updated_at: new Date().toISOString()\n  },\n  updated_at: new Date().toISOString()\n}) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "id": "node-add-5",
       "name": "Update Context",
@@ -790,7 +772,13 @@
         2250,
         100
       ],
-      "continueOnFail": true
+      "continueOnFail": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "SqPZLoJsxHTK57M1",
+          "name": "Raziq Supabase"
+        }
+      }
     },
     {
       "parameters": {
@@ -820,14 +808,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "apikey",
-              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
-            },
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
-            },
-            {
               "name": "Content-Type",
               "value": "application/json"
             }
@@ -836,7 +816,9 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ status: 'pending', bot_enabled: false }) }}"
+        "body": "={{ JSON.stringify({ status: 'pending', bot_enabled: false }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "id": "node-add-7",
       "name": "Mark Convo Pending",
@@ -846,7 +828,13 @@
         2050,
         700
       ],
-      "continueOnFail": true
+      "continueOnFail": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "SqPZLoJsxHTK57M1",
+          "name": "Raziq Supabase"
+        }
+      }
     }
   ],
   "connections": {
