@@ -111,6 +111,9 @@ function SettingsInner() {
   const [kbScraping, setKbScraping] = useState(false);
   const [kbCustomTitle, setKbCustomTitle] = useState('');
   const [kbCustomContent, setKbCustomContent] = useState('');
+  const [editingKbId, setEditingKbId] = useState<string | null>(null);
+  const [editKbTitle, setEditKbTitle] = useState('');
+  const [editKbContent, setEditKbContent] = useState('');
   const [tenantIdState, setTenantIdState] = useState<string | null>(null);
 
   // eCommerce Platform state
@@ -278,6 +281,17 @@ function SettingsInner() {
     });
     setKbCustomTitle('');
     setKbCustomContent('');
+    fetchKnowledgeBase(tenantIdState);
+  };
+
+  // KB: Save Edit
+  const handleSaveEditedKB = async (id: string) => {
+    if (!tenantIdState) return;
+    await supabase.from('knowledge_base').update({
+      title: editKbTitle,
+      content: editKbContent
+    }).eq('id', id);
+    setEditingKbId(null);
     fetchKnowledgeBase(tenantIdState);
   };
 
@@ -959,27 +973,76 @@ function SettingsInner() {
                           {entry.kb_type === 'url' ? '🌐' : entry.kb_type === 'pdf' ? '📄' : '✏️'}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {entry.title}
-                          </div>
+                          {editingKbId === entry.id ? (
+                            <input
+                              value={editKbTitle}
+                              onChange={e => setEditKbTitle(e.target.value)}
+                              style={{ width: '100%', fontSize: 13, fontWeight: 600, padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 4, outline: 'none' }}
+                            />
+                          ) : (
+                            <div style={{ fontSize: 13, fontWeight: 600, color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {entry.title}
+                            </div>
+                          )}
                           <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 1 }}>
                             {entry.kb_type.toUpperCase()} · {entry.content?.length || 0} chars · {new Date(entry.created_at).toLocaleDateString()}
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
-                          {/* View Content toggle */}
-                          {entry.content && (
-                            <button
-                              onClick={() => setKbExpandedId(kbExpandedId === entry.id ? null : entry.id)}
-                              style={{
-                                padding: '4px 10px', fontSize: 10.5, fontWeight: 600, borderRadius: 6,
-                                border: '1px solid rgba(59,130,246,0.2)', cursor: 'pointer',
-                                background: kbExpandedId === entry.id ? '#eff6ff' : '#fff',
-                                color: '#3b82f6', display: 'flex', alignItems: 'center', gap: 4,
-                              }}
-                            >
-                              {kbExpandedId === entry.id ? '▲ Hide' : '▼ View'}
-                            </button>
+                          {editingKbId === entry.id ? (
+                            <>
+                              <button
+                                onClick={() => handleSaveEditedKB(entry.id)}
+                                style={{
+                                  padding: '4px 10px', fontSize: 10.5, fontWeight: 600, borderRadius: 6,
+                                  border: '1px solid rgba(16,185,129,0.2)', cursor: 'pointer',
+                                  background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', gap: 4,
+                                }}
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={() => setEditingKbId(null)}
+                                style={{
+                                  padding: '4px 10px', fontSize: 10.5, fontWeight: 600, borderRadius: 6,
+                                  border: '1px solid rgba(156,163,175,0.2)', cursor: 'pointer',
+                                  background: '#f3f4f6', color: '#4b5563', display: 'flex', alignItems: 'center', gap: 4,
+                                }}
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setEditKbTitle(entry.title);
+                                  setEditKbContent(entry.content);
+                                  setEditingKbId(entry.id);
+                                  setKbExpandedId(entry.id); // auto-expand
+                                }}
+                                style={{
+                                  padding: '4px 10px', fontSize: 10.5, fontWeight: 600, borderRadius: 6,
+                                  border: '1px solid rgba(245,158,11,0.2)', cursor: 'pointer',
+                                  background: '#fffbeb', color: '#d97706', display: 'flex', alignItems: 'center', gap: 4,
+                                }}
+                              >
+                                ✏️ Edit
+                              </button>
+                              {entry.content && (
+                                <button
+                                  onClick={() => setKbExpandedId(kbExpandedId === entry.id ? null : entry.id)}
+                                  style={{
+                                    padding: '4px 10px', fontSize: 10.5, fontWeight: 600, borderRadius: 6,
+                                    border: '1px solid rgba(59,130,246,0.2)', cursor: 'pointer',
+                                    background: kbExpandedId === entry.id ? '#eff6ff' : '#fff',
+                                    color: '#3b82f6', display: 'flex', alignItems: 'center', gap: 4,
+                                  }}
+                                >
+                                  {kbExpandedId === entry.id ? '▲ Hide' : '▼ View'}
+                                </button>
+                              )}
+                            </>
                           )}
                           <button
                             onClick={() => handleToggleKB(entry.id, entry.is_active)}
@@ -1020,17 +1083,30 @@ function SettingsInner() {
                               </a>
                             </div>
                           )}
-                          <div style={{
-                            fontSize: 11.5, color: '#374151', lineHeight: 1.7,
-                            whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-                            maxHeight: 320, overflowY: 'auto',
-                            background: '#f9fafb', borderRadius: 8,
-                            padding: '12px 14px',
-                            border: '1px solid #e5e7eb',
-                            fontFamily: 'monospace',
-                          }}>
-                            {entry.content}
-                          </div>
+                          {editingKbId === entry.id ? (
+                            <textarea
+                              value={editKbContent}
+                              onChange={e => setEditKbContent(e.target.value)}
+                              style={{
+                                width: '100%', fontSize: 11.5, color: '#374151', lineHeight: 1.7,
+                                background: '#fff', borderRadius: 8, padding: '12px 14px',
+                                border: '1px solid #3b82f6', outline: 'none', fontFamily: 'monospace',
+                                minHeight: 200, resize: 'vertical'
+                              }}
+                            />
+                          ) : (
+                            <div style={{
+                              fontSize: 11.5, color: '#374151', lineHeight: 1.7,
+                              whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                              maxHeight: 320, overflowY: 'auto',
+                              background: '#f9fafb', borderRadius: 8,
+                              padding: '12px 14px',
+                              border: '1px solid #e5e7eb',
+                              fontFamily: 'monospace',
+                            }}>
+                              {entry.content}
+                            </div>
+                          )}
                           <div style={{ marginTop: 8, fontSize: 10.5, color: '#9ca3af' }}>
                             Showing all {entry.content.length.toLocaleString()} characters stored in Supabase knowledge_base table
                           </div>
