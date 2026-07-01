@@ -219,7 +219,6 @@ async function processIncomingMessage(platform: string, externalAccountId: strin
         .eq('conversation_id', conversation.id)
         .maybeSingle();
 
-      // Use simpler payload for v4 workflow
       const n8nPayload = {
         tenant_id: tenantId,
         customer_phone: customerId,
@@ -228,6 +227,7 @@ async function processIncomingMessage(platform: string, externalAccountId: strin
         message_type: 'text',
         message: messageText,
         external_message_id: messageId,
+        conversation_id: conversation.id,
         phone_number_id: metaCreds.phone_number_id || process.env.META_PHONE_NUMBER_ID || '',
         timestamp: new Date().toISOString()
       };
@@ -256,6 +256,7 @@ async function processIncomingMessage(platform: string, externalAccountId: strin
           message_type: 'text',
           message: messageText,
           external_message_id: messageId,
+          conversation_id: conversation.id,
           phone_number_id: process.env.META_PHONE_NUMBER_ID || '',
           timestamp: new Date().toISOString()
         }),
