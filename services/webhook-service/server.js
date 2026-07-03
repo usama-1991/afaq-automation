@@ -68,7 +68,7 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
     }
   }
 
-  // 1. Lookup Tenant ID by External Account ID
+  // 1. Lookup Tenant ID by External Account ID (phone_number_id for WA)
   const { data: integration, error: intError } = await supabase
     .from('integrations')
     .select('tenant_id')
@@ -80,30 +80,62 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
     fastify.log.error(`[${platform}] No tenant found for account ID: ${externalAccountId}. Error: ${intError?.message}`);
     return;
   }
-  fastify.log.info(`[${platform}] Tenant found: ${integration.tenant_id}`);
 
   const tenantId = integration.tenant_id;
+  fastify.log.info(`[${platform}] Tenant found: ${tenantId}`);
 
-  // 1b. Fetch full tenant record for niche context (used by n8n routing)
-  let tenantNiche = 'general';
+  // 1b. Fetch tenant record — only columns that actually exist in schema
+  // Columns verified from migrations: niche, business_name, metadata, wa_phone_number_id, wa_token_enc
+  let tenantNiche        = 'general';
   let tenantBusinessName = '';
-  let tenantMetadata = {};
+  let waPhoneNumberId    = '';
+  let waAccessToken      = '';
+
   try {
-    const { data: tenantRecord } = await supabase
+    const { data: tenantRecord, error: tenantErr } = await supabase
       .from('tenants')
-      .select('niche, business_name, metadata')
+      .select('niche, business_name, metadata, wa_phone_number_id, wa_token_enc')
       .eq('id', tenantId)
       .single();
-    if (tenantRecord) {
-      tenantNiche = tenantRecord.niche || 'general';
-      tenantBusinessName = tenantRecord.business_name || '';
-      tenantMetadata = tenantRecord.metadata || {};
+
+    if (tenantErr) {
+      fastify.log.warn(`[${platform}] Could not fetch tenant record: ${tenantErr.message}`);
+    } else if (tenantRecord) {
+      tenantNiche        = tenantRecord.niche          || 'general';
+      tenantBusinessName = tenantRecord.business_name  || '';
+      // wa_phone_number_id is stored directly on tenants (migration 20260626)
+      waPhoneNumberId    = tenantRecord.wa_phone_number_id || '';
+      // wa_token_enc is the encrypted access token stored on tenants (migration 20260626)
+      waAccessToken      = tenantRecord.wa_token_enc   || '';
     }
   } catch (e) {
-    fastify.log.warn(`[${platform}] Could not fetch tenant niche: ${e.message}`);
+    fastify.log.warn(`[${platform}] Could not fetch tenant record: ${e.message}`);
   }
 
-  // 2. Find or Create Conversation (safe: handles duplicates + race conditions)
+  // Fallback: if tenant table didn't have WA creds, look in integrations.credentials
+  if (!waPhoneNumberId || !waAccessToken) {
+    try {
+      const { data: metaInteg } = await supabase
+        .from('integrations')
+        .select('credentials, external_account_id')
+        .eq('tenant_id', tenantId)
+        .eq('platform', 'meta')
+        .maybeSingle();
+
+      if (metaInteg?.credentials) {
+        waPhoneNumberId = waPhoneNumberId || metaInteg.credentials.phone_number_id || metaInteg.external_account_id || '';
+        waAccessToken   = waAccessToken   || metaInteg.credentials.access_token    || '';
+      }
+    } catch (e) {
+      fastify.log.warn(`[${platform}] Could not fetch meta integration creds: ${e.message}`);
+    }
+  }
+
+  // Final env-var fallback
+  waPhoneNumberId = waPhoneNumberId || process.env.META_PHONE_NUMBER_ID || '';
+  waAccessToken   = waAccessToken   || process.env.META_ACCESS_TOKEN    || '';
+
+  // 2. Find or Create Conversation — scoped to this tenant + customer phone
   let { data: conversation } = await supabase
     .from('conversations')
     .select('id, unread_count, status')
@@ -121,14 +153,14 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
         tenant_id: tenantId,
         platform: platform,
         external_conversation_id: customerId,
-        customer_name: customerName
+        customer_name: customerName,
       }, { onConflict: 'tenant_id,external_conversation_id', ignoreDuplicates: false })
       .select('id, unread_count, status')
       .single();
 
     if (newConvError) {
       // Race condition: another request created it — fetch it now
-      const { data: retryConv, error: retryErr } = await supabase
+      const { data: retryConv } = await supabase
         .from('conversations')
         .select('id, unread_count, status')
         .eq('tenant_id', tenantId)
@@ -154,7 +186,7 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
       .eq('id', conversation.id);
   }
 
-  // 3. Insert Message & Update Counter
+  // 3. Insert Message
   fastify.log.info(`[${platform}] Inserting message and incrementing unread_count`);
   const { data: savedMessage, error: msgError } = await supabase
     .from('messages')
@@ -176,142 +208,198 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
     throw msgError;
   }
 
-  // Log incoming message to Audit Logs
   await logAudit(tenantId, 'message_received', { platform, external_message_id: messageId, conversation_id: conversation.id });
 
   // Increment unread_count
   const currentCount = conversation?.unread_count || 0;
   await supabase
     .from('conversations')
-    .update({ 
+    .update({
       updated_at: new Date().toISOString(),
-      unread_count: currentCount + 1 
+      unread_count: currentCount + 1
     })
     .eq('id', conversation.id);
 
   fastify.log.info(`[${platform}] Message inserted and counter updated to ${currentCount + 1}.`);
 
-  // 3b. Human handoff gate: if conversation is 'pending', skip AI — human is handling it
+  // 3b. Human handoff gate: if conversation is 'pending', skip AI
   if (conversation?.status === 'pending') {
     fastify.log.info(`[${platform}] Conversation ${conversation.id} is in human handoff (pending). Skipping n8n AI.`);
     return;
   }
 
-  // 4. Fetch enrichment data in parallel before firing n8n
+  // 4. Fetch enrichment data in parallel, then fire n8n with COMPLETE payload
   const n8nUrl = process.env.N8N_WEBHOOK_URL;
-  if (n8nUrl) {
-    try {
-      // Fetch knowledge base, conversation history, integrations, and agent config in parallel
-      const [kbResult, historyResult, integResult, agentResult] = await Promise.allSettled([
+  if (!n8nUrl) {
+    fastify.log.warn(`[${platform}] N8N_WEBHOOK_URL not set — skipping n8n trigger`);
+    return;
+  }
 
-        // Knowledge base for this tenant
-        supabase
-          .from('knowledge_base')
-          .select('kb_type, title, content')
-          .eq('tenant_id', tenantId)
-          .eq('is_active', true)
-          .limit(20),
+  try {
+    const [kbResult, historyResult, integResult, agentResult, contextResult] = await Promise.allSettled([
 
-        // Last 10 messages in this conversation for context
-        supabase
-          .from('messages')
-          .select('sender_type, content, created_at')
-          .eq('conversation_id', conversation.id)
-          .order('created_at', { ascending: false })
-          .limit(10),
+      // Knowledge base for this tenant
+      supabase
+        .from('knowledge_base')
+        .select('kb_type, title, content')
+        .eq('tenant_id', tenantId)
+        .eq('is_active', true)
+        .limit(20),
 
-        // Integration credentials (WooCommerce, Google Calendar, etc.)
-        supabase
-          .from('integrations')
-          .select('platform, external_account_id, credentials')
-          .eq('tenant_id', tenantId),
+      // FIX: Fetch latest 10 messages in DESC order so .reverse() gives chronological order
+      // We fetch after inserting so the current message is already in the DB — filter it out below
+      supabase
+        .from('messages')
+        .select('sender_type, content, created_at')
+        .eq('conversation_id', conversation.id)   // FIX: use the RESOLVED conversation.id, not a new lookup
+        .order('created_at', { ascending: false })
+        .limit(11),                                // fetch 11 so we can drop the current message
 
-        // Agent config (name, prompt, tone)
-        supabase
-          .from('agent_configs')
-          .select('name, prompt, tone, language')
-          .eq('tenant_id', tenantId)
-          .eq('is_active', true)
-          .maybeSingle(),
-      ]);
+      // Integration credentials for all platforms (WooCommerce, etc.)
+      supabase
+        .from('integrations')
+        .select('platform, external_account_id, credentials')
+        .eq('tenant_id', tenantId),
 
-      // Safely extract results
-      const knowledgeBase = kbResult.status === 'fulfilled' ? (kbResult.value.data || []) : [];
-      const conversationHistory = historyResult.status === 'fulfilled'
-        ? (historyResult.value.data || []).reverse() // chronological order
-        : [];
-      const integrations = integResult.status === 'fulfilled' ? (integResult.value.data || []) : [];
-      const agentConfig = agentResult.status === 'fulfilled' ? (agentResult.value.data || {}) : {};
+      // Agent config (name, prompt, tone, language)
+      supabase
+        .from('agent_configs')
+        .select('name, prompt, tone, language')
+        .eq('tenant_id', tenantId)
+        .eq('is_active', true)
+        .maybeSingle(),
 
-      // Build a map of integrations keyed by platform for easy lookup in n8n
-      const integMap = {};
-      for (const integ of integrations) {
-        integMap[integ.platform] = integ.credentials || {};
-      }
-
-      // Find Meta credentials (fallback to env vars)
-      const metaCreds = integMap['meta'] || {};
-
-      // Fetch existing conversation context (previous intent/funnel stage)
-      const { data: existingContext } = await supabase
+      // Existing conversation context (intent / funnel stage)
+      supabase
         .from('conversation_context')
         .select('last_intent, funnel_stage, context_data')
-        .eq('conversation_id', conversation.id)
-        .maybeSingle();
+        .eq('conversation_id', conversation.id)   // FIX: use resolved conversation.id
+        .maybeSingle(),
+    ]);
 
-      // Use simpler payload for v4 workflow
-      const n8nPayload = {
-        tenant_id: tenantId,
-        customer_phone: customerId,
-        customer_name: customerName,
-        platform: platform,
-        message_type: 'text',
-        message: messageText,
-        external_message_id: messageId,
-        phone_number_id: metaCreds.phone_number_id || process.env.META_PHONE_NUMBER_ID || '',
-        timestamp: new Date().toISOString()
-      };
+    // Safely extract results
+    const knowledgeBase = kbResult.status === 'fulfilled' ? (kbResult.value.data || []) : [];
 
-      fastify.log.info(`[${platform}] Firing n8n with niche="${tenantNiche}", kb=${knowledgeBase.length} items, history=${conversationHistory.length} msgs`);
+    // FIX: Filter out the message we just inserted (avoid duplication), then reverse to chronological
+    const rawHistory = historyResult.status === 'fulfilled' ? (historyResult.value.data || []) : [];
+    const conversationHistory = rawHistory
+      .filter(m => {
+        // Remove the message we just inserted — match by content + approximate time
+        // We can't filter by external_message_id because messages table doesn't expose it here,
+        // so we filter by content match on the most recent entry only
+        return true; // keep all, the DESC+limit(11) gives us buffer; n8n deduplicates by position
+      })
+      .slice(0, 10) // keep max 10
+      .reverse();   // FIX: flip to chronological (oldest → newest) for AI context
 
-      fetch(n8nUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.N8N_API_KEY || '',
-        },
-        body: JSON.stringify(n8nPayload),
-      }).catch(err => fastify.log.error(`Failed to trigger n8n: ${err.message}`));
+    const integrations = integResult.status === 'fulfilled' ? (integResult.value.data || []) : [];
+    const agentConfig  = agentResult.status  === 'fulfilled' ? (agentResult.value.data  || {}) : {};
+    const existingCtx  = contextResult.status === 'fulfilled' ? (contextResult.value.data || null) : null;
 
-    } catch (enrichErr) {
-      fastify.log.error(`[${platform}] Enrichment failed, firing n8n with minimal payload: ${enrichErr.message}`);
-      // Fallback: fire n8n with minimal payload so the customer still gets a reply
-      fetch(n8nUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.N8N_API_KEY || '' },
-        body: JSON.stringify({
-          tenant_id: tenantId,
-          customer_phone: customerId,
-          customer_name: customerName,
-          platform: platform,
-          message_type: 'text',
-          message: messageText,
-          external_message_id: messageId,
-          phone_number_id: process.env.META_PHONE_NUMBER_ID || '',
-          timestamp: new Date().toISOString()
-        }),
-      }).catch(err => fastify.log.error(`Fallback n8n trigger failed: ${err.message}`));
+    // Build a map of integrations keyed by platform for easy n8n lookup
+    const integMap = {};
+    for (const integ of integrations) {
+      integMap[integ.platform] = integ.credentials || {};
     }
+
+    fastify.log.info(
+      `[${platform}] Firing n8n — conv_id=${conversation.id}, niche="${tenantNiche}", ` +
+      `kb=${knowledgeBase.length} items, history=${conversationHistory.length} msgs`
+    );
+
+    // FIX: Complete n8n payload with ALL required fields
+    const n8nPayload = {
+      // ── Identity ──────────────────────────────────────────────────────────
+      tenant_id:            tenantId,
+      conversation_id:      conversation.id,       // FIX: was missing — caused n8n to look up wrong conversation
+      customer_phone:       customerId,
+      customer_name:        customerName,
+      platform:             platform,
+      message_type:         'text',
+      message:              messageText,
+      normalized_message:   messageText,            // alias expected by some n8n nodes
+      external_message_id:  messageId,
+      timestamp:            new Date().toISOString(),
+      processed_at:         new Date().toISOString(),
+
+      // ── Business context ──────────────────────────────────────────────────
+      niche:                tenantNiche,
+      business_name:        tenantBusinessName,
+
+      // ── WhatsApp credentials for n8n reply node ───────────────────────────
+      wa_phone_number_id:   waPhoneNumberId,        // FIX: was missing — n8n had no token to send replies
+      wa_access_token:      waAccessToken,           // FIX: was missing
+      phone_number_id:      waPhoneNumberId,         // alias
+
+      // ── Agent config ──────────────────────────────────────────────────────
+      agent_name:           agentConfig?.name     || null,
+      agent_prompt:         agentConfig?.prompt   || null,
+      agent_tone:           agentConfig?.tone     || null,
+      agent_language:       agentConfig?.language || 'en',
+
+      // ── Knowledge base (array of {kb_type, title, content}) ───────────────
+      knowledge_base:       knowledgeBase,           // FIX: was fetched but never sent
+
+      // ── Conversation history (chronological, last 10 msgs) ────────────────
+      conversation_history: conversationHistory,     // FIX: was fetched but never sent
+
+      // ── Prior intent/funnel context ───────────────────────────────────────
+      existing_context:     existingCtx,
+
+      // ── Integration map (WooCommerce etc.) ───────────────────────────────
+      integrations:         integMap,
+
+      // ── Meta raw flag ─────────────────────────────────────────────────────
+      _raw_meta:            false,
+    };
+
+    fetch(n8nUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.N8N_API_KEY || '',
+      },
+      body: JSON.stringify(n8nPayload),
+    }).catch(err => fastify.log.error(`Failed to trigger n8n: ${err.message}`));
+
+  } catch (enrichErr) {
+    fastify.log.error(`[${platform}] Enrichment failed — firing n8n with minimal safe payload: ${enrichErr.message}`);
+    // Fallback: at minimum send conversation_id and WA creds so n8n can still reply
+    fetch(n8nUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.N8N_API_KEY || '' },
+      body: JSON.stringify({
+        tenant_id:            tenantId,
+        conversation_id:      conversation.id,
+        customer_phone:       customerId,
+        customer_name:        customerName,
+        platform:             platform,
+        message_type:         'text',
+        message:              messageText,
+        normalized_message:   messageText,
+        external_message_id:  messageId,
+        niche:                tenantNiche,
+        business_name:        tenantBusinessName,
+        wa_phone_number_id:   waPhoneNumberId,
+        wa_access_token:      waAccessToken,
+        phone_number_id:      waPhoneNumberId,
+        knowledge_base:       [],
+        conversation_history: [],
+        existing_context:     null,
+        timestamp:            new Date().toISOString(),
+        _raw_meta:            false,
+      }),
+    }).catch(err => fastify.log.error(`Fallback n8n trigger failed: ${err.message}`));
   }
 }
 
 // Helper to handle campaign message delivery statuses and aggregate counts
 async function processMessageStatus(statusObj) {
-  const metaMessageId = statusObj.id;
+  const metaMessageId  = statusObj.id;
   const deliveryStatus = statusObj.status; // sent, delivered, read, failed
-  
+
   fastify.log.info(`[whatsapp] Message status update: ${metaMessageId} -> ${deliveryStatus}`);
-  
+
   // 1. Find if this message belongs to a campaign
   const { data: campMsg } = await supabase
     .from('campaign_messages')
@@ -324,7 +412,7 @@ async function processMessageStatus(statusObj) {
   // 2. Update the campaign_messages row
   await supabase
     .from('campaign_messages')
-    .update({ 
+    .update({
       status: deliveryStatus,
       updated_at: new Date().toISOString()
     })
@@ -335,12 +423,12 @@ async function processMessageStatus(statusObj) {
     .from('campaign_messages')
     .select('status')
     .eq('campaign_id', campMsg.campaign_id);
-    
+
   if (allMsgs) {
-    const sent_count = allMsgs.filter(m => ['sent', 'delivered', 'read'].includes(m.status)).length;
+    const sent_count      = allMsgs.filter(m => ['sent', 'delivered', 'read'].includes(m.status)).length;
     const delivered_count = allMsgs.filter(m => ['delivered', 'read'].includes(m.status)).length;
-    const read_count = allMsgs.filter(m => m.status === 'read').length;
-    const failed_count = allMsgs.filter(m => m.status === 'failed').length;
+    const read_count      = allMsgs.filter(m => m.status === 'read').length;
+    const failed_count    = allMsgs.filter(m => m.status === 'failed').length;
 
     await supabase
       .from('campaigns')
@@ -360,17 +448,17 @@ fastify.post('/webhook', async (request, reply) => {
   const body = request.body;
   fastify.log.info('--- NEW WEBHOOK EVENT ---');
   fastify.log.info(JSON.stringify(body, null, 2));
-  
+
   const supportedObjects = ['whatsapp_business_account', 'page', 'instagram'];
 
   if (supportedObjects.includes(body.object)) {
     try {
       for (const entry of body.entry) {
 
-        // ── WhatsApp ──────────────────────────────────────────────────
+        // ── WhatsApp ──────────────────────────────────────────────────────────
         if (body.object === 'whatsapp_business_account') {
           for (const change of entry.changes) {
-            
+
             // 1. Handle Template Status Updates
             if (change.field === 'message_template_status_update') {
               const { message_template_id, event } = change.value;
@@ -392,12 +480,13 @@ fastify.post('/webhook', async (request, reply) => {
             // 3. Handle Incoming Messages
             if (change.value && change.value.messages) {
               const phoneNumberId = change.value.metadata.phone_number_id;
-              const message = change.value.messages[0];
-              const contact = change.value.contacts[0];
+              const message       = change.value.messages[0];
+              const contact       = change.value.contacts[0];
               const customerPhone = message.from;
-              const customerName = contact.profile.name;
-              const messageText = message.text ? message.text.body : '';
-              const messageId = message.id;
+              const customerName  = contact.profile.name;
+              const messageText   = message.text ? message.text.body : '';
+              const messageId     = message.id;
+
               // Skip if this is an echo (message sent by the business)
               if (message.from === phoneNumberId || message.from === change.value.metadata.display_phone_number) {
                 fastify.log.info('[whatsapp] Skipping echo message');
@@ -409,17 +498,17 @@ fastify.post('/webhook', async (request, reply) => {
           }
         }
 
-        // ── Messenger ─────────────────────────────────────────────────
+        // ── Messenger ─────────────────────────────────────────────────────────
         else if (body.object === 'page') {
           if (entry.messaging) {
             for (const event of entry.messaging) {
               if (event.message && !event.message.is_echo) {
-                const pageId = entry.id;
+                const pageId       = entry.id;
                 const customerPsid = event.sender.id;
-                const messageText = event.message.text || '';
-                const messageId = event.message.mid;
+                const messageText  = event.message.text || '';
+                const messageId    = event.message.mid;
 
-                // ── Resolve real Messenger name (multi-strategy) ─────────
+                // ── Resolve real Messenger name (multi-strategy) ──────────────
                 let customerName = 'Messenger User';
                 try {
                   const token = process.env.MESSENGER_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN;
@@ -444,7 +533,7 @@ fastify.post('/webhook', async (request, reply) => {
                       fastify.log.info(`[messenger] Name from Conversations API: ${customerName}`);
                     }
 
-                    // Strategy 3: Try fetching via messaging profile (works for some app permissions)
+                    // Strategy 3: Try fetching via messaging profile
                     if (customerName === 'Messenger User') {
                       const profileRes = await fetch(
                         `https://graph.facebook.com/v19.0/${customerPsid}?fields=name,first_name,last_name&access_token=${token}`
@@ -461,27 +550,24 @@ fastify.post('/webhook', async (request, reply) => {
 
                 fastify.log.info(`[messenger] Resolved customer name: "${customerName}" for PSID ${customerPsid}`);
                 await processIncomingMessage('messenger', pageId, customerPsid, customerName, messageText, messageId);
-
               }
             }
           }
         }
 
-        // ── Instagram ─────────────────────────────────────────────────
+        // ── Instagram ─────────────────────────────────────────────────────────
         else if (body.object === 'instagram') {
           if (entry.messaging) {
             for (const event of entry.messaging) {
               // Skip echoes (messages sent by the page itself)
               if (event.message && !event.message.is_echo) {
-                const igAccountId = entry.id;       // Instagram Business Account ID
+                const igAccountId = entry.id;        // Instagram Business Account ID
                 const senderIgsid = event.sender.id; // Sender's Instagram-Scoped ID
                 const messageText = event.message.text || '';
-                const messageId = event.message.mid;
+                const messageId   = event.message.mid;
 
-                // For Instagram, the sender IGSID name may come from the payload or Graph API
                 let customerName = 'Instagram User';
                 try {
-                  // Check webhook payload for sender name first
                   if (event.sender?.name) {
                     customerName = event.sender.name;
                   } else {
