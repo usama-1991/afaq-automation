@@ -305,82 +305,22 @@ async function processMessageStatus(statusObj: any) {
 }
 
 // ── POST: Webhook Event Receiver ──────────────────────────────────────────────
+// ⚠️ DISABLED: Message processing is handled exclusively by the Fastify
+// webhook-service (services/webhook-service/server.js).
+// Having BOTH this route AND the Fastify service active caused every incoming
+// message to be processed twice → double n8n triggers → double AI replies
+// sent to WhatsApp users. See: docs/double_response_diagnosis.md
+//
+// This route now only acknowledges the event with 200 so Meta doesn't retry.
+// If you ever decommission the Fastify webhook-service, re-enable the logic here.
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    log.info('--- NEW WEBHOOK EVENT ---');
-    log.info(JSON.stringify(body, null, 2));
+    log.info('[webhook/route.ts] Received webhook event — passing through (processing disabled, handled by Fastify webhook-service)');
 
     const supportedObjects = ['whatsapp_business_account', 'page', 'instagram'];
 
     if (supportedObjects.includes(body.object)) {
-      for (const entry of body.entry) {
-        // WhatsApp
-        if (body.object === 'whatsapp_business_account') {
-          for (const change of entry.changes) {
-            if (change.field === 'message_template_status_update') {
-              const { message_template_id, event } = change.value;
-              log.info(`[whatsapp] Template status update: ${message_template_id} -> ${event}`);
-              await supabase.from('templates').update({ status: event }).eq('meta_template_id', message_template_id);
-              continue;
-            }
-
-            if (change.value && change.value.statuses) {
-              for (const statusObj of change.value.statuses) {
-                await processMessageStatus(statusObj);
-              }
-            }
-
-            if (change.value && change.value.messages) {
-              const phoneNumberId = change.value.metadata.phone_number_id;
-              const message = change.value.messages[0];
-              const contact = change.value.contacts?.[0] || { profile: { name: 'Unknown' } };
-              const customerPhone = message.from;
-              const customerName = contact.profile.name;
-              const messageText = message.text ? message.text.body : '';
-              const messageId = message.id;
-
-              if (message.from === phoneNumberId || message.from === change.value.metadata.display_phone_number) {
-                log.info('[whatsapp] Skipping echo message');
-                continue;
-              }
-
-              // Fire & Forget processing so webhook replies 200 immediately
-              processIncomingMessage('whatsapp', phoneNumberId, customerPhone, customerName, messageText, messageId);
-            }
-          }
-        }
-        // Messenger
-        else if (body.object === 'page') {
-          if (entry.messaging) {
-            for (const event of entry.messaging) {
-              if (event.message && !event.message.is_echo) {
-                const pageId = entry.id;
-                const customerPsid = event.sender.id;
-                const messageText = event.message.text || '';
-                const messageId = event.message.mid;
-                const customerName = 'Messenger User'; // simplified, no complex fetch logic here for reliability
-                processIncomingMessage('messenger', pageId, customerPsid, customerName, messageText, messageId);
-              }
-            }
-          }
-        }
-        // Instagram
-        else if (body.object === 'instagram') {
-          if (entry.messaging) {
-            for (const event of entry.messaging) {
-              if (event.message && !event.message.is_echo) {
-                const igAccountId = entry.id;
-                const senderIgsid = event.sender.id;
-                const messageText = event.message.text || '';
-                const messageId = event.message.mid;
-                const customerName = event.sender?.name || 'Instagram User';
-                processIncomingMessage('instagram', igAccountId, senderIgsid, customerName, messageText, messageId);
-              }
-            }
-          }
-        }
-      }
       return new NextResponse('EVENT_RECEIVED', { status: 200 });
     } else {
       return new NextResponse('Not Found', { status: 404 });
