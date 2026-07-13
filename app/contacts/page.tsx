@@ -96,7 +96,7 @@ export default function ContactsPage() {
         // Read local storage metadata map: phone -> { email, tags, optedOut }
         let metaMap: Record<string, { email?: string; tags?: string[]; optedOut?: boolean }> = {};
         try {
-          const stored = localStorage.getItem('autoflow_contact_meta');
+          const stored = localStorage.getItem('ittisalo_contact_meta');
           if (stored) metaMap = JSON.parse(stored);
         } catch (_) {}
 
@@ -190,7 +190,7 @@ export default function ContactsPage() {
         // Save metadata (email, tags)
         let metaMap: Record<string, { email?: string; tags?: string[]; optedOut?: boolean }> = {};
         try {
-          const stored = localStorage.getItem('autoflow_contact_meta');
+          const stored = localStorage.getItem('ittisalo_contact_meta');
           if (stored) metaMap = JSON.parse(stored);
         } catch (_) {}
 
@@ -199,7 +199,7 @@ export default function ContactsPage() {
           tags: newTags,
           optedOut: false
         };
-        localStorage.setItem('autoflow_contact_meta', JSON.stringify(metaMap));
+        localStorage.setItem('ittisalo_contact_meta', JSON.stringify(metaMap));
 
         await fetchContacts();
         setShowAdd(false);
@@ -218,7 +218,7 @@ export default function ContactsPage() {
     
     let metaMap: Record<string, { email?: string; tags?: string[]; optedOut?: boolean }> = {};
     try {
-      const stored = localStorage.getItem('autoflow_contact_meta');
+      const stored = localStorage.getItem('ittisalo_contact_meta');
       if (stored) metaMap = JSON.parse(stored);
     } catch (_) {}
 
@@ -226,7 +226,7 @@ export default function ContactsPage() {
       ...metaMap[contact.phone],
       optedOut: newOptOutStatus
     };
-    localStorage.setItem('autoflow_contact_meta', JSON.stringify(metaMap));
+    localStorage.setItem('ittisalo_contact_meta', JSON.stringify(metaMap));
 
     // Update locally instantly
     setContacts(prev => prev.map(c => c.phone === contact.phone ? { ...c, optedOut: newOptOutStatus } : c));
@@ -252,7 +252,7 @@ export default function ContactsPage() {
   const updateContactMeta = (phone: string, updates: { email?: string; tags?: string[]; optedOut?: boolean }) => {
     let metaMap: Record<string, { email?: string; tags?: string[]; optedOut?: boolean }> = {};
     try {
-      const stored = localStorage.getItem('autoflow_contact_meta');
+      const stored = localStorage.getItem('ittisalo_contact_meta');
       if (stored) metaMap = JSON.parse(stored);
     } catch (_) {}
 
@@ -260,7 +260,7 @@ export default function ContactsPage() {
       ...metaMap[phone],
       ...updates
     };
-    localStorage.setItem('autoflow_contact_meta', JSON.stringify(metaMap));
+    localStorage.setItem('ittisalo_contact_meta', JSON.stringify(metaMap));
 
     // Refetch/merge contacts state
     fetchContacts();
@@ -416,7 +416,7 @@ export default function ContactsPage() {
         // Read existing metadata
         let metaMap: Record<string, { email?: string; tags?: string[]; optedOut?: boolean }> = {};
         try {
-          const stored = localStorage.getItem('autoflow_contact_meta');
+          const stored = localStorage.getItem('ittisalo_contact_meta');
           if (stored) metaMap = JSON.parse(stored);
         } catch (_) {}
 
@@ -454,7 +454,7 @@ export default function ContactsPage() {
           setImportProgress(Math.round(((k + 1) / total) * 100));
         }
 
-        localStorage.setItem('autoflow_contact_meta', JSON.stringify(metaMap));
+        localStorage.setItem('ittisalo_contact_meta', JSON.stringify(metaMap));
 
         // Finish up
         await fetchContacts();

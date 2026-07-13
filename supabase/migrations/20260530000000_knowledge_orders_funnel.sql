@@ -1,5 +1,5 @@
 -- ============================================================================
--- AutoFlow AI — Phase 1 Foundation Migration
+-- Ittisalo — Phase 1 Foundation Migration
 -- Tables: knowledge_base, integration_credentials, conversation_context,
 --         orders, funnel_events + metadata column on tenants
 -- ============================================================================

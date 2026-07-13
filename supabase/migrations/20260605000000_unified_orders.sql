@@ -1,5 +1,5 @@
 -- ============================================================================
--- AutoFlow — Phase 3: Unified Orders Table
+-- Ittisalo — Phase 3: Unified Orders Table
 -- Adds new columns to `orders` to support all business niches in one place
 -- ============================================================================
 

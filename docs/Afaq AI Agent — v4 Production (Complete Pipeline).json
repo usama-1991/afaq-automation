@@ -1,0 +1,1370 @@
+{
+  "name": "Afaq AI Agent — v4 Production (Complete Pipeline)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "afaq-ai-agent",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "cc0646da-f068-476d-a447-1b495d0f9c2e",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -3712,
+        544
+      ],
+      "webhookId": "afaq-production-v3",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "0pezOPrdXOjKsdLh",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 2: Validate & normalise incoming payload\n// ─────────────────────────────────────────────\nconst body = $input.first().json.body || $input.first().json;\n\nfunction makeUUID() {\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {\n    const r = Math.random() * 16 | 0;\n    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);\n  });\n}\n\nconst required = ['tenant_id', 'customer_phone', 'platform', 'message_type'];\nconst missing = required.filter(f => !body[f]);\nif (missing.length > 0) {\n  throw new Error('Missing required fields: ' + missing.join(', '));\n}\n\nif (body.message_type === 'text' && !body.message) {\n  throw new Error('Message content is empty');\n}\n\nreturn [{\n  json: {\n    tenant_id:           body.tenant_id,\n    customer_phone:      String(body.customer_phone),\n    customer_name:       body.customer_name || 'Customer',\n    platform:            body.platform || 'whatsapp',\n    message_type:        body.message_type || 'text',\n    message:             body.message || '',\n    external_message_id: body.external_message_id || makeUUID(),\n    conversation_id:     body.conversation_id || null,\n    phone_number_id:     body.phone_number_id || '',\n    timestamp:           body.timestamp || new Date().toISOString(),\n    processed_at:        new Date().toISOString()\n  }\n}];"
+      },
+      "id": "8aaf9f6e-b883-4144-a564-a638d1db8617",
+      "name": "Validate Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3520,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 3: Detect language from message content\n// ─────────────────────────────────────────────\nconst body = $('Validate Payload').first().json;\nconst message = body.message || '';\n\nlet detected_language = 'en';\nconst arabicChars = (message.match(/[\\u0600-\\u06FF]/g) || []).length;\nconst urduChars   = (message.match(/[\\u067E\\u0686\\u0698\\u06AF\\u06BA\\u06C1\\u06BE\\u06CC]/g) || []).length;\n\nif (arabicChars > 0) {\n  detected_language = (urduChars / arabicChars > 0.15) ? 'ur' : 'ar';\n}\n\nreturn [{ json: { ...body, detected_language, normalized_message: message.trim() } }];"
+      },
+      "id": "f0485d10-cf22-49eb-a8b2-bcfec3572181",
+      "name": "Detect Language",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3248,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "tenants",
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.tenant_id }}"
+            }
+          ]
+        }
+      },
+      "id": "609af0d5-c217-4421-b9a8-f549decffaa3",
+      "name": "Load Tenant",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -3056,
+        544
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "BothqFLEOZUsG3Ms",
+          "name": "Supabase account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 5: Merge tenant with request + status check\n// ─────────────────────────────────────────────\nconst requestData  = $('Detect Language').first().json;\nconst tenantItems  = $input.all();\n\nif (!tenantItems || tenantItems.length === 0 || !tenantItems[0].json.id) {\n  throw new Error('Tenant not found for id: ' + requestData.tenant_id);\n}\n\nconst tenant = tenantItems[0].json;\n\nif (tenant.status && tenant.status !== 'active') {\n  throw new Error('TENANT_SUSPENDED');\n}\n\nreturn [{\n  json: {\n    // Request fields\n    tenant_id:           requestData.tenant_id,\n    customer_phone:      requestData.customer_phone,\n    customer_name:       requestData.customer_name,\n    platform:            requestData.platform,\n    message_type:        requestData.message_type,\n    message:             requestData.message,\n    external_message_id: requestData.external_message_id,\n    conversation_id:     requestData.conversation_id,\n    phone_number_id:     requestData.phone_number_id,\n    processed_at:        requestData.processed_at,\n    detected_language:   requestData.detected_language,\n    normalized_message:  requestData.normalized_message,\n\n    // Tenant fields\n    tenant:              tenant,\n    business_name:       tenant.business_name || tenant.name,\n    niche:               tenant.niche || 'general',\n    wa_phone_number_id:  tenant.wa_phone_number_id,\n    wa_access_token:     tenant.wa_access_token,\n\n    // AI config — from migrated columns (fallback to safe defaults)\n    ai_model:            tenant.ai_model       || 'gpt-4o-mini',\n    ai_temperature:      parseFloat(tenant.ai_temperature) || 0.7,\n    ai_max_tokens:       parseInt(tenant.ai_max_tokens)    || 500,\n    ai_language:         tenant.ai_language    || requestData.detected_language || 'ar'\n  }\n}];"
+      },
+      "id": "7a6434d1-a746-4c30-aa78-8d6306d4fc72",
+      "name": "Merge Tenant",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2848,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "agents",
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "tenant_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.tenant_id }}"
+            },
+            {
+              "keyName": "is_active",
+              "condition": "eq",
+              "keyValue": "true"
+            }
+          ]
+        }
+      },
+      "id": "1c4c06c9-0ab1-410a-ba63-7b13261964f3",
+      "name": "Load Agent",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -2656,
+        544
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "BothqFLEOZUsG3Ms",
+          "name": "Supabase account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 8: Prepare OpenAI embedding request body\n// ─────────────────────────────────────────────\nconst ctx = $('Merge Tenant').first().json;\n\nconst embedBody = JSON.stringify({\n  model: 'text-embedding-3-small',\n  input: ctx.normalized_message\n});\n\nreturn [{ json: { ...ctx, embed_request_body: embedBody } }];"
+      },
+      "id": "1c432d72-5d15-417f-9eed-32c2bb28ab80",
+      "name": "Prepare Embed Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2256,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/embeddings",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.embed_request_body }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "3fde3f3a-946b-4fd7-910e-1562ce36e4b2",
+      "name": "Embed Customer Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2048,
+        544
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "openAiApi": {
+          "id": "BIvBbKLw9MFQV3gf",
+          "name": "OpenAI account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 10: Prepare vector search request body\n// ─────────────────────────────────────────────\nconst ctx       = $('Merge Tenant').first().json;\nconst embedResp = $input.first().json;\n\n// Extract embedding vector — gracefully handle embedding failure\nconst embedding = embedResp?.data?.[0]?.embedding || [];\n\nconst searchBody = JSON.stringify({\n  query_embedding: embedding,\n  p_tenant_id:     ctx.tenant_id,\n  match_threshold: 0.10,\n  match_count:     5\n});\n\nreturn [{ json: { ...ctx, embedding, search_request_body: searchBody } }];"
+      },
+      "id": "898e0a49-ccaf-4b9b-a222-3e4b856417ab",
+      "name": "Prepare Search Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1856,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/rpc/search_knowledge_base",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.search_request_body }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "dbda8450-9f34-4f72-92f3-1c05f0de7962",
+      "name": "Search Knowledge Base",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1648,
+        544
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "BothqFLEOZUsG3Ms",
+          "name": "Supabase account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 12: Assemble full context for AI\n// ─────────────────────────────────────────────\nconst ctx       = $('Merge Tenant').first().json;\nconst agentItem = $('Load Agent').first().json;\nconst convItem  = $('Find Conversation').first().json;\n\n// Extract knowledge base docs from all split items of Search Knowledge Base\nconst kbDocs = $input.all()\n  .map(item => item.json)\n  .filter(doc => doc && doc.title && doc.content);\n\n// Agent prompt — from agents table\nconst agent      = agentItem?.id ? agentItem : null;\nconst agentPrompt = agent?.prompt ||\n  `You are a helpful AI assistant for ${ctx.business_name}. Answer customer questions professionally.`;\n\n// Format knowledge base entries\nconst kbEntries = kbDocs.length > 0\n  ? kbDocs.map((kb, i) => `[${i + 1}] ${kb.title}:\\n${kb.content}`).join('\\n\\n')\n  : '';\n\n// Existing conversation\nconst existingConv      = convItem?.id ? convItem : null;\nconst conversation_id   = ctx.conversation_id || existingConv?.id || null;\nconst is_new_conversation = !existingConv;\n\nreturn [{\n  json: {\n    ...ctx,\n    agent_prompt:       agentPrompt,\n    kb_entries:         kbEntries,\n    kb_count:           kbDocs.length,\n    conversation_id:    conversation_id,\n    is_new_conversation: is_new_conversation\n  }\n}];"
+      },
+      "id": "a04d7db5-b9e5-418a-8976-cf7470169e49",
+      "name": "Assemble Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1440,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "messages",
+        "limit": 10,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "conversation_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.conversation_id }}"
+            }
+          ]
+        }
+      },
+      "id": "61d70cfe-499a-4b5c-aa94-248f47f4d431",
+      "name": "Load Message History",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1280,
+        544
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "BothqFLEOZUsG3Ms",
+          "name": "Supabase account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 14: Build complete AI prompt\n// ─────────────────────────────────────────────\nconst ctx          = $('Assemble Context').first().json;\nconst historyItems = $input.all();\n\nconst history = historyItems\n  .map(item => item.json)\n  .filter(m => m.id && m.content)\n  .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));\n\nconst language = ctx.detected_language || 'ar';\n\nconst nicheInstructions = {\n  restaurant:    'You help customers with menu items, prices, opening hours, delivery, and reservations.',\n  dental:        'You help patients with appointments, treatments, pricing, and clinic hours. Always recommend professional consultation.',\n  real_estate:   'You help clients find properties, understand pricing, and arrange viewings.',\n  salon:         'You help with bookings, services, available slots, and pricing.',\n  ecommerce:     'You help with products, availability, orders, delivery, and returns.',\n  food_delivery: 'You help with order tracking, menu items, delivery times, and issues.',\n  medical:       'You help with appointments and general clinic information. Always recommend professional medical consultation.',\n  general:       'You help customers with their inquiries professionally and helpfully.'\n};\n\nconst languageInstructions = {\n  ar: 'يجب أن تجيب باللغة العربية الفصحى أو بنفس لهجة العميل. اجعل ردودك طبيعية ودافئة.',\n  ur: 'آپ کو اردو میں جواب دینا ہے۔ قدرتی اور دوستانہ زبان استعمال کریں۔',\n  en: 'Reply in clear, warm, conversational English.'\n};\n\nconst kbSection = ctx.kb_entries\n  ? `KNOWLEDGE BASE (${ctx.kb_count} relevant results):\\n${ctx.kb_entries}`\n  : 'KNOWLEDGE BASE: No specific content found. Answer only from what you know about this business from the system prompt above.';\n\n// ── NEW: pull the existing order row, if any ──\nlet existingOrderRows = [];\ntry {\n  existingOrderRows = $('Load Existing Orders').first().json;\n  if (!Array.isArray(existingOrderRows)) existingOrderRows = [existingOrderRows];\n} catch (e) {\n  existingOrderRows = [];\n}\nconst existingOrder = (existingOrderRows && existingOrderRows[0]) || null;\n\nlet orderStateBlock = '';\nif (['ecommerce', 'restaurant', 'food_delivery'].includes(ctx.niche) ) {\n  if (existingOrder) {\n    const items = Array.isArray(existingOrder.items) ? existingOrder.items : [];\n    const itemsStr = items.length\n      ? items.map(i => `${i.qty || 1}x ${i.name || 'item'}${i.price ? ` @ PKR ${i.price}` : ''}`).join(', ')\n      : '(none yet)';\n\n    orderStateBlock = [\n      '--- CURRENT ORDER STATE (authoritative — trust this over anything implied by chat history) ---',\n      `Product(s): ${itemsStr}`,\n      `Order total: ${existingOrder.order_amount ? 'PKR ' + existingOrder.order_amount : '(not yet calculated)'}`,\n      `Delivery address: ${existingOrder.delivery_address || '(not yet provided)'}`,\n      `Payment method: ${existingOrder.payment_method || '(not yet provided)'}`,\n      `Status: ${existingOrder.status || 'pending_address'}`,\n      '',\n      'Instructions for using this state:',\n      '- Only ask the customer for fields above that are still \"(not yet provided)\".',\n      '- NEVER ask again for a field that already has a value here, even if you cannot see it stated in the recent chat history.',\n      '- If Status is \"confirmed\", do not re-ask anything — just acknowledge the order is already confirmed and help with anything new.',\n      '- If all fields are filled and Status is not yet \"confirmed\", ask the customer to confirm the order.',\n      '- If the customer names a clearly different product than the one listed above, treat it as a new order and ignore the old product/quantity (but you may reuse a previously given delivery address or payment method if the customer does not provide a new one).',\n    ].join('\\n');\n  } else {\n    orderStateBlock = '--- CURRENT ORDER STATE ---\\nNo order in progress yet for this conversation.';\n  }\n}\n\nconst systemPrompt = [\n  `You are the AI assistant for ${ctx.business_name}.`,\n  `Business type: ${ctx.niche || 'general'}`,\n  '',\n  ctx.agent_prompt,\n  '',\n  nicheInstructions[ctx.niche] || nicheInstructions.general,\n  languageInstructions[language] || languageInstructions.en,\n  '',\n  '--- RULES ---',\n  '1. Answer ONLY using the knowledge base content provided below.',\n  '2. If the answer is not in the knowledge base, say you will connect the customer with a team member.',\n  '3. NEVER invent prices, hours, availability, or contact details.',\n  '4. Keep responses under 3 short paragraphs — be concise.',\n  '5. Be warm, human, and conversational. Never sound robotic.',\n  `6. Channel: ${ctx.platform}`,\n  '',\n  orderStateBlock,\n  '',\n  kbSection,\n  '',\n  '--- MANDATORY INTENT TAG ---',\n  'At the VERY END of your message, on a new line, you MUST append exactly ONE of these tags:',\n  'Intent: general_inquiry (for questions)',\n  'Intent: order_placed (wants to buy, needs details)',\n  'Intent: address_provided (user gave address)',\n  'Intent: order_confirmed (user confirmed final order)',\n  'Intent: checkout_intent (asking how to pay)',\n  'Intent: human_handoff (user asked for human)',\n  'Example: [Your reply...] \\n\\nIntent: order_placed'\n].join('\\n');\n\nconst messages = [{ role: 'system', content: systemPrompt }];\n\nfor (const msg of history) {\n  if (msg.sender_type === 'customer') {\n    messages.push({ role: 'user', content: msg.content });\n  } else if (msg.sender_type === 'bot') {\n    messages.push({ role: 'assistant', content: msg.content });\n  }\n}\n\nmessages.push({ role: 'user', content: ctx.normalized_message });\n\nreturn [{\n  json: {\n    ...ctx,\n    prompt_messages: messages,\n    system_prompt:   systemPrompt,\n    existing_order:  existingOrder\n  }\n}];"
+      },
+      "id": "6c7c885b-92d0-4e15-922c-a06f20900bf3",
+      "name": "Build AI Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1024,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 15: Prepare GPT request body\n// Uses ai_model, ai_temperature, ai_max_tokens from migrated tenant columns\n// ─────────────────────────────────────────────\nconst ctx = $input.first().json;\n\n// These values come from tenants.ai_model / ai_temperature / ai_max_tokens\n// set in Merge Tenant node — falls back to safe defaults\nconst model       = ctx.ai_model       || 'gpt-4o-mini';\nconst temperature = parseFloat(ctx.ai_temperature) || 0.7;\nconst max_tokens  = parseInt(ctx.ai_max_tokens)    || 500;\n\nconst gptBody = JSON.stringify({\n  model:       model,\n  messages:    ctx.prompt_messages,\n  temperature: temperature,\n  max_tokens:  max_tokens\n});\n\nreturn [{\n  json: {\n    ...ctx,\n    gpt_request_body: gptBody,\n    model_used:       model\n  }\n}];"
+      },
+      "id": "9c5c5906-5ee4-4f00-bf34-3b8a3f3acb85",
+      "name": "Prepare GPT Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -848,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.gpt_request_body }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "dfca2cc1-d109-4afe-8ef6-03eb331b0730",
+      "name": "Ask GPT-4o",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -672,
+        832
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "openAiApi": {
+          "id": "BIvBbKLw9MFQV3gf",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst ctx      = $('Build AI Prompt').first().json;\n\nif (!response.choices || !response.choices[0]) {\n  throw new Error('GPT returned no response: ' + JSON.stringify(response).slice(0, 300));\n}\n\nconst raw_reply = response.choices[0].message.content;\n\n// Extract intent tag\nlet ai_intent = 'general_inquiry';\nconst intentMatch = raw_reply.match(/Intent:\\s*([a-zA-Z0-9_]+)/i);\nif (intentMatch) {\n  ai_intent = intentMatch[1].toLowerCase();\n}\n\nconst ai_reply  = raw_reply.replace(/Intent:.*$/im, '').trim();\n\nconst prompt_tokens     = response.usage?.prompt_tokens    || 0;\nconst completion_tokens = response.usage?.completion_tokens || 0;\nconst latency_ms        = Date.now() - new Date(ctx.processed_at).getTime();\n\nreturn [{\n  json: {\n    ...ctx,\n    ai_reply,\n    ai_intent,\n    prompt_tokens,\n    completion_tokens,\n    latency_ms\n  }\n}];\n"
+      },
+      "id": "b6954d9d-afa4-479e-83ec-aac95a782f6c",
+      "name": "Extract AI Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -528,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// NODE 18: Prepare conversation upsert body\nconst ctx = $('Detect Intent & Create Record').first().json;\n\nconst convBody = JSON.stringify({\n  tenant_id:                ctx.tenant_id,\n  platform:                 ctx.platform,\n  external_conversation_id: ctx.customer_phone,\n  customer_name:            ctx.customer_name,\n  customer_phone:           ctx.customer_phone,\n  detected_language:        ctx.detected_language,\n  status:                   'open',\n  bot_enabled:              true,\n  last_message_at:          new Date().toISOString(),\n  last_message_preview:     (ctx.normalized_message || ctx.message || '').slice(0, 100),\n  updated_at:               new Date().toISOString()\n});\n\nreturn [{ json: { ...ctx, conv_request_body: convBody } }];"
+      },
+      "id": "f699bde5-5002-4aca-ba6c-68c345a09caf",
+      "name": "Prepare Conversation Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -192,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/conversations?on_conflict=tenant_id,external_conversation_id",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.conv_request_body }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "c2e0e4a2-18e8-44dd-8986-caed033b933c",
+      "name": "Upsert Conversation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        512
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "BothqFLEOZUsG3Ms",
+          "name": "Supabase account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 20: Resolve conversation ID from upsert result\n// ─────────────────────────────────────────────\nconst ctx          = $('Extract AI Reply').first().json;\nconst upsertResult = $input.first().json;\n\n// Supabase returns array when Prefer: return=representation\nconst conv_id =\n  (Array.isArray(upsertResult) && upsertResult[0]?.id)\n    ? upsertResult[0].id\n    : (upsertResult?.id || ctx.conversation_id || null);\n\nreturn [{ json: { ...ctx, resolved_conversation_id: conv_id } }];"
+      },
+      "id": "faafc8ab-6619-42d1-abd2-ac6ca4481254",
+      "name": "Get Conversation ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// NODE 21: Prepare customer + bot message insert bodies\nconst ctx = $input.first().json;\nconst conv_id = ctx.resolved_conversation_id;\n\nconst customerBody = JSON.stringify({\n  conversation_id:     conv_id,\n  sender_type:         'customer',\n  content:              ctx.normalized_message || ctx.message,\n  detected_language:   ctx.detected_language,\n  external_message_id: ctx.external_message_id,\n  is_read:             true\n});\n\nconst botBody = JSON.stringify({\n  conversation_id:     conv_id,\n  sender_type:         'bot',\n  content:             ctx.ai_reply,\n  model_used:          ctx.model_used || null,\n  prompt_tokens:       ctx.prompt_tokens || null,\n  completion_tokens:   ctx.completion_tokens || null,\n  latency_ms:          ctx.latency_ms || null,\n  kb_chunks_used:      ctx.kb_count || 0,\n  detected_language:   ctx.detected_language,\n  external_message_id: ctx.external_message_id ? `${ctx.external_message_id}-reply` : null,\n  is_read:             true\n});\n\nreturn [{ json: { ...ctx, customer_message_body: customerBody, bot_message_body: botBody } }];"
+      },
+      "id": "f7d6d35b-bc7f-4722-953d-1274136a6e4a",
+      "name": "Prepare Messages Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 23: Build final response JSON\n// ─────────────────────────────────────────────\nconst ctx = $('Get Conversation ID').first().json;\n\nreturn [{\n  json: {\n    ...ctx,\n    success:         true,\n    reply:           ctx.ai_reply,\n    language:        ctx.detected_language,\n    conversation_id: ctx.conversation_id || ctx.resolved_conversation_id,\n    tenant_id:       ctx.tenant_id,\n    model_used:      ctx.model_used,\n    kb_chunks_used:  ctx.kb_count || 0,\n    latency_ms:      ctx.latency_ms\n  }\n}];"
+      },
+      "id": "8e11aef0-bb24-48fe-ad8a-2ef057d49b04",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.success !== undefined ? JSON.stringify($json) : JSON.stringify({ success: false, error: 'Unexpected response format' }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "70609df2-232e-4c19-bfaa-0db201db76b6",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE: Detect Intent & Create Record\n// ─────────────────────────────────────────────\nconst ctx = $('Extract AI Reply').first().json;\nconst msg = ctx.message || ctx.normalized_message || '';\nconst msgLower = msg.toLowerCase();\nconst aiReply = ctx.ai_reply || '';\n\nconst intent = ctx.ai_intent || 'general_inquiry';\n\n// ── CHANGED: load the real previous order instead of {} ──\nlet previousInfo = {};\nif (ctx.existing_order && typeof ctx.existing_order === 'object') {\n  previousInfo = ctx.existing_order;\n} else {\n  // Fallback in case Build AI Prompt didn't pass it through for some reason\n  try {\n    const rows = $('Load Existing Orders').first().json;\n    const row = Array.isArray(rows) ? rows[0] : rows;\n    if (row) previousInfo = row;\n  } catch (e) { /* no existing order, keep {} */ }\n}\n// ── NEW: only carry forward the previous order if it's still actively in progress.\n// A confirmed/cancelled/completed order is a *finished* order — the next order\n// in this conversation must start clean, not inherit its address/payment/items.\nconst previousOrderFinished = !previousInfo.status ||\n  ['confirmed', 'cancelled', 'completed'].includes(previousInfo.status);\n\nlet createRecord = false;\nlet recordType = null;\nlet recordData = previousOrderFinished\n  ? {}\n  : JSON.parse(JSON.stringify(previousInfo));\n\nconst niche = ctx.niche || 'general';\n\nif (['ecommerce', 'restaurant'].includes(niche)) {\n  const orderTriggerIntents = ['product_inquiry', 'order_placed', 'address_provided', 'order_confirmed', 'checkout_intent'];\n  const shouldCreateOrder = orderTriggerIntents.includes(intent);\n\n  if (shouldCreateOrder) {\n    createRecord = true;\n    recordType = 'order';\n\n    let extractedItems = [];\n    const cleanName = s => s.trim().replace(/\\s+/g, ' ').replace(/^(i want|mujhe|muje|mjhe|chahiye|chahie|chaie|order|please|kindly)\\s+/gi, '').trim();\n\n    // Parse product name from Customer message\n    const patA = /(\\d+)\\s*(?:pack|packs|piece|pieces|pcs|pc|item|items|x)\\s+(?:of\\s+)?([a-zA-Z0-9][a-zA-Z0-9\\s\\-\\.\\s]{2,50}?)(?=\\s*(?:chaie|chahiye|chahie|order|deliver|pkr|rs|\\.|,|$|\\n))/gi;\n    const patC = /(?:i\\s+want|i\\s+need|i\\s+would\\s+like|send\\s+me|give\\s+me)\\s+([a-zA-Z0-9][a-zA-Z0-9\\s\\-\\.\\s]{1,50}?)\\s+(\\d+)\\s*(?:pack|packs|piece|pieces|pcs|pc|item|items)/gi;\n    const patD = /(?:mujhe|muje|mjhe|mjhay)\\s+([a-zA-Z0-9][a-zA-Z0-9\\s\\-\\.\\s]{2,50}?)(?:\\s+chaie|\\s+chahiye|\\s+chahie|\\s+chahiyen|\\s+lena|\\s+order)/gi;\n\n    patC.lastIndex = 0;\n    const matchesC = [...msg.matchAll(patC)];\n    if (matchesC.length > 0) extractedItems = matchesC.map(m => ({ name: cleanName(m[1] || ''), qty: parseInt(m[2]) || 1, price: 0 }));\n    \n    if (extractedItems.length === 0) {\n      patA.lastIndex = 0;\n      const matchesA = [...msg.matchAll(patA)];\n      if (matchesA.length > 0) extractedItems = matchesA.map(m => ({ name: cleanName(m[2] || ''), qty: parseInt(m[1]) || 1, price: 0 }));\n    }\n    \n    if (extractedItems.length === 0) {\n      patD.lastIndex = 0;\n      const matchesD = [...msg.matchAll(patD)];\n      if (matchesD.length > 0) extractedItems = matchesD.map(m => ({ name: cleanName(m[1] || ''), qty: 1, price: 0 }));\n    }\n\n    // AI Fallback parsing: If customer message was just \"COD\", fetch product from AI summary\n    const aiProductMatch = aiReply.match(/\\*[Pp]roduct\\*\\s*[:\\-]\\s*([^\\n]+)/);\n    const aiQtyMatch = aiReply.match(/\\*[Qq]uantity\\*\\s*[:\\-]\\s*(\\d+)/);\n    \n    if (extractedItems.length === 0 && aiProductMatch) {\n      extractedItems = [{ \n        name: cleanName(aiProductMatch[1]), \n        qty: aiQtyMatch ? parseInt(aiQtyMatch[1]) : 1, \n        price: 0 \n      }];\n    }\n\n    const unitPriceMatch = aiReply.match(/(?:PKR|Rs\\.?|pkr)\\s*([\\d,]+)\\s*(?:\\/pack|\\/piece|\\/pcs|each)/i);\n    const totalMatch = aiReply.match(/\\*{0,2}[Tt]otal\\*{0,2}\\s*[:\\-]\\s*(?:PKR|Rs\\.?|pkr)\\s*([\\d,]+)/i);\n\n    let unitPrice = unitPriceMatch ? parseInt(unitPriceMatch[1].replace(/,/g, '')) : 0;\n    let orderTotal = totalMatch ? parseInt(totalMatch[1].replace(/,/g, '')) : 0;\n\n    // ── CHANGED: fall back to the previous unit price if this turn's AI reply doesn't restate pricing ──\n    const previousUnitPrice = (Array.isArray(previousInfo.items) && previousInfo.items[0] && previousInfo.items[0].price > 0)\n      ? previousInfo.items[0].price\n      : 0;\n\n    if (extractedItems.length > 0) {\n      if (unitPrice > 0) {\n        extractedItems[0].price = unitPrice;\n      } else if (orderTotal > 0 && extractedItems[0].qty > 0) {\n        extractedItems[0].price = Math.round(orderTotal / extractedItems[0].qty);\n      } else if (previousUnitPrice > 0) {\n        extractedItems[0].price = previousUnitPrice;\n      }\n    }\n\n    // ── CHANGED: fall back to the previously saved order total if this turn's AI reply has none ──\n    const previousOrderTotal = previousInfo.order_amount || 0;\n    if (orderTotal === 0 && previousOrderTotal > 0) {\n      orderTotal = previousOrderTotal;\n    }\n\n    // ── CHANGED: preserve previously captured items instead of resetting to a placeholder ──\n    let currentItems;\n    if (extractedItems.length > 0) {\n      currentItems = extractedItems;\n    } else if (Array.isArray(previousInfo.items) && previousInfo.items.length > 0) {\n      currentItems = previousInfo.items;\n    } else {\n      currentItems = [{ name: 'Item from chat', qty: 1, price: 0 }];\n    }\n\n    let deliveryAddress = recordData.delivery_address || null;\n    // ── CHANGED: use only the customer's own message for address extraction, not msg + aiReply,\n    // to prevent the bot's own reply text (e.g. \"Thank you for providing...\") from being appended ──\n    const combinedForAddr = msg;\n    const addrLabelMatch = combinedForAddr.match(/(?:[Dd]elivery\\s+[Aa]ddress|[Dd]eliver\\s+to)\\s*[:\\-]?\\s*([^\\n,\\.]{8,100})/i);\n    if (addrLabelMatch && (!deliveryAddress || intent === 'address_provided')) {\n      deliveryAddress = addrLabelMatch[1].trim();\n    }\n    if (!deliveryAddress) {\n      const addrKeywords = /\\b(dha|clifton|gulshan|phase|block|street|road|avenue|lane|sector|town|garden|colony|defence|bahria|nazimabad|korangi|malir|johar|askari|highway|rd\\b)/i;\n      // ── CHANGED: stop the trailing capture at a sentence boundary (period, newline, exclamation)\n      // instead of a fixed character count, so it can't run on into an unrelated following sentence ──\n      const addrMatch = combinedForAddr.match(new RegExp(`[\\\\w\\\\s,\\\\.\\\\-\\\\/]{0,30}${addrKeywords.source}[^\\\\n\\\\.!]{0,40}`, 'i'));\n      if (addrMatch) deliveryAddress = addrMatch[0].trim();\n    }\n\n    let paymentMethod = recordData.payment_method || null;\n    if (!paymentMethod) {\n      const combined = msgLower + ' ' + aiReply.toLowerCase();\n      if (/\\bcod\\b|cash\\s+on\\s+delivery/.test(combined)) paymentMethod = 'COD';\n      else if (/easypaisa/.test(combined)) paymentMethod = 'Easypaisa';\n      else if (/jazzcash/.test(combined)) paymentMethod = 'JazzCash';\n      else if (/bank\\s*transfer/.test(combined)) paymentMethod = 'Bank Transfer';\n    }\n\n    const calculatedTotal = orderTotal > 0 ? orderTotal : currentItems.reduce((s, i) => s + ((i.price || 0) * (i.qty || 1)), 0);\n\n   const customerConfirmed = /^\\s*(confirm(ed)?|order\\s*karain|haan\\s*confirm|yes,?\\s*confirm)\\s*[.!]?\\s*$/i.test(msg.trim());\n\nconst aiConfirmed = /confirm ho gaya|order confirm|order placed|confirmed your order|order ki tayari|order accept/i.test(aiReply);\n\nlet newStatus;\nif (intent === 'order_confirmed' || aiConfirmed || customerConfirmed) {\n  newStatus = 'confirmed';\n} else if (deliveryAddress && paymentMethod) {\n  newStatus = 'pending';\n} else if (deliveryAddress || intent === 'address_provided') {\n  newStatus = 'pending';\n} else {\n  newStatus = 'pending_address';\n}\n    recordData = {\n      ...recordData,\n      tenant_id: ctx.tenant_id,\n      conversation_id: ctx.conversation_id,\n      customer_phone: ctx.customer_phone,\n      customer_name: ctx.customer_name,\n      niche: niche,\n      items: currentItems,\n      order_amount: calculatedTotal,\n      payment_method: paymentMethod,\n      delivery_address: deliveryAddress,\n      source: ctx.platform || 'whatsapp',\n      handled_by: 'bot',\n      status: newStatus,\n    };\n\n    if (intent === 'order_confirmed' || aiConfirmed) {\n      recordData.confirmed_at = new Date().toISOString();\n    }\n  }\n}\n\n// ═══════════════════════════════════════════════════════════════\n// DENTAL / SALON / CLINIC\n// ═══════════════════════════════════════════════════════════════\nif (['dental', 'salon', 'clinic'].includes(niche)) {\n  if (['booking_intent', 'appointment_confirmed'].includes(intent)) {\n    createRecord = true;\n    recordType = 'appointment';\n\n    const timeMatch = (msg + ' ' + aiReply).match(/(\\d{1,2})(:\\d{2})?\\s*(am|pm|AM|PM)/);\n    const dayMatch = (msg + ' ' + aiReply).match(/(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|kal|parso)/i);\n\n    let apptDate = recordData.appointment_date || null;\n    let apptTime = recordData.appointment_time || null;\n\n    if (dayMatch && !apptDate) {\n      const dayMap = { tomorrow:1,kal:1,parso:2,monday:0,tuesday:1,wednesday:2,thursday:3,friday:4,saturday:5,sunday:6 };\n      const day = dayMatch[1].toLowerCase();\n      const d2 = new Date();\n      if (['tomorrow','kal','parso'].includes(day)) {\n        d2.setDate(d2.getDate() + (dayMap[day] || 1));\n      } else {\n        const target = dayMap[day];\n        const today = d2.getDay();\n        const diff = (target - today + 7) % 7 || 7;\n        d2.setDate(d2.getDate() + diff);\n      }\n      apptDate = d2.toISOString().split('T')[0];\n    }\n\n    if (timeMatch && !apptTime) {\n      const hour = parseInt(timeMatch[1]);\n      const isPM = timeMatch[3].toLowerCase() === 'pm';\n      const hour24 = isPM && hour !== 12 ? hour + 12 : (!isPM && hour === 12 ? 0 : hour);\n      apptTime = `${String(hour24).padStart(2,'0')}:00:00`;\n    }\n\n    recordData = {\n      ...recordData,\n      tenant_id: ctx.tenant_id,\n      conversation_id: ctx.conversation_id,\n      patient_name: ctx.customer_name,\n      patient_phone: ctx.customer_phone,\n      niche: niche,\n      service_type: recordData.service_type || 'Consultation',\n      appointment_date: apptDate,\n      appointment_time: apptTime,\n      status: intent === 'appointment_confirmed' ? 'confirmed' : 'pending',\n      is_new_patient: ctx.is_new_conversation,\n    };\n  }\n}\n\n// ═══════════════════════════════════════════════════════════════\n// REAL ESTATE\n// ═══════════════════════════════════════════════════════════════\nif (niche === 'realestate') {\n  if (['property_inquiry','requirement_provided','visit_request'].includes(intent)) {\n    createRecord = true;\n    recordType = 'lead';\n\n    const budgetMatch = msg.match(/(\\d+\\.?\\d*)\\s*(crore|lakh|cr|lac)/i);\n    let budgetMax = recordData.budget_max || null;\n    if (budgetMatch && !budgetMax) {\n      const num = parseFloat(budgetMatch[1]);\n      const unit = budgetMatch[2].toLowerCase();\n      budgetMax = ['crore','cr'].includes(unit) ? num * 10000000 : num * 100000;\n    }\n\n    const bedMatch = msg.match(/(\\d+)\\s*(bed|bedroom|br)/i);\n    let bedrooms = recordData.bedrooms || null;\n    if (bedMatch && !bedrooms) bedrooms = parseInt(bedMatch[1]);\n\n    recordData = {\n      ...recordData,\n      tenant_id: ctx.tenant_id,\n      conversation_id: ctx.conversation_id,\n      customer_name: ctx.customer_name,\n      customer_phone: ctx.customer_phone,\n      intent: recordData.intent || (msgLower.includes('rent') ? 'rent' : msgLower.includes('sell') ? 'sell' : 'buy'),\n      bedrooms,\n      budget_max: budgetMax,\n      stage: intent === 'visit_request' ? 'visit_scheduled' :\n             intent === 'requirement_provided' ? 'qualified' : (recordData.stage || 'new_inquiry'),\n      temperature: 'warm',\n      last_activity_at: new Date().toISOString(),\n    };\n  }\n}\n\nconst needs_human_handoff = /human|agent|representative|insaan|baat|connect|transfer/i.test(msgLower);\n\nreturn [{\n  json: {\n    ...ctx,\n    detected_intent: intent,\n    create_record: createRecord,\n    record_type: recordType,\n    record_data: recordData,\n    needs_human_handoff: needs_human_handoff\n  }\n}];"
+      },
+      "id": "d95cc13c-0707-499a-9a1a-cadcce13d24c",
+      "name": "Detect Intent & Create Record",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -384,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.create_record }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "be12230d-d048-4e19-8dd3-d24beee7198f",
+      "name": "Should Write Record?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -576,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.record_type }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "order"
+            },
+            {
+              "value2": "appointment"
+            },
+            {
+              "value2": "lead"
+            }
+          ]
+        }
+      },
+      "id": "b46ee939-b173-42b7-b39f-7a27e19d785c",
+      "name": "Route by Record Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        -336,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/orders?on_conflict=conversation_id",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json.record_data) }}",
+        "options": {}
+      },
+      "id": "dd06d323-7611-430a-8452-55c6d8b3852f",
+      "name": "Insert Order",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "BothqFLEOZUsG3Ms",
+          "name": "Supabase account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/appointments?on_conflict=conversation_id",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json.record_data) }}",
+        "options": {}
+      },
+      "id": "1611a133-a4b2-4f8a-a728-8a2fea5f093d",
+      "name": "Insert Appointment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        160
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "BothqFLEOZUsG3Ms",
+          "name": "Supabase account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/leads?on_conflict=conversation_id",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json.record_data) }}",
+        "options": {}
+      },
+      "id": "e395bcf5-b141-443f-9551-7ac3791fa4cc",
+      "name": "Insert Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        304
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "BothqFLEOZUsG3Ms",
+          "name": "Supabase account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/conversation_context",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({\n  conversation_id: $('Detect Intent & Create Record').first().json.conversation_id || $('Extract AI Reply').first().json.conversation_id || $json.conversation_id,\n  tenant_id: $json.tenant_id,\n  context_type: 'chat',\n  last_intent: $('Detect Intent & Create Record').first().json.detected_intent,\n  context_data: {\n    extracted_info: $json.record_data || {},\n    updated_at: new Date().toISOString()\n  },\n  updated_at: new Date().toISOString()\n}) }}",
+        "options": {}
+      },
+      "id": "1648ad60-5966-4516-ae42-a2b1368a91ef",
+      "name": "Update Context",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        304,
+        288
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "BothqFLEOZUsG3Ms",
+          "name": "Supabase account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.needs_human_handoff }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "e1afccc1-48b6-4f58-b42c-37e6a5b2f3d0",
+      "name": "Human Handoff?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -336,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/conversations?id=eq.{{ $json.conversation_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ status: 'pending', bot_enabled: false }) }}",
+        "options": {}
+      },
+      "id": "2dab5833-f079-4ddb-ab1e-103844c3df7d",
+      "name": "Mark Convo Pending",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        752
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "BothqFLEOZUsG3Ms",
+          "name": "Supabase account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "=https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/conversations?tenant_id=eq.{{ $('Merge Tenant').first().json.tenant_id }}&external_conversation_id=eq.{{ $('Merge Tenant').first().json.customer_phone }}&order=created_at.desc&limit=1",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -2464,
+        560
+      ],
+      "id": "ea55cc46-70c5-426b-a5a9-bede1ba31e4e",
+      "name": "Find Conversation",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "BothqFLEOZUsG3Ms",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/orders?conversation_id=eq.{{ $('Assemble Context').first().json.conversation_id }}&status=neq.cancelled&order=updated_at.desc&limit=1",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -1136,
+        336
+      ],
+      "id": "0fd822de-f434-4ddc-9c9e-600147bdb8e1",
+      "name": "Load Existing Orders",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "BothqFLEOZUsG3Ms",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $('Prepare Messages Body').item.json.bot_message_body }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        560,
+        736
+      ],
+      "id": "2e890df1-b947-40a2-b809-6c5c02aa6283",
+      "name": "Save Bot Message",
+      "credentials": {
+        "supabaseApi": {
+          "id": "BothqFLEOZUsG3Ms",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/messages",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "external_message_id",
+              "value": "=eq.{{ $json.external_message_id }}"
+            },
+            {
+              "name": "select",
+              "value": "id"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=ignore-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={   \"external_message_id\": \"{{ $json.external_message_id }}\",   \"tenant_id\": \"{{ $json.tenant_id }}\",   \"conversation_id\": null,   \"content\": \"{{ $json.message }}\" }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -3120,
+        816
+      ],
+      "id": "cebd7c85-c6ce-4067-85e6-5515cbd93b65",
+      "name": "Check Duplicate Message"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3a700bd2-5ff3-42f5-b52a-281148db856d",
+              "leftValue": "={{ $json.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1600,
+        1136
+      ],
+      "id": "ff90fa18-0958-405c-a62a-0201985d166f",
+      "name": "Is Duplicate?"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validate Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Payload": {
+      "main": [
+        [
+          {
+            "node": "Check Duplicate Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Language": {
+      "main": [
+        [
+          {
+            "node": "Load Tenant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Tenant": {
+      "main": [
+        [
+          {
+            "node": "Merge Tenant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Tenant": {
+      "main": [
+        [
+          {
+            "node": "Load Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Agent": {
+      "main": [
+        [
+          {
+            "node": "Find Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Embed Body": {
+      "main": [
+        [
+          {
+            "node": "Embed Customer Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embed Customer Message": {
+      "main": [
+        [
+          {
+            "node": "Prepare Search Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Search Body": {
+      "main": [
+        [
+          {
+            "node": "Search Knowledge Base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Knowledge Base": {
+      "main": [
+        [
+          {
+            "node": "Assemble Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble Context": {
+      "main": [
+        [
+          {
+            "node": "Load Message History",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Existing Orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Message History": {
+      "main": [
+        []
+      ]
+    },
+    "Build AI Prompt": {
+      "main": [
+        [
+          {
+            "node": "Prepare GPT Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare GPT Body": {
+      "main": [
+        [
+          {
+            "node": "Ask GPT-4o",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask GPT-4o": {
+      "main": [
+        [
+          {
+            "node": "Extract AI Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract AI Reply": {
+      "main": [
+        [
+          {
+            "node": "Detect Intent & Create Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Conversation Body": {
+      "main": [
+        [
+          {
+            "node": "Upsert Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Conversation": {
+      "main": [
+        [
+          {
+            "node": "Get Conversation ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Conversation ID": {
+      "main": [
+        [
+          {
+            "node": "Prepare Messages Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Messages Body": {
+      "main": [
+        [
+          {
+            "node": "Save Bot Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Intent & Create Record": {
+      "main": [
+        [
+          {
+            "node": "Should Write Record?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Human Handoff?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Write Record?": {
+      "main": [
+        [
+          {
+            "node": "Route by Record Type",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Conversation Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Record Type": {
+      "main": [
+        [
+          {
+            "node": "Insert Order",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert Appointment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Order": {
+      "main": [
+        [
+          {
+            "node": "Update Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Appointment": {
+      "main": [
+        [
+          {
+            "node": "Update Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Lead": {
+      "main": [
+        [
+          {
+            "node": "Update Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Context": {
+      "main": [
+        [
+          {
+            "node": "Prepare Conversation Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Human Handoff?": {
+      "main": [
+        [
+          {
+            "node": "Mark Convo Pending",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Conversation": {
+      "main": [
+        [
+          {
+            "node": "Prepare Embed Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Existing Orders": {
+      "main": [
+        [
+          {
+            "node": "Build AI Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Bot Message": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Duplicate Message": {
+      "main": [
+        [
+          {
+            "node": "Is Duplicate?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Duplicate?": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Detect Language",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "aad4da53-0076-4b70-be5f-e56fb27f23fc",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4eaa210cd0ac20a91195f808e7578300d8c350a1a6fbcac9977e8431b6a44941"
+  },
+  "nodeGroups": [],
+  "id": "KoAbtQGeCrT0eELu",
+  "tags": []
+}

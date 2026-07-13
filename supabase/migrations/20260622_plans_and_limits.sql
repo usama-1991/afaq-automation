@@ -1,5 +1,5 @@
 -- ============================================================
--- AutoFlow AI — Plans, Limits & Meta Connection Schema
+-- Ittisalo — Plans, Limits & Meta Connection Schema
 -- Migration: 20260622_plans_and_limits.sql
 -- ============================================================
 

@@ -146,19 +146,8 @@ export default function OnboardingPage() {
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 16 }}>
-            <div style={{ 
-              width: 40, 
-              height: 40, 
-              borderRadius: 11, 
-              background: 'linear-gradient(135deg, #dc2626, #b91c1c)', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              fontSize: 18, 
-              fontWeight: 700, 
-              color: '#fff' 
-            }}>A</div>
-            <span style={{ fontSize: 20, fontWeight: 700, color: '#111827', letterSpacing: '-0.4px' }}>AutoFlow AI</span>
+            <img src="/ittisalo-logo.png" alt="Ittisalo" style={{ width: 40, height: 40, borderRadius: 11 }} />
+            <span style={{ fontSize: 20, fontWeight: 700, color: '#111827', letterSpacing: '-0.4px' }}>Ittisalo</span>
           </div>
           {step === 1 ? (
             <>

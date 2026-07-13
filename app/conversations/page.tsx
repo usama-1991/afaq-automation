@@ -425,7 +425,7 @@ function ConversationsInner() {
       }
 
       try {
-        const stored = localStorage.getItem('autoflow_media_library');
+        const stored = localStorage.getItem('ittisalo_media_library');
         const library = stored ? JSON.parse(stored) : [];
         const newMedia = {
           id: Math.random().toString(36).substr(2, 9),
@@ -436,7 +436,7 @@ function ConversationsInner() {
           addedAt: new Date().toISOString().split('T')[0]
         };
         library.unshift(newMedia);
-        localStorage.setItem('autoflow_media_library', JSON.stringify(library));
+        localStorage.setItem('ittisalo_media_library', JSON.stringify(library));
       } catch (err) {
         console.error('Error saving to media vault:', err);
       }

@@ -1,4 +1,4 @@
-# AutoFlow AI — n8n Complete Setup Guide v2
+# Ittisalo — n8n Complete Setup Guide v2
 ### Updated for Niche-Specific Orders Windows (Bidirectional Flow)
 
 ---
@@ -293,7 +293,7 @@ Table: orders
 Events: UPDATE
 Conditions: (none — fires on any update)
 Type: HTTP Request
-URL: https://afaqautomationai.app.n8n.cloud/webhook/autoflow-status-notifier
+URL: https://afaqautomationai.app.n8n.cloud/webhook/ittisalo-status-notifier
 Method: POST
 Headers:
   x-api-key: [your N8N_API_KEY]
@@ -306,7 +306,7 @@ Payload: { "type": "orders", "record": "{{ record }}", "old_record": "{{ old_rec
 Name: appointments_status_changed
 Table: appointments
 Events: UPDATE
-URL: https://afaqautomationai.app.n8n.cloud/webhook/autoflow-status-notifier
+URL: https://afaqautomationai.app.n8n.cloud/webhook/ittisalo-status-notifier
 Same headers as above
 Payload: { "type": "appointments", "record": "{{ record }}", "old_record": "{{ old_record }}" }
 ```
@@ -316,7 +316,7 @@ Payload: { "type": "appointments", "record": "{{ record }}", "old_record": "{{ o
 Name: leads_stage_changed
 Table: leads
 Events: UPDATE
-URL: https://afaqautomationai.app.n8n.cloud/webhook/autoflow-status-notifier
+URL: https://afaqautomationai.app.n8n.cloud/webhook/ittisalo-status-notifier
 Same headers as above
 Payload: { "type": "leads", "record": "{{ record }}", "old_record": "{{ old_record }}" }
 ```
@@ -355,16 +355,16 @@ You need **5 workflows total**:
 
 ---
 
-## WORKFLOW 1: AutoFlow Master Message Handler
+## WORKFLOW 1: Ittisalo Master Message Handler
 
-**Trigger webhook path:** `autoflow-master`
+**Trigger webhook path:** `ittisalo-master`
 
 ---
 
 ### NODE 1: Webhook Trigger
 ```
 Type: Webhook
-Path: autoflow-master
+Path: ittisalo-master
 Method: POST
 Authentication: Header Auth → Header Auth account (x-api-key)
 Respond: When Last Node Finishes
@@ -1208,7 +1208,7 @@ Continue on Fail: true
 
 **This is entirely new in v2. Does not exist in v1.**
 
-**Trigger webhook path:** `autoflow-status-notifier`
+**Trigger webhook path:** `ittisalo-status-notifier`
 
 When owner clicks Confirm/Dispatch/Deliver in Orders window → frontend PATCHes Supabase → Supabase DB Webhook → this workflow → WhatsApp to customer.
 
@@ -1216,7 +1216,7 @@ When owner clicks Confirm/Dispatch/Deliver in Orders window → frontend PATCHes
 
 ### NODE 1: Webhook Trigger
 ```
-Path: autoflow-status-notifier
+Path: ittisalo-status-notifier
 Method: POST
 Authentication: Header Auth (same x-api-key credential)
 ```
@@ -1439,7 +1439,7 @@ const dateStr = pktTomorrow.toISOString().split('T')[0];
 ## WORKFLOW 4: Campaign Broadcaster (Same as v1)
 
 ```
-Webhook: autoflow-campaign (POST from your campaign-service/frontend)
+Webhook: ittisalo-campaign (POST from your campaign-service/frontend)
   ↓
 Fetch contacts by segment from Supabase conversations table
   ↓
@@ -1556,9 +1556,9 @@ META_WEBHOOK_VERIFY_TOKEN=your_custom_string
 INSTAGRAM_USER_ID=17841474217763898
 
 # n8n (your afaqautomationai.app.n8n.cloud instance)
-N8N_WEBHOOK_URL=https://afaqautomationai.app.n8n.cloud/webhook/autoflow-master
-N8N_STATUS_WEBHOOK_URL=https://afaqautomationai.app.n8n.cloud/webhook/autoflow-status-notifier
-N8N_CAMPAIGN_WEBHOOK_URL=https://afaqautomationai.app.n8n.cloud/webhook/autoflow-campaign
+N8N_WEBHOOK_URL=https://afaqautomationai.app.n8n.cloud/webhook/ittisalo-master
+N8N_STATUS_WEBHOOK_URL=https://afaqautomationai.app.n8n.cloud/webhook/ittisalo-status-notifier
+N8N_CAMPAIGN_WEBHOOK_URL=https://afaqautomationai.app.n8n.cloud/webhook/ittisalo-campaign
 N8N_API_KEY=your_generated_secret_key
 
 # Service URLs (Railway)
@@ -1609,7 +1609,7 @@ Then reference in any node as `{{ $env.SUPABASE_URL }}` etc.
 
 ```bash
 # Step 1: Test n8n webhook directly
-curl -X POST https://afaqautomationai.app.n8n.cloud/webhook/autoflow-master \
+curl -X POST https://afaqautomationai.app.n8n.cloud/webhook/ittisalo-master \
   -H "x-api-key: your_n8n_api_key" \
   -H "Content-Type: application/json" \
   -d '{

@@ -1,5 +1,5 @@
 -- ============================================================================
--- AutoFlow — v2 Migration: Orders Window Full Schema
+-- Ittisalo — v2 Migration: Orders Window Full Schema
 -- Run this in Supabase SQL Editor
 -- Safe to run on existing databases (uses IF NOT EXISTS / ADD COLUMN IF NOT EXISTS)
 -- ============================================================================

@@ -30,7 +30,7 @@ function LoginForm() {
       setError(error.message);
       setLoading(false);
     } else {
-      if (data.user?.email === "admin@autoflow.ai") {
+      if (data.user?.email === "admin@ittisalo.io") {
         window.location.href = "/admin";
       } else {
         window.location.href = "/dashboard";
@@ -66,10 +66,8 @@ function LoginForm() {
       <div className="hidden lg:flex w-full max-w-md xl:max-w-lg bg-red-800 text-white flex-col justify-between p-12">
         <div>
           <div className="flex items-center gap-3 mb-16">
-            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center text-xl font-bold">
-              A
-            </div>
-            <span className="text-xl font-bold tracking-tight">AutoFlow AI</span>
+            <img src="/ittisalo-logo.png" alt="Ittisalo" className="w-10 h-10 rounded-lg" />
+            <span className="text-xl font-bold tracking-tight">Ittisalo</span>
           </div>
 
           <h1 className="text-4xl font-extrabold mb-6 leading-tight">
@@ -105,7 +103,7 @@ function LoginForm() {
         <div className="w-full max-w-[420px]">
           <div className="mb-8 text-center">
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome back</h2>
-            <p className="text-gray-500">Sign in to your AutoFlow dashboard</p>
+            <p className="text-gray-500">Sign in to your Ittisalo dashboard</p>
           </div>
 
 {error && <div className="mb-6 text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">{error}</div>}
@@ -169,7 +167,7 @@ function LoginForm() {
           </form>
 
           <p className="mt-8 text-center text-sm text-gray-500">
-            New client? Contact <a href="mailto:admin@autoflow.ai" className="text-red-600 font-medium hover:underline">admin@autoflow.ai</a> for access.
+            New client? Contact <a href="mailto:admin@ittisalo.io" className="text-red-600 font-medium hover:underline">admin@ittisalo.io</a> for access.
           </p>
         </div>
       </div>

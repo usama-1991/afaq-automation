@@ -1,5 +1,5 @@
 -- ============================================================================
--- AutoFlow — Phase 2 Industry Custom Niche Tables
+-- Ittisalo — Phase 2 Industry Custom Niche Tables
 -- Tables: restaurant_orders, appointments, price_list, leads, listings
 -- ============================================================================
 

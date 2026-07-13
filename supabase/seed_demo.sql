@@ -4,7 +4,7 @@
 INSERT INTO public.tenants (id, name)
 VALUES (
   '00000000-0000-0000-0000-111111111111', 
-  'AutoFlow Demo Company'
+  'Ittisalo Demo Company'
 ) ON CONFLICT DO NOTHING;
 
 -- 2. Insert Super Admin into auth.users (Requires superuser access / SQL Editor)
@@ -16,7 +16,7 @@ INSERT INTO auth.users (
 VALUES (
   '00000000-0000-0000-0000-000000000000',
   '00000000-0000-0000-0000-222222222222',
-  'authenticated', 'authenticated', 'admin@autoflow.ai', 
+  'authenticated', 'authenticated', 'admin@ittisalo.ai', 
   crypt('admin123', gen_salt('bf')), now(),
   '{"provider":"email","providers":["email"]}', '{}', now(), now(), 
   '', '', '', ''
@@ -25,7 +25,7 @@ VALUES (
 INSERT INTO auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
 VALUES (
   gen_random_uuid(), '00000000-0000-0000-0000-222222222222', 
-  format('{"sub":"%s","email":"%s"}', '00000000-0000-0000-0000-222222222222', 'admin@autoflow.ai')::jsonb, 
+  format('{"sub":"%s","email":"%s"}', '00000000-0000-0000-0000-222222222222', 'admin@ittisalo.ai')::jsonb, 
   'email', now(), now(), now()
 ) ON CONFLICT DO NOTHING;
 

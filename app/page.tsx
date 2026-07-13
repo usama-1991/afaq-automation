@@ -8,13 +8,12 @@ export default function RootPage() {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{
+        <img src="/ittisalo-logo.png" alt="Ittisalo" style={{
           width: 48, height: 48, borderRadius: 13,
-          background: 'linear-gradient(135deg, #4f46e5, #2563eb)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 24, fontWeight: 700, color: '#fff', margin: '0 auto 12px',
-        }}>A</div>
-        <div style={{ fontSize: 15, color: '#6b7280', fontWeight: 500 }}>AutoFlow AI</div>
+          margin: '0 auto 12px',
+          boxShadow: '0 4px 14px rgba(220,38,38,0.3)',
+        }} />
+        <div style={{ fontSize: 15, color: '#6b7280', fontWeight: 500 }}>Ittisalo</div>
       </div>
     </div>
   );

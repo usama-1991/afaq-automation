@@ -32,7 +32,7 @@ export default function MediaPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem('autoflow_media_library');
+    const stored = localStorage.getItem('ittisalo_media_library');
     if (stored) {
       try {
         setMediaList(JSON.parse(stored));
@@ -41,7 +41,7 @@ export default function MediaPage() {
       }
     } else {
       setMediaList([]);
-      localStorage.setItem('autoflow_media_library', JSON.stringify([]));
+      localStorage.setItem('ittisalo_media_library', JSON.stringify([]));
     }
   }, []);
 
@@ -54,7 +54,7 @@ export default function MediaPage() {
   const handleDeleteMedia = (id: string) => {
     const updated = mediaList.filter(m => m.id !== id);
     setMediaList(updated);
-    localStorage.setItem('autoflow_media_library', JSON.stringify(updated));
+    localStorage.setItem('ittisalo_media_library', JSON.stringify(updated));
   };
 
   const handleUploadSubmit = (e: React.FormEvent) => {
@@ -63,7 +63,7 @@ export default function MediaPage() {
 
     // Generate beautiful public URL mock
     const cleanName = uploadName.toLowerCase().replace(/[^a-z0-9_.]/g, '_');
-    const mockUrl = `https://app.autoflow.ai/media/${cleanName}`;
+    const mockUrl = `https://app.ittisalo.io/media/${cleanName}`;
 
     const newFile: MediaFile = {
       id: Math.random().toString(36).substr(2, 9),
@@ -76,7 +76,7 @@ export default function MediaPage() {
 
     const updated = [newFile, ...mediaList];
     setMediaList(updated);
-    localStorage.setItem('autoflow_media_library', JSON.stringify(updated));
+    localStorage.setItem('ittisalo_media_library', JSON.stringify(updated));
     setShowAddModal(false);
     setUploadName('');
   };

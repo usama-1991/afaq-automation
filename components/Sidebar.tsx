@@ -111,13 +111,10 @@ export default function Sidebar() {
           width: 64, height: 98, display: 'flex', alignItems: 'center', justifyContent: 'center',
           borderBottom: '1px solid rgba(220,38,38,0.07)', flexShrink: 0,
         }}>
-          <div style={{
+          <img src="/ittisalo-logo.png" alt="Ittisalo" style={{
             width: 34, height: 34, borderRadius: 10,
-            background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 15, color: '#fff', fontWeight: 800,
             boxShadow: '0 4px 12px rgba(220,38,38,0.35)',
-          }}>A</div>
+          }} />
         </div>
 
         {/* Nav */}
@@ -226,12 +223,9 @@ export default function Sidebar() {
             {/* Logo + close */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{
+                <img src="/ittisalo-logo.png" alt="Ittisalo" style={{
                   width: 34, height: 34, borderRadius: 10,
-                  background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 16, color: '#fff', fontWeight: 800,
-                }}>A</div>
+                }} />
                 <span style={{ fontWeight: 700, fontSize: 16, color: '#111827' }}>Ittisalo</span>
               </div>
               <button

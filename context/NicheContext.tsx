@@ -22,8 +22,8 @@ export function NicheProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Only runs client-side — safe from SSR crash
     try {
-      const stored = localStorage.getItem('autoflow_niche');
-      const ob = localStorage.getItem('autoflow_onboarded');
+      const stored = localStorage.getItem('ittisalo_niche');
+      const ob = localStorage.getItem('ittisalo_onboarded');
       if (stored) setNicheIdState(stored);
       if (ob === 'true') setOnboardedState(true);
     } catch (_) {}
@@ -32,12 +32,12 @@ export function NicheProvider({ children }: { children: ReactNode }) {
 
   const setNicheId = (id: string) => {
     setNicheIdState(id);
-    try { localStorage.setItem('autoflow_niche', id); } catch (_) {}
+    try { localStorage.setItem('ittisalo_niche', id); } catch (_) {}
   };
 
   const setOnboarded = (v: boolean) => {
     setOnboardedState(v);
-    try { localStorage.setItem('autoflow_onboarded', String(v)); } catch (_) {}
+    try { localStorage.setItem('ittisalo_onboarded', String(v)); } catch (_) {}
   };
 
   return (

@@ -1,4 +1,4 @@
-# AutoFlow AI — n8n Complete Setup Guide v3 (Optimized)
+# Ittisalo — n8n Complete Setup Guide v3 (Optimized)
 ### Updated for Chat Memory Fixes and Token Optimization
 
 ---
@@ -18,16 +18,16 @@ We identified two major issues in the v2 workflows:
 
 ---
 
-## WORKFLOW 1: AutoFlow Master Message Handler (Optimized)
+## WORKFLOW 1: Ittisalo Master Message Handler (Optimized)
 
-**Trigger webhook path:** `autoflow-master`
+**Trigger webhook path:** `ittisalo-master`
 
 ---
 
 ### NODE 1: Webhook Trigger
 ```
 Type: Webhook
-Path: autoflow-master
+Path: ittisalo-master
 Method: POST
 Authentication: Header Auth → Header Auth account (x-api-key)
 Respond: When Last Node Finishes

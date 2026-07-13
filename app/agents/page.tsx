@@ -142,7 +142,7 @@ export default function AgentsPage() {
 
   // Load team data from localstorage or defaults
   useEffect(() => {
-    const stored = localStorage.getItem('autoflow_team_members');
+    const stored = localStorage.getItem('ittisalo_team_members');
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
@@ -157,7 +157,7 @@ export default function AgentsPage() {
     } else {
       setTeamList(defaultTeam);
       setSelectedTeamMember(defaultTeam[0]);
-      localStorage.setItem('autoflow_team_members', JSON.stringify(defaultTeam));
+      localStorage.setItem('ittisalo_team_members', JSON.stringify(defaultTeam));
     }
 
     const loadAgentFromDBAndLocal = async () => {
@@ -190,7 +190,7 @@ export default function AgentsPage() {
       }
 
       // 2. Overlay with local storage configs if they exist
-      const storedAi = localStorage.getItem(`autoflow_ai_config_${niche.id}`);
+      const storedAi = localStorage.getItem(`ittisalo_ai_config_${niche.id}`);
       if (storedAi) {
         try {
           const parsed = JSON.parse(storedAi);
@@ -223,7 +223,7 @@ export default function AgentsPage() {
       selectedLangs, selectedVoice, humanHandoff, galleryCards, maxCards,
       published, paused
     };
-    localStorage.setItem(`autoflow_ai_config_${niche.id}`, JSON.stringify(aiConfig));
+    localStorage.setItem(`ittisalo_ai_config_${niche.id}`, JSON.stringify(aiConfig));
     await syncAgentToDB();
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -237,7 +237,7 @@ export default function AgentsPage() {
       selectedLangs, selectedVoice, humanHandoff, galleryCards, maxCards,
       published: true, paused: false
     };
-    localStorage.setItem(`autoflow_ai_config_${niche.id}`, JSON.stringify(aiConfig));
+    localStorage.setItem(`ittisalo_ai_config_${niche.id}`, JSON.stringify(aiConfig));
     await syncAgentToDB(true, false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -250,7 +250,7 @@ export default function AgentsPage() {
       member.id === selectedTeamMember.id ? selectedTeamMember : member
     );
     setTeamList(updated);
-    localStorage.setItem('autoflow_team_members', JSON.stringify(updated));
+    localStorage.setItem('ittisalo_team_members', JSON.stringify(updated));
     setTeamSaved(true);
     setTimeout(() => setTeamSaved(false), 2000);
   };
@@ -271,7 +271,7 @@ export default function AgentsPage() {
 
     const updated = [...teamList, newMember];
     setTeamList(updated);
-    localStorage.setItem('autoflow_team_members', JSON.stringify(updated));
+    localStorage.setItem('ittisalo_team_members', JSON.stringify(updated));
     setSelectedTeamMember(newMember);
     setShowAddTeam(false);
     
@@ -287,7 +287,7 @@ export default function AgentsPage() {
   const handleDeleteTeamMember = (id: string) => {
     const updated = teamList.filter(member => member.id !== id);
     setTeamList(updated);
-    localStorage.setItem('autoflow_team_members', JSON.stringify(updated));
+    localStorage.setItem('ittisalo_team_members', JSON.stringify(updated));
     if (selectedTeamMember?.id === id) {
       setSelectedTeamMember(updated.length > 0 ? updated[0] : null);
     }

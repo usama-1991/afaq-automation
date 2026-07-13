@@ -17,13 +17,10 @@ function Spinner() {
       background: 'linear-gradient(135deg, #fef2f2 0%, #fff5f5 100%)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16,
     }}>
-      <div style={{
+      <img src="/ittisalo-logo.png" alt="Ittisalo" style={{
         width: 44, height: 44, borderRadius: 12,
-        background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 22, color: '#fff', fontWeight: 800,
         boxShadow: '0 4px 14px rgba(220,38,38,0.3)',
-      }}>A</div>
+      }} />
       <div style={{ fontSize: 14, color: '#6b7280', fontWeight: 500 }}>Loading Ittisalo…</div>
       <div style={{
         width: 32, height: 32,
@@ -143,7 +140,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const isAdminUser = session.user?.email === 'admin@autoflow.ai';
+    const isAdminUser = session.user?.email === 'admin@ittisalo.io';
 
     if (pathname === '/') {
       if (isAdminUser) router.replace('/admin');

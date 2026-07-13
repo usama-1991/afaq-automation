@@ -1,5 +1,5 @@
 -- ============================================================
--- AutoFlow AI — Super Admin Privileges
+-- Ittisalo — Super Admin Privileges
 -- Migration: 20260623_super_admin.sql
 -- ============================================================
 

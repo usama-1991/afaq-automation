@@ -1,4 +1,4 @@
-# AutoFlow AI — Complete n8n Setup & Workflow Guide
+# Ittisalo — Complete n8n Setup & Workflow Guide
 ### Every workflow, every node, every connection for your exact stack
 
 ---
@@ -45,7 +45,7 @@ n8n Master Workflow
 Supabase Realtime
         │
         ▼
-AutoFlow Dashboard (Next.js) — updates live
+Ittisalo Dashboard (Next.js) — updates live
 ```
 
 ---
@@ -418,10 +418,10 @@ if (savedMessage && senderType === 'customer') {
 
 ## Part 4: n8n — Complete Workflow Setup
 
-### WORKFLOW 1: AutoFlow Master Message Handler
+### WORKFLOW 1: Ittisalo Master Message Handler
 
 **Deploy steps:**
-1. Open n8n → New Workflow → name it "AutoFlow Master Handler"
+1. Open n8n → New Workflow → name it "Ittisalo Master Handler"
 2. Add nodes in this exact order
 
 ---
@@ -430,7 +430,7 @@ if (savedMessage && senderType === 'customer') {
 ```
 Type: Webhook
 HTTP Method: POST
-Path: autoflow-master
+Path: ittisalo-master
 Authentication: Header Auth
   Header Name: x-api-key
   Header Value: [your N8N_API_KEY]
@@ -897,7 +897,7 @@ return [{
 
 ### WORKFLOW 2: Appointment Reminder Cron
 
-Create a **new workflow** named "AutoFlow Appointment Reminders":
+Create a **new workflow** named "Ittisalo Appointment Reminders":
 
 #### Node 1: Schedule Trigger
 ```
@@ -952,11 +952,11 @@ Body: { "reminder_sent": true }
 
 ### WORKFLOW 3: Campaign Broadcast
 
-Create workflow "AutoFlow Campaign Broadcaster":
+Create workflow "Ittisalo Campaign Broadcaster":
 
 #### Node 1: Webhook Trigger
 ```
-Path: autoflow-campaign
+Path: ittisalo-campaign
 Method: POST
 ```
 Your campaign-service calls this when a campaign is launched.
@@ -1022,8 +1022,8 @@ META_WEBHOOK_VERIFY_TOKEN=your_custom_verify_string
 INSTAGRAM_USER_ID=17841400000000000
 
 # n8n
-N8N_WEBHOOK_URL=https://your-workspace.app.n8n.cloud/webhook/autoflow-master
-N8N_CAMPAIGN_WEBHOOK_URL=https://your-workspace.app.n8n.cloud/webhook/autoflow-campaign
+N8N_WEBHOOK_URL=https://your-workspace.app.n8n.cloud/webhook/ittisalo-master
+N8N_CAMPAIGN_WEBHOOK_URL=https://your-workspace.app.n8n.cloud/webhook/ittisalo-campaign
 N8N_API_KEY=your_secret_n8n_api_key
 
 # Service URLs (internal Railway)
@@ -1069,7 +1069,7 @@ In n8n Settings → Credentials → Add:
 
 ```
 □ Step 1: n8n webhook URL live → test with Postman/curl
-   curl -X POST https://your-n8n.com/webhook/autoflow-master \
+   curl -X POST https://your-n8n.com/webhook/ittisalo-master \
      -H "x-api-key: your_key" \
      -H "Content-Type: application/json" \
      -d '{"tenant_id":"xxx","conversation_id":"yyy","message_text":"hello","niche":"ecommerce","platform":"whatsapp","customer_phone":"923001234567","agent_config":{"name":"ShopBot","prompt":"You are a helpful assistant"},"knowledge_base":[],"conversation_history":[]}'

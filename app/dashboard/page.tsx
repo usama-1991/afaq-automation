@@ -151,7 +151,7 @@ function ActionCenterDashboard({ userName }: { userName: string }) {
     <div style={{ padding: '32px 32px 50px', minHeight: '100%', background: '#faf9f9', maxWidth: 1100, margin: '0 auto' }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 24, fontWeight: 800, color: '#111827', letterSpacing: '-0.5px' }}>
-          Hey {userName}, Welcome to AutoFlow AI!
+          Hey {userName}, Welcome to Ittisalo!
         </h1>
         <p style={{ fontSize: 14, color: '#6b7280', marginTop: 4 }}>
           Connect your business to get your business phone number and unlock AI features.
@@ -164,7 +164,7 @@ function ActionCenterDashboard({ userName }: { userName: string }) {
         <div style={{ background: '#10b981', borderRadius: 16, padding: '24px', color: '#fff', boxShadow: '0 4px 14px rgba(16,185,129,0.2)' }}>
           <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 8 }}>Start WhatsApp Engagement for your Business</div>
           <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 20, lineHeight: 1.5 }}>
-            You'll need to Apply for WhatsApp Business API to use AutoFlow AI for your Business.
+            You'll need to Apply for WhatsApp Business API to use Ittisalo for your Business.
           </div>
           <button 
             onClick={() => router.push('/settings?tab=Channels+%26+APIs')}

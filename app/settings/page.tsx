@@ -153,7 +153,7 @@ function SettingsInner() {
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('autoflow_contact_meta');
+      const stored = localStorage.getItem('ittisalo_contact_meta');
       if (stored) {
         const parsed = JSON.parse(stored);
         const count = Object.values(parsed).filter((c: any) => c.optedOut === true).length;
@@ -441,7 +441,7 @@ function SettingsInner() {
   // Load custom simulated niche fields from localstorage
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(`autoflow_custom_settings_${niche.id}`);
+      const stored = localStorage.getItem(`ittisalo_custom_settings_${niche.id}`);
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed.menuLink) setMenuLink(parsed.menuLink);
@@ -1408,7 +1408,7 @@ function SettingsInner() {
                   <Field label="Consumer Key" value={wcKey} onChange={setWcKey} type="password" hint="From WooCommerce → Settings → Advanced → REST API → Add Key" />
                   <Field label="Consumer Secret" value={wcSecret} onChange={setWcSecret} type="password" />
                   <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '12px 14px', fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>
-                    <strong>How to get your keys:</strong> WordPress Admin → WooCommerce → Settings → Advanced → REST API → Add Key → Description: &quot;AutoFlow&quot;, Permissions: Read/Write → Generate API Key.
+                    <strong>How to get your keys:</strong> WordPress Admin → WooCommerce → Settings → Advanced → REST API → Add Key → Description: &quot;Ittisalo&quot;, Permissions: Read/Write → Generate API Key.
                   </div>
                 </div>
               )}
@@ -1444,7 +1444,7 @@ function SettingsInner() {
                     '🔍 Look up order status when a customer asks "where is my order?"',
                     '📦 Check live product inventory when asked about availability or sizes',
                     '🛒 Create new orders in your store when a customer confirms a purchase via chat',
-                    '🏷️ Tag every WhatsApp-driven order as "source: autoflow_whatsapp" in your store',
+                    '🏷️ Tag every WhatsApp-driven order as "source: ittisalo_whatsapp" in your store',
                   ].map((item, i) => (
                     <div key={i} style={{ fontSize: 12.5, color: '#374151' }}>{item}</div>
                   ))}

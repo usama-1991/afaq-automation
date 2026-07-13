@@ -102,7 +102,7 @@ function WhatsAppPreview({
 
       {!body && !header && buttons.length === 0 && (
         <p style={{ fontSize: 11, color: '#aaa', textAlign: 'center', marginTop: 8, position: 'relative', zIndex: 1 }}>
-          Powered by AutoFlow AI
+          Powered by Ittisalo
         </p>
       )}
     </div>
@@ -340,7 +340,7 @@ export default function CreateTemplatePage() {
               <input
                 value={footer}
                 onChange={e => setFooter(e.target.value)}
-                placeholder="e.g. Powered by AutoFlow AI"
+                placeholder="e.g. Powered by Ittisalo"
                 style={inputStyle}
                 onFocus={e => { e.currentTarget.style.borderColor = '#dc2626'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(220,38,38,0.08)'; }}
                 onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}

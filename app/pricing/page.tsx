@@ -10,7 +10,7 @@ export default function PricingPage() {
 
   const handleUpgrade = (planName: string) => {
     // Instead of a payment gateway, we use WhatsApp for early access
-    const msg = `Hi! I want to upgrade my AutoFlow AI workspace (${tenantInfo?.business_name || 'My Business'}) to the ${planName} plan.`;
+    const msg = `Hi! I want to upgrade my Ittisalo workspace (${tenantInfo?.business_name || 'My Business'}) to the ${planName} plan.`;
     window.open(`https://wa.me/923000000000?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
