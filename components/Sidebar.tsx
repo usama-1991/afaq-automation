@@ -111,7 +111,7 @@ export default function Sidebar() {
           width: 64, height: 98, display: 'flex', alignItems: 'center', justifyContent: 'center',
           borderBottom: '1px solid rgba(220,38,38,0.07)', flexShrink: 0,
         }}>
-          <img src="/ittisalo-logo.png" alt="Ittisalo" style={{
+          <img src="/ittisalo-logo.svg" alt="Ittisalo" style={{
             width: 34, height: 34, borderRadius: 10,
             boxShadow: '0 4px 12px rgba(220,38,38,0.35)',
           }} />
@@ -223,7 +223,7 @@ export default function Sidebar() {
             {/* Logo + close */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <img src="/ittisalo-logo.png" alt="Ittisalo" style={{
+                <img src="/ittisalo-logo.svg" alt="Ittisalo" style={{
                   width: 34, height: 34, borderRadius: 10,
                 }} />
                 <span style={{ fontWeight: 700, fontSize: 16, color: '#111827' }}>Ittisalo</span>

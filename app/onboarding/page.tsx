@@ -146,7 +146,7 @@ export default function OnboardingPage() {
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 16 }}>
-            <img src="/ittisalo-logo.png" alt="Ittisalo" style={{ width: 40, height: 40, borderRadius: 11 }} />
+            <img src="/ittisalo-logo.svg" alt="Ittisalo" style={{ width: 40, height: 40, borderRadius: 11 }} />
             <span style={{ fontSize: 20, fontWeight: 700, color: '#111827', letterSpacing: '-0.4px' }}>Ittisalo</span>
           </div>
           {step === 1 ? (
