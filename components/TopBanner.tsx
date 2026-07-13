@@ -3,12 +3,16 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles, X } from 'lucide-react';
+import { usePlan } from '@/context/PlanContext';
 
-export default function TopBanner() {
-  const [visible, setVisible] = useState(true);
+export default function TopBanner({ onClose }: { onClose: () => void }) {
   const router = useRouter();
+  const { trialDaysLeft, tenantInfo } = usePlan();
   
-  if (!visible) return null;
+  const trialEndsDate = tenantInfo?.trial_ends_at 
+    ? new Date(tenantInfo.trial_ends_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : '';
+
   return (
     <div style={{
       background: 'linear-gradient(90deg, #b91c1c 0%, #dc2626 50%, #ef4444 100%)',
@@ -29,11 +33,11 @@ export default function TopBanner() {
         <Sparkles size={13} fill="#fbbf24" color="#fbbf24" style={{ flexShrink: 0 }} />
         {/* Full text on desktop */}
         <span className="banner-trial-text" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          Your Growth Plan trial ends in <strong>7 days</strong> on Jun 3, 2026. Experience the future of Omni-channel AI.
+          Your Free Trial ends in <strong>{trialDaysLeft ?? 0} days</strong>{trialEndsDate ? ` on ${trialEndsDate}` : ''}. Experience the future of Omni-channel AI.
         </span>
         {/* Short text on mobile */}
         <span className="banner-trial-text-short" style={{ fontSize: 11.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          Trial ends in <strong>7 days</strong>
+          Trial ends in <strong>{trialDaysLeft ?? 0} days</strong>
         </span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -56,7 +60,7 @@ export default function TopBanner() {
         >
           Upgrade
         </button>
-        <button onClick={() => setVisible(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', opacity: 0.7, flexShrink: 0 }}>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', opacity: 0.7, flexShrink: 0 }}>
           <X size={14} color="#fff" />
         </button>
       </div>

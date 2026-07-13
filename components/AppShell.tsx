@@ -45,6 +45,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [userEmail, setUserEmail] = useState('usamahabib1991@gmail.com');
   const [userName, setUserName] = useState('Usama Habib');
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [bannerVisible, setBannerVisible] = useState(true);
 
   const isOnboarding = pathname === '/onboarding';
   const isLogin = pathname === '/login';
@@ -222,9 +223,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const initials = userName.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase() || 'U';
 
+  const isTrial = tenantInfo?.plan === 'trial';
+  const showBanner = planLoaded && isTrial && bannerVisible;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <TopBanner />
+      {showBanner && <TopBanner onClose={() => setBannerVisible(false)} />}
       {planLoaded && tenantInfo && tenantInfo.plan_status !== 'active' && !isAdminRoute && (
         <div style={{ background: '#fef2f2', borderBottom: '1px solid #fecaca', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
           <AlertCircle size={16} color="#dc2626" />
@@ -241,8 +245,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <header style={{
             height: 60, background: '#fff', borderBottom: '1px solid rgba(220,38,38,0.08)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '0 16px', position: 'sticky', top: 38, zIndex: 40,
+            padding: '0 16px', position: 'sticky', top: showBanner ? 38 : 0, zIndex: 40,
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            transition: 'top 0.2s ease',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {/* Mobile logo */}

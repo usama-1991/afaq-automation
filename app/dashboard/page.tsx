@@ -388,6 +388,39 @@ export default function DashboardPage() {
 
       const { data: convs } = await supabase.from('conversations').select('id, platform, customer_name, status, created_at');
       const { data: msgs } = await supabase.from('messages').select('id, sender_type, created_at, conversation_id');
+      const { data: dbOrders } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+
+      if (dbOrders) {
+        // Ecommerce Kanban Pipeline
+        const ecoOrders = dbOrders.filter((o: any) => o.niche === 'ecommerce');
+        setEcoPipeline(ecoOrders.map((o: any) => ({
+          id: o.id,
+          name: o.customer_name || o.customer_phone,
+          item: Array.isArray(o.items) ? o.items.map((i:any) => i.name).join(', ') : 'Order items',
+          status: o.status
+        })));
+
+        // Exchanges (where issue_type === 'exchange')
+        const exchangeReqs = dbOrders.filter((o: any) => o.issue_type === 'exchange');
+        setExchanges(exchangeReqs);
+
+        // Restaurant
+        const restOrders = dbOrders.filter((o: any) => o.niche === 'restaurant' && o.status !== 'delivered');
+        setRestaurantOrders(restOrders.map((o: any) => ({
+          id: o.id,
+          name: o.customer_name || o.customer_phone,
+          items: Array.isArray(o.items) ? o.items.map((i:any) => i.name).join(', ') : 'Items',
+          status: o.status,
+          area: o.delivery_address || 'Unknown Area',
+          time: new Date(o.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+        })));
+        
+        // Restaurant issues
+        const restIssues = dbOrders.filter((o: any) => o.niche === 'restaurant' && o.issue_type);
+        const issueCounts: Record<string, number> = {};
+        restIssues.forEach((o: any) => { issueCounts[o.issue_type] = (issueCounts[o.issue_type] || 0) + 1; });
+        setRestaurantIssues(Object.entries(issueCounts).map(([type, count]) => ({ type, count })));
+      }
 
       if (convs && msgs) {
         const agentMsgs = msgs.filter((m: any) => m.sender_type === 'agent');
@@ -596,8 +629,9 @@ export default function DashboardPage() {
                       <div style={{ display: 'flex', gap: 6 }}>
                         {order.status === 'pending' && (
                           <button
-                            onClick={() => {
-                              setRestaurantOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'confirmed' } : o));
+                            onClick={async () => {
+                              await supabase.from('orders').update({ status: 'confirmed' }).eq('id', order.id);
+                              // Realtime subscription will fetch changes
                             }}
                             style={{ padding: '6px 12px', background: GREEN, color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                           >
@@ -606,8 +640,8 @@ export default function DashboardPage() {
                         )}
                         {order.status === 'confirmed' && (
                           <button
-                            onClick={() => {
-                              setRestaurantOrders(prev => prev.filter(o => o.id !== order.id));
+                            onClick={async () => {
+                              await supabase.from('orders').update({ status: 'delivered' }).eq('id', order.id);
                             }}
                             style={{ padding: '6px 12px', background: BLUE, color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                           >
@@ -735,8 +769,8 @@ export default function DashboardPage() {
                           <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{order.name}</div>
                           <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 3 }}>{order.item}</div>
                           <button
-                            onClick={() => {
-                              setEcoPipeline(prev => prev.map(o => o.id === order.id ? { ...o, status: 'confirmed' } : o));
+                            onClick={async () => {
+                              await supabase.from('orders').update({ status: 'confirmed' }).eq('id', order.id);
                             }}
                             style={{ width: '100%', marginTop: 8, padding: '4px 0', border: 'none', background: RED, color: '#fff', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
                           >
@@ -756,8 +790,8 @@ export default function DashboardPage() {
                           <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{order.name}</div>
                           <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 3 }}>{order.item}</div>
                           <button
-                            onClick={() => {
-                              setEcoPipeline(prev => prev.map(o => o.id === order.id ? { ...o, status: 'dispatched' } : o));
+                            onClick={async () => {
+                              await supabase.from('orders').update({ status: 'dispatched' }).eq('id', order.id);
                             }}
                             style={{ width: '100%', marginTop: 8, padding: '4px 0', border: 'none', background: BLUE, color: '#fff', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
                           >
@@ -777,8 +811,8 @@ export default function DashboardPage() {
                           <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{order.name}</div>
                           <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 3 }}>{order.item}</div>
                           <button
-                            onClick={() => {
-                              setEcoPipeline(prev => prev.filter(o => o.id !== order.id));
+                            onClick={async () => {
+                              await supabase.from('orders').update({ status: 'delivered' }).eq('id', order.id);
                             }}
                             style={{ width: '100%', marginTop: 8, padding: '4px 0', border: 'none', background: '#e5e7eb', color: '#4b5563', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
                           >
