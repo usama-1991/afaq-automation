@@ -15,7 +15,7 @@
 |---------|-------|
 | **Product Name** | Ittisalo (means "connection" in Arabic) |
 | **Logo Mark** | Stylized "I" integrated with a chat bubble, crimson red gradient icon |
-| **Logo File** | `/public/ittisalo-logo.svg` |
+| **Logo File** | `/public/ittisalo-logo.png` |
 | **Logo Size** | 34×34px (sidebar), 40×40px (onboarding), 44×44px (loading) |
 | **Logo Radius** | 10–13px border-radius |
 | **Tagline** | "AI-Powered WhatsApp Business Dashboard" |

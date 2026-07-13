@@ -66,7 +66,7 @@ function LoginForm() {
       <div className="hidden lg:flex w-full max-w-md xl:max-w-lg bg-red-800 text-white flex-col justify-between p-12">
         <div>
           <div className="flex items-center gap-3 mb-16">
-            <img src="/ittisalo-logo.svg" alt="Ittisalo" className="w-10 h-10 rounded-lg" />
+            <img src="/ittisalo-logo.png" alt="Ittisalo" className="w-10 h-10 rounded-lg mix-blend-multiply" />
             <span className="text-xl font-bold tracking-tight">Ittisalo</span>
           </div>
 
