@@ -128,7 +128,7 @@ export default function OrdersPage() {
     let csvData: string[][] = [];
 
     if (tableName === 'orders') {
-      headers = ['Order ID', 'Date', 'Customer Name', 'Phone', 'Amount (PKR)', 'Status', 'Order Type', 'Delivery Address', 'Items'];
+      headers = ['Order ID', 'Date', 'Customer Name', 'Phone', 'Amount (PKR)', 'Status', 'Order Type', 'Delivery Address', 'Payment Method', 'Items'];
       csvData = filtered.map(item => [
         item.id,
         new Date(item.created_at).toLocaleString(),
@@ -138,6 +138,7 @@ export default function OrdersPage() {
         item.status || 'pending',
         item.order_type || 'N/A',
         `"${(item.delivery_address || '').replace(/"/g, '""')}"`,
+        `"${(item.payment_method || '').replace(/"/g, '""')}"`,
         `"${(Array.isArray(item.items) ? item.items.map((i:any) => `${i.qty||1}x ${i.name||i.title||'Item'}`).join(', ') : '')}"`
       ]);
     } else if (tableName === 'appointments') {
@@ -500,6 +501,18 @@ export default function OrdersPage() {
                       </div>
                       <p style={{ fontSize: 13.5, color: '#374151', lineHeight: 1.6, margin: 0 }}>
                         {selectedRecord.delivery_address}
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedRecord.payment_method && (
+                    <div style={{ background: '#fff', borderRadius: 14, padding: 20, border: '1px solid #e5e7eb', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                        <DollarSign size={16} color="#dc2626" />
+                        <h3 style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>Payment Method</h3>
+                      </div>
+                      <p style={{ fontSize: 13.5, color: '#374151', lineHeight: 1.6, margin: 0, fontWeight: 600 }}>
+                        {selectedRecord.payment_method}
                       </p>
                     </div>
                   )}
