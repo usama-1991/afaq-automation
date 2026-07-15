@@ -185,6 +185,11 @@ async function dispatchOutboundMessage(message) {
   } else if (conv.platform === 'messenger' || conv.platform === 'instagram') {
     let metaResponse;
 
+    // FIX: Messenger & Instagram Send API uses /me/messages, NOT /{page_id}/messages
+    // The access_token determines which page/IG account is the sender
+    const sendUrl = `https://graph.facebook.com/v19.0/me/messages?access_token=${accessToken}`;
+    fastify.log.info(`[${conv.platform}] Using Send API: /me/messages, recipient: ${customerPhone}`);
+
     if (mediaInfo) {
       fastify.log.info(`[${conv.platform}] Outbound media: ${mediaInfo.fileName}`);
       const typeMap = {
@@ -224,7 +229,7 @@ async function dispatchOutboundMessage(message) {
         fastify.log.info(`[${conv.platform}] Uploaded. ID: ${attachmentId}`);
 
         // Send the message using attachment_id
-        metaResponse = await fetch(`https://graph.facebook.com/v19.0/${externalPhoneId}/messages?access_token=${accessToken}`, {
+        metaResponse = await fetch(sendUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -239,7 +244,7 @@ async function dispatchOutboundMessage(message) {
         });
       } else {
         // Hosted URL payload
-        metaResponse = await fetch(`https://graph.facebook.com/v19.0/${externalPhoneId}/messages?access_token=${accessToken}`, {
+        metaResponse = await fetch(sendUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -255,7 +260,8 @@ async function dispatchOutboundMessage(message) {
       }
     } else {
       // Regular text
-      metaResponse = await fetch(`https://graph.facebook.com/v19.0/${externalPhoneId}/messages?access_token=${accessToken}`, {
+      fastify.log.info(`[${conv.platform}] Sending text reply to ${customerPhone}: "${message.content.substring(0, 80)}..."`);
+      metaResponse = await fetch(sendUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

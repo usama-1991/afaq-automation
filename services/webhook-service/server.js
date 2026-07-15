@@ -519,29 +519,46 @@ fastify.post('/webhook', async (request, reply) => {
                     fastify.log.info(`[messenger] Name from payload: ${customerName}`);
                   }
 
-                  // Strategy 2: Page Conversations API — lists thread participants by name
+                  // Strategy 2: Use the User Profile API with PSID
+                  // This requires pages_messaging permission (Advanced Access)
                   else if (token) {
-                    const convRes = await fetch(
-                      `https://graph.facebook.com/v19.0/${pageId}/conversations?user_id=${customerPsid}&fields=participants&access_token=${token}`
-                    );
-                    const convData = await convRes.json();
-                    const participants = convData?.data?.[0]?.participants?.data || [];
-                    fastify.log.info(`[messenger] Conversations API participants: ${JSON.stringify(participants)}`);
-                    const user = participants.find(p => p.id !== pageId);
-                    if (user?.name && user.name !== 'Facebook User') {
-                      customerName = user.name;
-                      fastify.log.info(`[messenger] Name from Conversations API: ${customerName}`);
-                    }
-
-                    // Strategy 3: Try fetching via messaging profile
-                    if (customerName === 'Messenger User') {
+                    try {
                       const profileRes = await fetch(
-                        `https://graph.facebook.com/v19.0/${customerPsid}?fields=name,first_name,last_name&access_token=${token}`
+                        `https://graph.facebook.com/v21.0/${customerPsid}?fields=name,first_name,last_name&access_token=${token}`
                       );
                       const profileData = await profileRes.json();
                       fastify.log.info(`[messenger] Profile API response: ${JSON.stringify(profileData)}`);
-                      if (profileData.name) customerName = profileData.name;
-                      else if (profileData.first_name) customerName = `${profileData.first_name} ${profileData.last_name || ''}`.trim();
+                      if (profileData.name) {
+                        customerName = profileData.name;
+                        fastify.log.info(`[messenger] Name from Profile API: ${customerName}`);
+                      } else if (profileData.first_name) {
+                        customerName = `${profileData.first_name} ${profileData.last_name || ''}`.trim();
+                        fastify.log.info(`[messenger] Name from Profile API (first+last): ${customerName}`);
+                      } else if (profileData.error) {
+                        fastify.log.warn(`[messenger] Profile API error: ${profileData.error.message}. ` +
+                          `Ensure your app has pages_messaging permission with Advanced Access.`);
+                      }
+                    } catch (profileErr) {
+                      fastify.log.warn(`[messenger] Profile API request failed: ${profileErr.message}`);
+                    }
+
+                    // Strategy 3: Conversations API as fallback
+                    if (customerName === 'Messenger User') {
+                      try {
+                        const convRes = await fetch(
+                          `https://graph.facebook.com/v21.0/${pageId}/conversations?user_id=${customerPsid}&fields=participants&access_token=${token}`
+                        );
+                        const convData = await convRes.json();
+                        const participants = convData?.data?.[0]?.participants?.data || [];
+                        fastify.log.info(`[messenger] Conversations API participants: ${JSON.stringify(participants)}`);
+                        const user = participants.find(p => p.id !== pageId);
+                        if (user?.name && user.name !== 'Facebook User') {
+                          customerName = user.name;
+                          fastify.log.info(`[messenger] Name from Conversations API: ${customerName}`);
+                        }
+                      } catch (convErr) {
+                        fastify.log.warn(`[messenger] Conversations API failed: ${convErr.message}`);
+                      }
                     }
                   }
                 } catch (e) {
@@ -573,12 +590,42 @@ fastify.post('/webhook', async (request, reply) => {
                   } else {
                     const token = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.MESSENGER_ACCESS_TOKEN;
                     if (token) {
-                      const nameRes = await fetch(`https://graph.facebook.com/v19.0/${senderIgsid}?fields=name,username&access_token=${token}`);
-                      const nameData = await nameRes.json();
-                      fastify.log.info(`[instagram] Name API response for ${senderIgsid}: ${JSON.stringify(nameData)}`);
-                      if (nameData.name) customerName = nameData.name;
-                      else if (nameData.username) customerName = `@${nameData.username}`;
-                      else fastify.log.warn(`[instagram] Name unavailable for IGSID ${senderIgsid} — API returned: ${JSON.stringify(nameData)}`);
+                      // Strategy 1: Try IG Conversations API to get participant name
+                      try {
+                        const convRes = await fetch(
+                          `https://graph.facebook.com/v21.0/${igAccountId}/conversations?user_id=${senderIgsid}&fields=participants&platform=instagram&access_token=${token}`
+                        );
+                        const convData = await convRes.json();
+                        fastify.log.info(`[instagram] Conversations API response for ${senderIgsid}: ${JSON.stringify(convData)}`);
+                        const participants = convData?.data?.[0]?.participants?.data || [];
+                        const user = participants.find(p => p.id !== igAccountId);
+                        if (user?.name && user.name !== 'Instagram User') {
+                          customerName = user.name;
+                          fastify.log.info(`[instagram] Name from Conversations API: ${customerName}`);
+                        } else if (user?.username) {
+                          customerName = `@${user.username}`;
+                          fastify.log.info(`[instagram] Username from Conversations API: ${customerName}`);
+                        }
+                      } catch (convErr) {
+                        fastify.log.warn(`[instagram] Conversations API failed: ${convErr.message}`);
+                      }
+
+                      // Strategy 2: Try direct IGSID lookup (may work with instagram_manage_messages)
+                      if (customerName === 'Instagram User') {
+                        try {
+                          const nameRes = await fetch(`https://graph.facebook.com/v21.0/${senderIgsid}?fields=name,username&access_token=${token}`);
+                          const nameData = await nameRes.json();
+                          fastify.log.info(`[instagram] Direct IGSID API response for ${senderIgsid}: ${JSON.stringify(nameData)}`);
+                          if (nameData.name) customerName = nameData.name;
+                          else if (nameData.username) customerName = `@${nameData.username}`;
+                          else if (nameData.error) {
+                            fastify.log.warn(`[instagram] IGSID API error: ${nameData.error.message}. ` +
+                              `Ensure your app has instagram_manage_messages permission.`);
+                          }
+                        } catch (nameErr) {
+                          fastify.log.warn(`[instagram] Direct IGSID lookup failed: ${nameErr.message}`);
+                        }
+                      }
                     }
                   }
                 } catch (e) {

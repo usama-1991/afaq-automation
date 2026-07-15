@@ -6,7 +6,8 @@ import { useNiche } from '@/context/NicheContext';
 import { 
   Search, Loader2, Download, Filter, FileSpreadsheet, X,
   ShoppingBag, Calendar, Home, UtensilsCrossed, Check,
-  Phone, Clock, CheckCircle2, Truck, XCircle, MoreVertical, MapPin, DollarSign, Activity
+  Phone, Clock, CheckCircle2, Truck, XCircle, MoreVertical, MapPin, DollarSign, Activity,
+  ExternalLink, Mail, Store
 } from 'lucide-react';
 
 export default function OrdersPage() {
@@ -467,9 +468,17 @@ export default function OrdersPage() {
               {tableName === 'orders' && (
                 <>
                   <div style={{ background: '#fff', borderRadius: 14, padding: 20, border: '1px solid #e5e7eb', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                      <ShoppingBag size={16} color="#dc2626" />
-                      <h3 style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>Order Summary</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <ShoppingBag size={16} color="#dc2626" />
+                        <h3 style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>Order Summary</h3>
+                      </div>
+                      {selectedRecord.platform_order_number && (
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Store size={11} />
+                          {selectedRecord.platform_order_number}
+                        </span>
+                      )}
                     </div>
                     
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px dashed #e5e7eb', marginBottom: 16 }}>
@@ -514,6 +523,38 @@ export default function OrdersPage() {
                       <p style={{ fontSize: 13.5, color: '#374151', lineHeight: 1.6, margin: 0, fontWeight: 600 }}>
                         {selectedRecord.payment_method}
                       </p>
+                    </div>
+                  )}
+
+                  {/* Platform Sync & Email Status */}
+                  {(selectedRecord.platform_order_number || selectedRecord.email_sent_at) && (
+                    <div style={{ background: '#fff', borderRadius: 14, padding: 20, border: '1px solid #e5e7eb', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                        <Activity size={16} color="#dc2626" />
+                        <h3 style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>Sync Status</h3>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {selectedRecord.platform_order_number && (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: 13, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <ExternalLink size={13} /> Platform Order
+                            </span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: '#1d4ed8' }}>
+                              {selectedRecord.platform_order_number} ({selectedRecord.platform_source || 'unknown'})
+                            </span>
+                          </div>
+                        )}
+                        {selectedRecord.email_sent_at && (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: 13, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <Mail size={13} /> Email Confirmation
+                            </span>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: '#16a34a' }}>
+                              Sent {new Date(selectedRecord.email_sent_at).toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </>

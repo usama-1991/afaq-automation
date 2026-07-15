@@ -1,0 +1,1334 @@
+{
+  "name": "Ittisalo master workflow optimised and updated",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "1bfe3f3d-f090-4ae0-bebe-f3dbf00479bf",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -976,
+        304
+      ],
+      "id": "1d8dc325-3167-46ba-ba20-bb2041cc159d",
+      "name": "Webhook",
+      "webhookId": "1bfe3f3d-f090-4ae0-bebe-f3dbf00479bf",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "SatEjLiLTAxdVqtR",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f0996e75-f231-4d7c-b1c2-4614d8098d12",
+              "leftValue": "={{ $json.needs_human_handoff }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        944,
+        48
+      ],
+      "id": "03e7601b-3d0c-4ea1-b444-98e70308aec8",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "let inputData = $input.first().json;\n\n// Check if the actual data is nested under a 'body' object (which happens if headers are included)\nlet body = inputData.body ? inputData.body : inputData;\n\nif (!body.tenant_id || !body.message_text) {\n  throw new Error('Invalid payload: Missing tenant_id or message_text');\n}\n\n// TOKEN OPTIMIZATION 1: Limit conversation history to last 10 messages\nconst recentHistory = (body.conversation_history || []).slice(-10);\n\n// TOKEN OPTIMIZATION 2: Limit KB size to prevent massive token usage\nconst trimmedKb = (body.knowledge_base || []).map(k => {\n  return `[${(k.kb_type || 'KB').toUpperCase()}] ${k.title}:\\n${k.content.substring(0, 1000)}`;\n});\n\nreturn [{\n  json: {\n    ...body,\n    niche: body.niche || 'general',\n    conversation_history_text: recentHistory\n      .map(m => `${m.sender_type === 'customer' ? 'Customer' : 'Agent'}: ${m.content}`)\n      .join('\\n'),\n    knowledge_base_text: trimmedKb.join('\\n\\n'),\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -720,
+        304
+      ],
+      "id": "4967b0b8-d059-4612-ae36-0b1401c33c26",
+      "name": "Code Node — Validate + Unpack"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.niche }}",
+                    "rightValue": "ecommerce",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "cc0ead36-4db5-4e65-95a4-10348f7a0783"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "68eaa922-9c07-4edb-a22b-43dd3a65f477",
+                    "leftValue": "={{ $json.niche }}",
+                    "rightValue": "restaurant ",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "bdd7236f-d6db-4aa7-a9ea-ccfe361f97dd",
+                    "leftValue": "={{ $json.niche }}",
+                    "rightValue": "dental",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "3b9ba6dc-cea3-4aa7-91b8-2795a4fe7c2a",
+                    "leftValue": "={{ $json.niche }}",
+                    "rightValue": "realestate",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "4ddf2157-ddd4-4ea0-a928-ddc1d5c178bd",
+                    "leftValue": "={{ $json.niche }}",
+                    "rightValue": "salon",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "992e7be2-2ce3-4726-b610-1d892f8d753e",
+                    "leftValue": "={{ $json.niche }}",
+                    "rightValue": "clinic",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -512,
+        368
+      ],
+      "id": "d58daf2e-42a1-48cc-bf6d-6358907d5d8e",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "jsCode": "const wooOrders = $input.all().map(item => item.json).filter(o => o && o.id);\nconst base = $('Code Node — Validate + Unpack').first().json;\n\nlet liveContext = 'No previous orders found for this customer.';\nif (wooOrders.length > 0) {\n  liveContext = \"Customer's recent WooCommerce orders:\\n\" +\n    wooOrders.slice(0, 3).map(o =>\n      `Order #${o.id}: ${o.status.toUpperCase()} | ` +\n      `Items: ${(o.line_items || []).map(i => i.name).join(', ')} | ` +\n      `Total: PKR ${o.total}`\n    ).join('\\n');\n}\n\nreturn [{ json: { ...base, live_data_context: liveContext } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "28921b90-0557-461c-a6b4-0a2172426a58",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "jsCode": "const todayOrders = $input.first().json || [];\nconst base = $('Code Node — Validate + Unpack').first().json;\n\nconst liveContext = todayOrders.length > 0\n  ? `Active orders today: ${todayOrders.length}\\n` +\n    todayOrders.map(o =>\n      `• ${o.customer_name}: ${JSON.stringify(o.items)} — Status: ${o.status}`\n    ).join('\\n')\n  : 'No active orders right now.';\n\nreturn [{ json: { ...base, live_data_context: liveContext } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        160
+      ],
+      "id": "b3380b63-f337-4f64-bf49-c4ea65da41e9",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const booked = $input.first().json || [];\nconst base = $('Code Node — Validate + Unpack').first().json;\n\n// Generate available slots for next 5 working days (9am–5pm, hourly)\nconst available = [];\nfor (let d = 1; d <= 7 && available.length < 8; d++) {\n  const date = new Date();\n  date.setDate(date.getDate() + d);\n  if ([0, 6].includes(date.getDay())) continue; // skip weekends\n\n  for (let h = 9; h <= 16; h++) {\n    const dateStr = date.toISOString().split('T')[0];\n    const timeStr = `${String(h).padStart(2, '0')}:00:00`;\n\n    // Check if this slot is already taken\n    const isTaken = (Array.isArray(booked) ? booked : []).some(\n      b => b.appointment_date === dateStr && b.appointment_time?.startsWith(String(h).padStart(2, '0'))\n    );\n\n    if (!isTaken) {\n      available.push(\n        date.toLocaleDateString('en-PK', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'Asia/Karachi' }) +\n        ` at ${h > 12 ? h - 12 : h}${h >= 12 ? 'pm' : 'am'}`\n      );\n    }\n  }\n}\n\nconst liveContext = available.length > 0\n  ? `Available appointment slots:\\n${available.slice(0, 6).join('\\n')}`\n  : 'No available slots found. Please call us to schedule.';\n\nreturn [{ json: { ...base, live_data_context: liveContext } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        304
+      ],
+      "id": "d3cc5de1-f744-4c62-9b69-13625dedf096",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const listings = $input.first().json || [];\nconst base = $('Code — Validate + Unpack').first().json;\n\nconst liveContext = listings.length > 0\n  ? `Available properties:\\n` + listings.map(l =>\n      `• ${l.title} — PKR ${Number(l.price).toLocaleString()} | ${l.bedrooms} Bed | ${l.area} | ${l.type}`\n    ).join('\\n')\n  : 'No listings available right now. Ask for requirements to search further.';\n\nreturn [{ json: { ...base, live_data_context: liveContext } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        592
+      ],
+      "id": "6726a4fe-801b-4e9b-b43b-1001ad673ec9",
+      "name": "Code in JavaScript6"
+    },
+    {
+      "parameters": {
+        "url": "https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/orders",
+        "sendQuery": true,
+        "specifyQuery": "json",
+        "jsonQuery": "{\n  \"tenant_id\": \"eq.{{ $json.tenant_id }}\",\n  \"customer_phone\": \"eq.{{ $json.customer_phone }}\",\n  \"select\": \"id,status,items,amount,created_at\",\n  \"order\": \"created_at.desc\",\n  \"limit\": \"3\"\n}",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"apikey\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g\",\n  \"Authorization\": \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -160,
+        16
+      ],
+      "id": "f402ebcb-6fb7-4667-9489-35fcbce06acc",
+      "name": "Ecommerce HTTP",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/orders",
+        "sendQuery": true,
+        "specifyQuery": "json",
+        "jsonQuery": "={\n  \"tenant_id\": \"eq.{{ $json.tenant_id }}\",\n  \"niche\": \"eq.restaurant\",\n  \"created_at\": \"gte.{{ new Date().toISOString().split('T')[0] }}\",\n  \"status\": \"neq.delivered\",\n  \"select\": \"id,customer_name,items,status,order_type,created_at\"\n}\n",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"apikey\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g\",\n  \"Authorization\": \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -144,
+        176
+      ],
+      "id": "623315b3-36c7-4ff1-b301-6a16c005b99f",
+      "name": "Restaurant HTTP",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/listings",
+        "sendQuery": true,
+        "specifyQuery": "json",
+        "jsonQuery": "={\n  \"tenant_id\": \"=eq.{{ $json.tenant_id }}\",\n  \"status\": \"eq.available\",\n  \"select\": \"title,area,type,bedrooms,price,description\",\n  \"limit\": 5\n}",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"apikey\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g\",\n  \"Authorization\": \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -176,
+        544
+      ],
+      "id": "e546df82-4950-41db-a857-1508799e038e",
+      "name": "RealEstate Http",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/appointments",
+        "sendQuery": true,
+        "specifyQuery": "json",
+        "jsonQuery": "={\n  \"tenant_id\": \"eq.{{ $json.tenant_id }}\",\n  \"appointment_date\": \"gte.{{ new Date().toISOString().split('T')[0] }}\",\n  \"status\": \"neq.cancelled\",\n  \"select\": \"appointment_date,appointment_time,service_type,status\",\n  \"order\": \"appointment_date.asc\",\n  \"limit\": \"20\"\n}\n",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"apikey\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g\",\n  \"Authorization\": \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -176,
+        352
+      ],
+      "id": "9b0238d6-76a4-4c88-9964-33fa742424b8",
+      "name": "Dental/Salon/Clinic HTTP",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $('Code Node — Validate + Unpack').first().json;\nreturn [{ json: { ...base, live_data_context: '' } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        48,
+        432
+      ],
+      "id": "bd506d76-f484-42ea-8914-1b01f3cea12a",
+      "name": "Code in JavaScript4"
+    },
+    {
+      "parameters": {
+        "numberInputs": 5
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        400,
+        64
+      ],
+      "id": "b565318c-a154-41ba-9c3b-ff1b7a44cc2d",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst msg = data.message_text.toLowerCase();\nconst niche = data.niche;\n\n// Intent maps per niche\nconst intentMap = {\n  ecommerce: [\n    { intent: 'product_inquiry',    funnel: 'product_intent_detected',\n      keys: ['price','cost','available','size','color','hai kya','kitna','show','catalog','fabric'] },\n    { intent: 'address_provided',   funnel: 'checkout_initiated',\n      keys: ['address','street','phase','block','dha','clifton','gulshan','deliver to','ghar'] },\n    { intent: 'order_confirmed',    funnel: 'order_confirmed',\n      keys: ['confirm','book karo','place order','proceed','haan','yes confirm','ok confirm'] },\n    { intent: 'complaint',          funnel: 'refund_requested',\n      keys: ['wrong','missing','damaged','return','refund','exchange','wapas','galat','nahi aaya'] },\n    { intent: 'cod_request',        funnel: null,\n      keys: ['cod','cash on delivery','cash pay','easypaisa','jazzcash'] },\n  ],\n  restaurant: [\n    { intent: 'order_placement',    funnel: 'checkout_initiated',\n      keys: ['order','chahiye','lena hai','send karo','deliver','takeaway','parcel'] },\n    { intent: 'menu_inquiry',       funnel: 'product_intent_detected',\n      keys: ['menu','price','kya hai','available','special','items','show','list'] },\n    { intent: 'complaint',          funnel: null,\n      keys: ['late','wrong','cold','missing','thanda','galat','complaint'] },\n    { intent: 'order_confirmed',    funnel: 'order_confirmed',\n      keys: ['confirm','yes','haan','theek hai','ok order','place karo'] },\n  ],\n  dental: [\n    { intent: 'booking_intent',     funnel: 'booking_intent_detected',\n      keys: ['appointment','book','slot','available','scaling','whitening','filling','root canal','checkup','consult'] },\n    { intent: 'appointment_confirmed', funnel: 'appointment_confirmed',\n      keys: ['confirm','yes','haan','ok book','theek hai','book kar do'] },\n    { intent: 'reschedule',         funnel: null,\n      keys: ['reschedule','change','postpone','badal','shift','cancel'] },\n    { intent: 'clinical_query',     funnel: null,\n      keys: ['pain','bleeding','dard','swollen','symptoms','infection','takleef'] },\n  ],\n  salon: [\n    { intent: 'booking_intent',     funnel: 'booking_intent_detected',\n      keys: ['appointment','book','slot','hair','facial','nails','bridal','color','cut','bleach','threading','wax'] },\n    { intent: 'appointment_confirmed', funnel: 'appointment_confirmed',\n      keys: ['confirm','yes','haan','ok book','theek hai'] },\n    { intent: 'bridal_inquiry',     funnel: 'product_intent_detected',\n      keys: ['bridal','wedding','bride','shadi','barat','nikkah','package'] },\n  ],\n  clinic: [\n    { intent: 'booking_intent',     funnel: 'booking_intent_detected',\n      keys: ['doctor','appointment','opd','consultant','specialist','book'] },\n    { intent: 'appointment_confirmed', funnel: 'appointment_confirmed',\n      keys: ['confirm','yes','haan','ok'] },\n    { intent: 'clinical_query',     funnel: null,\n      keys: ['symptoms','fever','pain','dard','cough','report','test'] },\n  ],\n  realestate: [\n    { intent: 'property_inquiry',   funnel: 'product_intent_detected',\n      keys: ['flat','house','apartment','plot','villa','office','rent','buy','purchase','sale','dha','clifton','gulshan','bahria'] },\n    { intent: 'visit_request',      funnel: 'visit_requested',\n      keys: ['visit','see','view','site','dekhna','saturday','sunday','kal','this week'] },\n    { intent: 'requirement_provided', funnel: 'qualified',\n      keys: ['budget','crore','lakh','bedroom','bed','2 bed','3 bed','area'] },\n  ],\n};\n\nlet detectedIntent = 'general_inquiry';\nlet funnelStage = null;\nlet requiresHumanReview = false;\nlet isClinicalQuery = false;\n\nconst nicheIntents = intentMap[niche] || [];\nfor (const { intent, funnel, keys } of nicheIntents) {\n  if (keys.some(k => msg.includes(k))) {\n    detectedIntent = intent;\n    funnelStage = funnel;\n    if (intent === 'clinical_query') {\n      requiresHumanReview = true;\n      isClinicalQuery = true;\n    }\n    if (intent === 'complaint') requiresHumanReview = true;\n    break;\n  }\n}\n\n// Universal human handoff detection\nconst humanTriggers = [\n  'human', 'agent', 'real person', 'talk to someone',\n  'human agent', 'manager', 'representative', 'support team',\n  'koi banda', 'insaan se baat', 'banda chahiye'\n];\nconst needsHandoff = humanTriggers.some(t => msg.includes(t));\n\n\n\nreturn [{\n  json: {\n    ...data,\n    detected_intent: detectedIntent,\n    funnel_stage: funnelStage,\n    requires_human_review: requiresHumanReview,\n    is_clinical_query: isClinicalQuery,\n    needs_human_handoff: needsHandoff,\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        32
+      ],
+      "id": "0b8cecce-5c3d-486a-864f-e83777cbff40",
+      "name": "Intent Detection Code"
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst nicheInstructions = {\n  ecommerce:  'When taking an order, collect items and delivery address. If PREVIOUSLY EXTRACTED INFORMATION already contains the delivery address, DO NOT ask for it again. Confirm the order summary.',\n  restaurant: 'When taking food orders, collect items and delivery address. If PREVIOUSLY EXTRACTED INFORMATION contains them, DO NOT ask again. Confirm the order.',\n  dental:     'NEVER diagnose or prescribe. If date/time are in PREVIOUSLY EXTRACTED INFORMATION, do not ask again. Confirm appointment.',\n  salon:      'When booking, confirm service, stylist, date, and time. Skip asking for details already in PREVIOUSLY EXTRACTED INFORMATION.',\n  clinic:     'NEVER diagnose or prescribe. Skip asking for details already in PREVIOUSLY EXTRACTED INFORMATION.',\n  realestate: 'Always qualify: ask budget, area, bedrooms. If already in PREVIOUSLY EXTRACTED INFORMATION, do not ask again.',\n};\n\n// MEMORY FIX 1: Retrieve previously extracted info so AI remembers!\nconst extractedInfo = d.existing_context?.context_data?.extracted_info || {};\nconst previousInfoText = Object.keys(extractedInfo).length > 0 \n  ? JSON.stringify(extractedInfo, null, 2) \n  : 'None';\n\nconst systemPrompt = `You are ${d.agent_config.name}, an AI assistant for ${d.business_name}.\n\n=== YOUR ROLE ===\n${d.agent_config.prompt}\n\n=== LIVE BUSINESS DATA ===\n${d.live_data_context || 'No live data available.'}\n\n=== KNOWLEDGE BASE ===\n${d.knowledge_base_text || 'No knowledge base configured.'}\n\n=== PREVIOUSLY EXTRACTED INFORMATION (CRITICAL: DO NOT ASK FOR THESE AGAIN) ===\n${previousInfoText}\n\n=== CONVERSATION HISTORY ===\n${d.conversation_history_text || 'This is the start of the conversation.'}\n\n=== NICHE-SPECIFIC INSTRUCTIONS ===\n${nicheInstructions[d.niche] || 'Be helpful and professional.'}\n\n=== RESPONSE RULES ===\n- Reply in the same language the customer used (Urdu, Roman Urdu, or English)\n- Keep responses concise and under 100 words to save tokens.\n- Never make up information.\n- If asked for a human agent, reply: \"Zaroor! Main aapko abhi hamare team se connect kar raha hoon.\"\n- Today is: ${new Date().toLocaleString('en-PK', { timeZone: 'Asia/Karachi', dateStyle: 'full' })}`;\n\nreturn [{ json: { ...d, final_system_prompt: systemPrompt } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        16
+      ],
+      "id": "14be450e-e46f-442d-a704-769f99cf1593",
+      "name": "System Prompt Code"
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputJson = $input.first().json;\n\n// ── 1. Extract AI reply ──\nlet aiReply = '';\nif (typeof inputJson.output === 'string') {\n    aiReply = inputJson.output;\n} else if (Array.isArray(inputJson.output) && inputJson.output[0]?.content?.[0]?.text) {\n    aiReply = inputJson.output[0].content[0].text;\n} else if (Array.isArray(inputJson.output) && typeof inputJson.output[0]?.text === 'string') {\n    aiReply = inputJson.output[0].text;\n} else if (inputJson.output?.content?.[0]?.text) {\n    aiReply = inputJson.output.content[0].text;\n} else if (inputJson.output?.text) {\n    aiReply = inputJson.output.text;\n} else if (inputJson.choices?.[0]?.message?.content) {\n    aiReply = inputJson.choices[0].message.content;\n} else if (inputJson.message?.content) {\n    aiReply = inputJson.message.content;\n} else if (inputJson.text) {\n    aiReply = inputJson.text;\n} else if (inputJson.response?.text) {\n    aiReply = inputJson.response.text;\n} else {\n    aiReply = 'Maafi chahta hoon, main is waqt jawab nahi de sakta. Thodi der baad dobara try karein.';\n}\n\nconst d = $('System Prompt Code').first().json;\nconst niche = d.niche;\nconst msg = d.message_text || '';\nconst msgLower = msg.toLowerCase();\nconst intent = d.detected_intent;\nconst fullText = msg + ' ' + aiReply;\nconst fullLower = fullText.toLowerCase();\n\n// ── 2. Restore previous extracted info ──\nconst previousInfo = d.existing_context?.context_data?.extracted_info || {};\n\nlet createRecord = false;\nlet recordType = null;\nlet recordData = { ...previousInfo };\n\n// ═══════════════════════════════════════════════════════════════\n// ECOMMERCE / RESTAURANT\n// ═══════════════════════════════════════════════════════════════\nif (['ecommerce', 'restaurant'].includes(niche)) {\n  const orderTriggerIntents = ['order_placement', 'address_provided', 'order_confirmed', 'cod_request'];\n  const hasExistingOrder = Object.keys(previousInfo).length > 0 && previousInfo.items;\n  const shouldCreateOrder = orderTriggerIntents.includes(intent) ||\n                            (intent === 'product_inquiry' && hasExistingOrder);\n\n  if (shouldCreateOrder) {\n    createRecord = true;\n    recordType = 'order';\n\n    // ── Item extraction (handles English, Urdu, mixed, digit-prefixed product names) ──\n    let extractedItems = [];\n\n    // Helper: clean extracted name\n    const cleanName = s => s.trim().replace(/\\s+/g, ' ').replace(/^(i want|mujhe|muje|mjhe|chahiye|chahie|chaie|order|please|kindly)\\s+/gi, '').trim();\n\n    // Pattern A: \"5 packs of 50ml paper cups\" | \"3 pack of red shirts\"\n    const patA = /(\\d+)\\s*(?:pack|packs|piece|pieces|pcs|pc|item|items|x)\\s+(?:of\\s+)?([a-zA-Z0-9][a-zA-Z0-9\\s\\-\\.]{2,50}?)(?=\\s*(?:chaie|chahiye|chahie|order|deliver|pkr|rs|\\.|,|$|\\n))/gi;\n\n    // Pattern B: item name (can start with digit like \"50ml\") then qty\n    // \"50ml paper cups 5 packs\" | \"paper bags 3 pack\"\n    const patB = /([a-zA-Z0-9][a-zA-Z0-9\\s\\-\\.]{2,50}?)\\s+(\\d+)\\s*(?:pack|packs|piece|pieces|pcs|pc|item|items|x)(?:\\s|$|,)/gi;\n\n    // Pattern C: \"I want X Y packs\" / \"I need X Y packs\"\n    const patC = /(?:i\\s+want|i\\s+need|i\\s+would\\s+like|send\\s+me|give\\s+me)\\s+([a-zA-Z0-9][a-zA-Z0-9\\s\\-\\.]{1,50}?)\\s+(\\d+)\\s*(?:pack|packs|piece|pieces|pcs|pc|item|items)/gi;\n\n    // Pattern D: \"mujhe X chaie/chahiye\" (Urdu)\n    const patD = /(?:mujhe|muje|mjhe|mjhay)\\s+([a-zA-Z0-9][a-zA-Z0-9\\s\\-\\.]{2,50}?)(?:\\s+chaie|\\s+chahiye|\\s+chahie|\\s+chahiyen|\\s+lena|\\s+order)/gi;\n\n    // Pattern E: qty first anywhere — \"5 packs paper cups\"\n    const patE = /(\\d+)\\s*(?:pack|packs|piece|pieces|pcs|pc|item|items)\\s+([a-zA-Z0-9][a-zA-Z0-9\\s\\-\\.]{2,50})(?=\\s|$|,)/gi;\n\n    // Try patterns in priority order\n    const patterns = [\n      [patC, 2, 1],   // \"I want ITEM QTY packs\"\n      [patA, 1, 2],   // \"QTY packs of ITEM\"\n      [patE, 1, 2],   // \"QTY packs ITEM\"\n      [patB, 2, 1],   // \"ITEM QTY packs\"\n    ];\n\n    for (const [pat, qtyGroup, nameGroup] of patterns) {\n      pat.lastIndex = 0;\n      const matches = [...msg.matchAll(pat)];\n      if (matches.length > 0) {\n        extractedItems = matches.map(m => ({\n          name: cleanName(m[nameGroup] || ''),\n          qty: parseInt(m[qtyGroup]) || 1,\n          price: 0,\n        })).filter(i => i.name.length > 1);\n        if (extractedItems.length > 0) break;\n      }\n    }\n\n    // Urdu fallback (patD, qty unknown)\n    if (extractedItems.length === 0) {\n      patD.lastIndex = 0;\n      const matches = [...msg.matchAll(patD)];\n      if (matches.length > 0) {\n        extractedItems = matches.map(m => ({\n          name: cleanName(m[1] || ''),\n          qty: 1,\n          price: 0,\n        })).filter(i => i.name.length > 1);\n      }\n    }\n\n    // Extract price from AI reply: \"PKR 850/pack\" or \"PKR 4,250\"\n    // Try unit price first\n    const unitPriceMatch = aiReply.match(/(?:PKR|Rs\\.?|pkr)\\s*([\\d,]+)\\s*(?:\\/pack|\\/piece|\\/pcs|each)/i);\n    // Then total\n    const totalMatch = aiReply.match(/\\*{0,2}[Tt]otal\\*{0,2}\\s*[:\\-]\\s*(?:PKR|Rs\\.?|pkr)\\s*([\\d,]+)/i);\n\n    let unitPrice = unitPriceMatch ? parseInt(unitPriceMatch[1].replace(/,/g, '')) : 0;\n    let orderTotal = totalMatch ? parseInt(totalMatch[1].replace(/,/g, '')) : 0;\n\n    if (extractedItems.length > 0) {\n      if (unitPrice > 0) extractedItems[0].price = unitPrice;\n      else if (orderTotal > 0 && extractedItems[0].qty > 0) {\n        extractedItems[0].price = Math.round(orderTotal / extractedItems[0].qty);\n      }\n    }\n\n    // Also try to get qty from AI reply if we only got name\n    if (extractedItems.length > 0 && extractedItems[0].qty === 1) {\n      const aiQtyMatch = aiReply.match(/[Qq]uantity\\*{0,2}\\s*[:\\-]\\s*(\\d+)/);\n      if (aiQtyMatch) extractedItems[0].qty = parseInt(aiQtyMatch[1]);\n    }\n\n    // Merge items (keep previous if no new ones found)\n    let currentItems = recordData.items || [];\n    if (extractedItems.length > 0) {\n      currentItems = extractedItems;\n    }\n\n    // ── Delivery address extraction ──\n    let deliveryAddress = recordData.delivery_address || null;\n    const combinedForAddr = msg + ' ' + aiReply;\n\n    // Pattern: \"Delivery Address: X\" or \"deliver to X\"\n    const addrLabelMatch = combinedForAddr.match(/(?:[Dd]elivery\\s+[Aa]ddress|[Dd]eliver\\s+to)\\s*[:\\-]?\\s*([^\\n,\\.]{8,100})/i);\n    if (addrLabelMatch && (!deliveryAddress || intent === 'address_provided')) {\n      deliveryAddress = addrLabelMatch[1].trim();\n    }\n    // Fallback: keyword-based\n    if (!deliveryAddress) {\n      const addrKeywords = /\\b(dha|clifton|gulshan|phase|block|street|road|avenue|lane|sector|town|garden|colony|defence|bahria|nazimabad|korangi|malir|johar|askari|highway|rd\\b)/i;\n      const addrMatch = combinedForAddr.match(new RegExp(`[\\\\w\\\\s,\\\\.\\\\-\\\\/]{0,30}${addrKeywords.source}[\\\\w\\\\s,\\\\.\\\\-\\\\/]{0,40}`, 'i'));\n      if (addrMatch) deliveryAddress = addrMatch[0].trim();\n    }\n\n    // ── Payment method extraction ──\n    let paymentMethod = recordData.payment_method || null;\n    if (!paymentMethod) {\n      const combined = msgLower + ' ' + aiReply.toLowerCase();\n      if (/\\bcod\\b|cash\\s+on\\s+delivery/.test(combined)) paymentMethod = 'COD';\n      else if (/easypaisa/.test(combined)) paymentMethod = 'Easypaisa';\n      else if (/jazzcash/.test(combined)) paymentMethod = 'JazzCash';\n      else if (/bank\\s*transfer/.test(combined)) paymentMethod = 'Bank Transfer';\n    }\n\n    // ── Calculate total ──\n    const calculatedTotal = orderTotal > 0\n      ? orderTotal\n      : currentItems.reduce((s, i) => s + ((i.price || 0) * (i.qty || 1)), 0);\n\n    // ── Status logic ──\n    let newStatus;\n    if (intent === 'order_confirmed') {\n      newStatus = 'confirmed';\n    } else if (deliveryAddress && paymentMethod) {\n      newStatus = 'pending';\n    } else if (deliveryAddress || intent === 'address_provided') {\n      newStatus = 'pending';\n    } else {\n      // Never downgrade a confirmed/pending order\n      newStatus = ['confirmed', 'pending', 'processing'].includes(recordData.status)\n        ? recordData.status\n        : 'pending_address';\n    }\n\n    recordData = {\n      ...recordData,\n      tenant_id: d.tenant_id,\n      conversation_id: d.conversation_id,\n      customer_phone: d.customer_phone,\n      customer_name: d.customer_name,\n      niche: niche,\n      items: currentItems.length > 0 ? currentItems : [{ name: 'Item from chat', qty: 1, price: 0 }],\n      total_amount: calculatedTotal,   // ← renamed from 'amount' to 'total_amount'\n      payment_method: paymentMethod,\n      delivery_address: deliveryAddress,\n      source: d.platform,\n      handled_by: 'bot',\n      status: newStatus,\n    };\n\n    if (intent === 'order_confirmed') {\n      recordData.confirmed_at = new Date().toISOString();\n    }\n  }\n}\n\n// ═══════════════════════════════════════════════════════════════\n// DENTAL / SALON / CLINIC\n// ═══════════════════════════════════════════════════════════════\nif (['dental', 'salon', 'clinic'].includes(niche)) {\n  if (['booking_intent', 'appointment_confirmed'].includes(intent)) {\n    createRecord = true;\n    recordType = 'appointment';\n\n    const timeMatch = (msg + ' ' + aiReply).match(/(\\d{1,2})(:\\d{2})?\\s*(am|pm|AM|PM)/);\n    const dayMatch = (msg + ' ' + aiReply).match(/(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|kal|parso)/i);\n\n    let apptDate = recordData.appointment_date || null;\n    let apptTime = recordData.appointment_time || null;\n\n    if (dayMatch && !apptDate) {\n      const dayMap = { tomorrow:1,kal:1,parso:2,monday:0,tuesday:1,wednesday:2,thursday:3,friday:4,saturday:5,sunday:6 };\n      const day = dayMatch[1].toLowerCase();\n      const d2 = new Date();\n      if (['tomorrow','kal','parso'].includes(day)) {\n        d2.setDate(d2.getDate() + (dayMap[day] || 1));\n      } else {\n        const target = dayMap[day]; const today = d2.getDay();\n        const diff = (target - today + 7) % 7 || 7;\n        d2.setDate(d2.getDate() + diff);\n      }\n      apptDate = d2.toISOString().split('T')[0];\n    }\n\n    if (timeMatch && !apptTime) {\n      const hour = parseInt(timeMatch[1]);\n      const isPM = timeMatch[3].toLowerCase() === 'pm';\n      const hour24 = isPM && hour !== 12 ? hour + 12 : (!isPM && hour === 12 ? 0 : hour);\n      apptTime = `${String(hour24).padStart(2,'0')}:00:00`;\n    }\n\n    recordData = {\n      ...recordData,\n      tenant_id: d.tenant_id,\n      conversation_id: d.conversation_id,\n      patient_name: d.customer_name,\n      patient_phone: d.customer_phone,\n      niche: niche,\n      service_type: recordData.service_type || 'Consultation',\n      appointment_date: apptDate,\n      appointment_time: apptTime,\n      status: intent === 'appointment_confirmed' ? 'confirmed' : 'pending',\n      is_new_patient: !d.existing_context,\n    };\n  }\n}\n\n// ═══════════════════════════════════════════════════════════════\n// REAL ESTATE\n// ═══════════════════════════════════════════════════════════════\nif (niche === 'realestate') {\n  if (['property_inquiry','requirement_provided','visit_request'].includes(intent)) {\n    createRecord = true;\n    recordType = 'lead';\n\n    const budgetMatch = msg.match(/(\\d+\\.?\\d*)\\s*(crore|lakh|cr|lac)/i);\n    let budgetMax = recordData.budget_max || null;\n    if (budgetMatch && !budgetMax) {\n      const num = parseFloat(budgetMatch[1]);\n      const unit = budgetMatch[2].toLowerCase();\n      budgetMax = ['crore','cr'].includes(unit) ? num * 10000000 : num * 100000;\n    }\n\n    const bedMatch = msg.match(/(\\d+)\\s*(bed|bedroom|br)/i);\n    let bedrooms = recordData.bedrooms || null;\n    if (bedMatch && !bedrooms) bedrooms = parseInt(bedMatch[1]);\n\n    recordData = {\n      ...recordData,\n      tenant_id: d.tenant_id,\n      conversation_id: d.conversation_id,\n      customer_name: d.customer_name,\n      customer_phone: d.customer_phone,\n      intent: recordData.intent || (msgLower.includes('rent') ? 'rent' : msgLower.includes('sell') ? 'sell' : 'buy'),\n      bedrooms,\n      budget_max: budgetMax,\n      stage: intent === 'visit_request' ? 'visit_scheduled' :\n             intent === 'requirement_provided' ? 'qualified' : (recordData.stage || 'new_inquiry'),\n      temperature: 'warm',\n      last_activity_at: new Date().toISOString(),\n    };\n  }\n}\n\nreturn [{\n  json: {\n    ...d,\n    ai_reply: aiReply,\n    create_record: createRecord,\n    record_type: recordType,\n    record_data: recordData,\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        288
+      ],
+      "id": "ecd2d2b8-4b3c-4b0d-8e91-fc54cbb75b9a",
+      "name": "Parse AI Reply Code"
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nreturn [{\n  json: {\n    ...d,\n    ai_reply: `Zaroor! Main aapko abhi hamare team se connect kar raha hoon. Ek second please. 🙏`,\n    create_record: false,\n    needs_human_handoff: true,\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1168,
+        32
+      ],
+      "id": "18bd4a0a-767c-481f-9649-a836105cd4a5",
+      "name": "Handoff Message builder Code"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "046b6411-b2cf-4813-903b-933f070f23f0",
+              "leftValue": "={{ $json.create_record }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        288,
+        544
+      ],
+      "id": "02eaf74e-3a88-4757-81f4-37f81c9b915e",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.record_type }}",
+                    "rightValue": "order",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "0fd92af2-e94d-44a8-8895-9d0a308928a9"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "bf635b81-3602-4c4c-877d-fec763ce5c93",
+                    "leftValue": "={{ $json.record_type }}",
+                    "rightValue": "appointment",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "ff04fcae-557b-46c1-8175-a7fe87523bc3",
+                    "leftValue": "={{ $json.record_type }}",
+                    "rightValue": "lead",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        496,
+        736
+      ],
+      "id": "2eb96e02-79dd-474e-afae-3c0be21114b9",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/orders",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"apikey\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g\",\n  \"Authorization\": \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g\",\n  \"Content-Type\": \"application/json\",\n  \"Prefer\": \"resolution=merge-duplicates,return=representation\"\n}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.record_data) }}",
+        "options": {},
+        "sendQuery": true,
+        "specifyQuery": "json",
+        "jsonQuery": "{\n  \"on_conflict\": \"conversation_id\"\n}"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        704,
+        560
+      ],
+      "id": "940d0f2b-2044-4258-b3f2-673f53644902",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/appointments",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"apikey\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g\",\n  \"Authorization\": \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g\",\n  \"Content-Type\": \"application/json\",\n  \"Prefer\": \"resolution=merge-duplicates,return=representation\"\n}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.record_data) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        768,
+        704
+      ],
+      "id": "5a220b39-235a-4748-947b-c415e4284c69",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/leads",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"apikey\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g\",\n  \"Authorization\": \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g\",\n  \"Content-Type\": \"application/json\",\n  \"Prefer\": \"resolution=merge-duplicates,return=representation\"\n}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.record_data) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        672,
+        896
+      ],
+      "id": "9f65d994-35a2-45e0-ae25-6349e0726379",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $input.first().json;\nconst base = $('Parse AI Reply Code').first().json;\nreturn [{ json: { ...base, db_record_written: true, written_id: result?.[0]?.id || result?.id } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        496
+      ],
+      "id": "bfedf1d0-f908-4592-9b06-be0c3b8ecb0b",
+      "name": "Code — Merge Record Write Results"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/messages",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={\n  \"apikey\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g\",\n  \"Authorization\": \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g\",\n  \"Content-Type\": \"application/json\",\n  \"Prefer\": \"return=representation\"\n}\n",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "conversation_id",
+              "value": "={{ $json.conversation_id }}"
+            },
+            {
+              "name": "sender_type",
+              "value": "bot"
+            },
+            {
+              "name": "content",
+              "value": "={{ $json.ai_reply }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1184,
+        320
+      ],
+      "id": "4882569a-4073-41b0-b9e5-f7658f214680",
+      "name": "Save Ai Reply to messages table"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/conversation_context",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={\n  \"apikey\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g\",\n  \"Authorization\": \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g\",\n  \"Content-Type\": \"application/json\",\n  \"Prefer\": \"resolution=merge-duplicates\"\n}\n",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  JSON.stringify({\n    conversation_id: $('Parse AI Reply Code').first().json.conversation_id,\n    tenant_id: $('Parse AI Reply Code').first().json.tenant_id,\n    context_type: 'chat',\n    last_intent: $('Parse AI Reply Code').first().json.detected_intent,\n    funnel_stage: $('Parse AI Reply Code').first().json.funnel_stage,\n    context_data: {\n      last_message: $('Parse AI Reply Code').first().json.message_text,\n      last_ai_reply: $('Parse AI Reply Code').first().json.ai_reply,\n      record_type: $('Parse AI Reply Code').first().json.record_type,\n      written_id: $('Parse AI Reply Code').first().json.written_id,\n      extracted_info: $('Parse AI Reply Code').first().json.record_data || {},\n      updated_at: new Date().toISOString()\n    },\n    updated_at: new Date().toISOString()\n  })\n}}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1328,
+        528
+      ],
+      "id": "40c34d96-93c8-4c4d-b448-75cd57b307d8",
+      "name": "Update conversation_context"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b4e2d0ed-d481-448b-996b-86a1d8e251c1",
+              "leftValue": "={{ $json.funnel_stage }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        960,
+        832
+      ],
+      "id": "6e96aa49-f935-463c-8b21-3ea63f25e135",
+      "name": "log funnel"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/funnel_events",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"apikey\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g\",\n  \"Authorization\": \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g\",\n  \"Content-Type\": \"application/json\"\n}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"tenant_id\": \"{{ $json.tenant_id }}\",\n  \"conversation_id\": \"{{ $json.conversation_id }}\",\n  \"stage\": \"{{ $json.funnel_stage }}\",\n  \"metadata\": { \"intent\": \"{{ $json.detected_intent }}\", \"niche\": \"{{ $json.niche }}\" }\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1216,
+        720
+      ],
+      "id": "bf921237-8642-4974-aa93-ab7e7fcdd958",
+      "name": "Insert Funnel Event"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d6147f1a-4686-4002-a074-dcb111146cfa",
+              "leftValue": "={{ $json.needs_human_handoff }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1136,
+        976
+      ],
+      "id": "a4f34a72-38fa-48d6-abef-f1201f5ecc68",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/conversations?id=eq.{{ $json.conversation_id }}\n",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"apikey\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g\",\n  \"Authorization\": \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdHFucGVucG9ibXFxdmRyYm1xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk5ODQ4MywiZXhwIjoyMDkzNTc0NDgzfQ.59EUL68HU0SXW-LPxL4xEdYav_3PUg-zOgophNNmq4g\",\n  \"Content-Type\": \"application/json\"\n}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{ \"status\": \"pending\" }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1360,
+        1088
+      ],
+      "id": "f56c8f55-02d0-4736-9fea-bc3df6c2d8c1",
+      "name": "Mark Convo as Pending"
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\n\n// Use environment-variable tokens so each platform gets the right credential\n// Fallback chain: platform-specific env → general META token → webhook payload\nconst waToken = $env.META_ACCESS_TOKEN || d.wa_access_token || \"\";\nconst messengerToken = $env.MESSENGER_ACCESS_TOKEN || waToken;\nconst igToken = $env.INSTAGRAM_ACCESS_TOKEN || messengerToken;\nconst phoneNumberId = d.phone_number_id || d.wa_phone_number_id || $env.META_PHONE_NUMBER_ID || \"\";\n\nlet endpoint, payload, token;\n\nif (d.platform === 'whatsapp') {\n  token = waToken;\n  endpoint = `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`;\n  payload = {\n    messaging_product: 'whatsapp',\n    to: d.customer_phone,\n    type: 'text',\n    text: { body: d.ai_reply, preview_url: false }\n  };\n} else if (d.platform === 'instagram') {\n  // FIX: Instagram Send API uses /me/messages, NOT /{ig_user_id}/messages\n  token = igToken;\n  endpoint = 'https://graph.facebook.com/v21.0/me/messages';\n  payload = {\n    recipient: { id: d.customer_phone },\n    message: { text: d.ai_reply }\n  };\n} else {\n  // messenger — /me/messages is correct\n  token = messengerToken;\n  endpoint = 'https://graph.facebook.com/v21.0/me/messages';\n  payload = {\n    recipient: { id: d.customer_phone },\n    message: { text: d.ai_reply }\n  };\n}\n\nreturn [{ json: { ...d, meta_endpoint: endpoint, meta_payload: payload, meta_token: token } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        928
+      ],
+      "id": "ef63477f-9e0a-4034-bdcc-e7532bc2552e",
+      "name": "Build Platform-Specific Meta API Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.meta_endpoint }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.meta_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.meta_payload) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1568,
+        1088
+      ],
+      "id": "42087730-73b0-475e-aa49-6b488d32a843",
+      "name": "HTTP Request - Send via meta api",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "={{ $json.final_system_prompt }}"
+            },
+            {
+              "content": "={{ $json.message_text }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 250,
+          "temperature": 0.7
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        560,
+        240
+      ],
+      "id": "b30b7334-81a4-4026-8c0d-ce4e56adeeba",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "7zWCDfSrJX3ADXkg",
+          "name": "OpenAI account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code Node — Validate + Unpack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handoff Message builder Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Node — Validate + Unpack": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Ecommerce HTTP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Restaurant HTTP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Dental/Salon/Clinic HTTP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "RealEstate Http",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Dental/Salon/Clinic HTTP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Dental/Salon/Clinic HTTP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ecommerce HTTP": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restaurant HTTP": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RealEstate Http": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dental/Salon/Clinic HTTP": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript4": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript6": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Intent Detection Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Intent Detection Code": {
+      "main": [
+        [
+          {
+            "node": "System Prompt Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "System Prompt Code": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Reply Code": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save Ai Reply to messages table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Code — Merge Record Write Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code — Merge Record Write Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "Code — Merge Record Write Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code — Merge Record Write Results": {
+      "main": [
+        [
+          {
+            "node": "Save Ai Reply to messages table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Ai Reply to messages table": {
+      "main": [
+        [
+          {
+            "node": "Update conversation_context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update conversation_context": {
+      "main": [
+        [
+          {
+            "node": "log funnel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "log funnel": {
+      "main": [
+        [
+          {
+            "node": "Insert Funnel Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Funnel Event": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Mark Convo as Pending",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Platform-Specific Meta API Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Convo as Pending": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Send via meta api",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Reply Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Platform-Specific Meta API Request": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Send via meta api",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "5978c96b-a8d2-4b69-afa5-0801a5808e81",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "611eb949895020d84fbf266205d5c56a1248bd74f254f85cdb4122abff9ce02f"
+  },
+  "nodeGroups": [],
+  "id": "DJGQx99f3DSi5aD3",
+  "tags": []
+}
