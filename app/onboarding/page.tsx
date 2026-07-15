@@ -34,6 +34,7 @@ export default function OnboardingPage() {
   // Step 4: Knowledge Base Seeding
   const [kbFaqs, setKbFaqs] = useState('');
   const [kbCatalog, setKbCatalog] = useState('');
+  const [website, setWebsite] = useState('');
 
   // Step 5: Niche Config
   const [nicheSetting1, setNicheSetting1] = useState(''); // E.g. slots, payment methods
@@ -80,6 +81,7 @@ export default function OnboardingPage() {
         business_name: businessName || 'My Business',
         business_phone: waPhone || '',
         location: location || '',
+        website: website || '',
         onboarding_completed: true,
         plan: plan,
         plan_status: 'active',
@@ -325,6 +327,11 @@ export default function OnboardingPage() {
                 <p style={{ fontSize: 12.5, color: '#92400e', margin: 0, fontWeight: 500 }}>
                   ⚠️ Your AI won't know your prices or specific details until you add this. You can skip and upload files later from the dashboard.
                 </p>
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Website Link</label>
+                <input type="url" value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://yourbusiness.com" style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none' }} />
               </div>
 
               <div style={{ marginBottom: 16 }}>
