@@ -38,7 +38,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { onboarded, hydrated, niche, setNicheId, setOnboarded } = useNiche();
-  const { tenantInfo, planLoaded } = usePlan();
+  const { tenantInfo, planLoaded, trialDaysLeft } = usePlan();
   const [session, setSession] = useState<any>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -66,9 +66,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           .eq('id', profile.tenant_id)
           .single();
 
-        if (tenant?.niche && tenant.niche !== 'general') {
-          setNicheId(tenant.niche);
-          setOnboarded(true);
+        if (tenant?.niche) {
+          if (tenant.niche !== 'general') {
+            setNicheId(tenant.niche);
+            setOnboarded(true);
+          } else {
+            setOnboarded(false);
+          }
         }
       }
     } catch (err) {
@@ -172,6 +176,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, [onboarded, hydrated, isOnboarding, isLogin, isAdminRoute, pathname, router, session, sessionChecked]);
 
   const handleLogout = async () => {
+    try {
+      localStorage.removeItem('ittisalo_niche');
+      localStorage.removeItem('ittisalo_onboarded');
+    } catch (e) {}
     await supabase.auth.signOut();
     setShowDropdown(false);
     router.push('/login');
@@ -224,12 +232,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const initials = userName.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase() || 'U';
 
   const isTrial = tenantInfo?.plan === 'trial';
-  const showBanner = planLoaded && isTrial && bannerVisible;
+  const showBanner = planLoaded && isTrial && trialDaysLeft !== 0 && bannerVisible;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {showBanner && <TopBanner onClose={() => setBannerVisible(false)} />}
-      {planLoaded && tenantInfo && tenantInfo.plan_status !== 'active' && !isAdminRoute && (
+      {planLoaded && tenantInfo && tenantInfo.plan_status !== 'active' && (!isTrial || trialDaysLeft === 0) && !isAdminRoute && (
         <div style={{ background: '#fef2f2', borderBottom: '1px solid #fecaca', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
           <AlertCircle size={16} color="#dc2626" />
           <span style={{ fontSize: 13, fontWeight: 600, color: '#b91c1c' }}>
