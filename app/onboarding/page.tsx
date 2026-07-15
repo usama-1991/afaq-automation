@@ -1,331 +1,494 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useNiche } from '@/context/NicheContext';
 import { niches } from '@/lib/niches';
-import { Check, ArrowRight, MessageSquare, Zap, BarChart2, Loader2 } from 'lucide-react';
+import { Check, ArrowRight, ArrowLeft, Loader2, Upload, MessageSquare, MapPin, Clock, FileText, Settings, Bot, CreditCard, Sparkles } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 
 export default function OnboardingPage() {
   const { setNicheId, setOnboarded } = useNiche();
   const router = useRouter();
-  const [selected, setSelected] = useState('');
-  const [businessName, setBusinessName] = useState('');
-  const [phone, setPhone] = useState('');
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const handleStart = async () => {
-    if (!selected) return;
-    if (step === 1) { 
-      setStep(2); 
-      return; 
-    }
-    
+  // Step 1: Business Identity
+  const [niche, setNiche] = useState('');
+  const [businessName, setBusinessName] = useState('');
+  const [legalName, setLegalName] = useState('');
+  const [description, setDescription] = useState('');
+  const [location, setLocation] = useState('');
+  const [timezone, setTimezone] = useState('Asia/Karachi');
+
+  // Step 2: WhatsApp Connection
+  const [waPhone, setWaPhone] = useState('');
+  const [waDisplayName, setWaDisplayName] = useState('');
+  const [waToken, setWaToken] = useState('');
+  
+  // Step 3: Operating Hours
+  const [is247, setIs247] = useState(true);
+  const [autoReply, setAutoReply] = useState('');
+
+  // Step 4: Knowledge Base Seeding
+  const [kbFaqs, setKbFaqs] = useState('');
+  const [kbCatalog, setKbCatalog] = useState('');
+
+  // Step 5: Niche Config
+  const [nicheSetting1, setNicheSetting1] = useState(''); // E.g. slots, payment methods
+  const [nicheSetting2, setNicheSetting2] = useState(''); 
+
+  // Step 6: AI Personality
+  const [aiTone, setAiTone] = useState('Friendly and professional');
+  const [aiLanguage, setAiLanguage] = useState('English');
+  const [humanHandoffNumber, setHumanHandoffNumber] = useState('');
+
+  // Step 7: Plan
+  const [plan, setPlan] = useState('trial');
+
+  const totalSteps = 7;
+
+  const nextStep = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setStep(s => Math.min(s + 1, totalSteps));
+  };
+  const prevStep = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setStep(s => Math.max(s - 1, 1));
+  };
+
+  const handleFinish = async () => {
     setLoading(true);
     setErrorMsg('');
-    
     try {
-      // 1. Get authenticated user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-        throw new Error('Authentication session not found. Please log in.');
-      }
+      if (userError || !user) throw new Error('Authentication session not found.');
 
-      // 2. Fetch the user's profile to get the tenant_id
       const { data: profile, error: profileError } = await supabase
         .from('users')
         .select('tenant_id')
         .eq('id', user.id)
         .single();
-
-      if (profileError || !profile?.tenant_id) {
-        throw new Error('Associated tenant profile not found.');
-      }
+      if (profileError || !profile?.tenant_id) throw new Error('Associated tenant profile not found.');
 
       const tenantId = profile.tenant_id;
 
-      // 3. Update public.tenants table with selected niche, name, and phone
+      // Update tenant
+      const updatePayload = {
+        niche: niche || 'general',
+        business_name: businessName || 'My Business',
+        business_phone: waPhone || '',
+        location: location || '',
+        onboarding_completed: true,
+        plan: plan,
+        plan_status: 'active',
+        wa_access_token: waToken || null,
+        niche_settings: {
+          timezone,
+          legalName,
+          description,
+          is247,
+          autoReply,
+          nicheSetting1,
+          nicheSetting2,
+          aiTone,
+          aiLanguage,
+          humanHandoffNumber
+        }
+      };
+
       const { error: tenantUpdateError } = await supabase
         .from('tenants')
-        .update({
-          niche: selected,
-          business_name: businessName || niches.find(n => n.id === selected)?.label || 'My Business',
-          business_phone: phone || '',
-          onboarding_completed: true,
-          plan: 'trial',
-          plan_status: 'active'
-        })
+        .update(updatePayload)
         .eq('id', tenantId);
+      if (tenantUpdateError) throw tenantUpdateError;
 
-      if (tenantUpdateError) {
-        throw tenantUpdateError;
-      }
-
-      // 4. Create or update starting niche agent inside public.agents
-      const activeNiche = niches.find(n => n.id === selected);
+      // Update Agent
+      const activeNiche = niches.find(n => n.id === niche);
       if (activeNiche) {
-        const { data: existingAgent } = await supabase
-          .from('agents')
-          .select('id')
-          .eq('tenant_id', tenantId)
-          .maybeSingle();
-
+        const customPrompt = `${activeNiche.systemRole}\n\nBusiness Description: ${description}\nTone: ${aiTone}\nLanguage: ${aiLanguage}`;
+        
+        const { data: existingAgent } = await supabase.from('agents').select('id').eq('tenant_id', tenantId).maybeSingle();
         if (existingAgent?.id) {
-          // Update existing
-          await supabase
-            .from('agents')
-            .update({
-              name: activeNiche.agentName,
-              prompt: activeNiche.systemRole,
-              is_active: true
-            })
-            .eq('id', existingAgent.id);
+          await supabase.from('agents').update({ name: activeNiche.agentName, prompt: customPrompt, is_active: true }).eq('id', existingAgent.id);
         } else {
-          // Insert new
-          await supabase
-            .from('agents')
-            .insert({
-              tenant_id: tenantId,
-              name: activeNiche.agentName,
-              prompt: activeNiche.systemRole,
-              is_active: true
-            });
+          await supabase.from('agents').insert({ tenant_id: tenantId, name: activeNiche.agentName, prompt: customPrompt, is_active: true });
         }
       }
 
-      // 5. Update local context & state
-      setNicheId(selected);
+      // Add basic KB if provided
+      if (kbFaqs || kbCatalog) {
+        if (kbFaqs) await supabase.from('knowledge_base').insert({ tenant_id: tenantId, kb_type: 'text', title: 'Onboarding FAQs', content: kbFaqs, is_active: true });
+        if (kbCatalog) await supabase.from('knowledge_base').insert({ tenant_id: tenantId, kb_type: 'text', title: 'Onboarding Catalog/Menu', content: kbCatalog, is_active: true });
+      }
+
+      setNicheId(niche || 'general');
       setOnboarded(true);
-      
-      // Redirect to dashboard
       router.push('/dashboard');
     } catch (err: any) {
-      console.error('Onboarding sync error:', err);
+      console.error(err);
       setErrorMsg(err.message || 'Failed to complete onboarding. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  const renderProgress = () => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 32, width: '100%' }}>
+      {Array.from({ length: totalSteps }).map((_, i) => (
+        <div key={i} style={{ 
+          flex: 1, 
+          height: 6, 
+          borderRadius: 3, 
+          background: i + 1 <= step ? '#dc2626' : '#fee2e2',
+          transition: 'background 0.3s'
+        }} />
+      ))}
+    </div>
+  );
+
   return (
     <div style={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #fef2f2 0%, #fff 50%, #fee2e2 100%)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '24px 16px',
+      padding: '40px 16px',
       fontFamily: 'system-ui, -apple-system, sans-serif'
     }}>
       <div style={{ width: '100%', maxWidth: 680 }}>
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: 40, position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <img src="/ittisalo-logo.png" alt="Ittisalo" style={{ width: 36, height: 36, borderRadius: 10, mixBlendMode: 'multiply' }} />
+            <span style={{ fontSize: 18, fontWeight: 700, color: '#111827', letterSpacing: '-0.4px' }}>Ittisalo Setup</span>
+          </div>
           <button 
-            onClick={async () => {
-              await supabase.auth.signOut();
-              router.push('/login');
-            }}
-            style={{ 
-              position: 'absolute', 
-              top: 0, 
-              right: 0, 
-              fontSize: 13, 
-              color: '#4b5563', 
-              background: 'none', 
-              border: 'none', 
-              cursor: 'pointer', 
-              padding: '8px 12px', 
-              borderRadius: '8px',
-              fontWeight: 500
-            }}
-            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#f3f4f6'}
-            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'none'}
+            onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }}
+            style={{ fontSize: 13, color: '#4b5563', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}
           >
             Sign Out
           </button>
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 16 }}>
-            <img src="/ittisalo-logo.png" alt="Ittisalo" style={{ width: 40, height: 40, borderRadius: 11, mixBlendMode: 'multiply' }} />
-            <span style={{ fontSize: 20, fontWeight: 700, color: '#111827', letterSpacing: '-0.4px' }}>Ittisalo</span>
-          </div>
-          {step === 1 ? (
-            <>
-              <h1 style={{ fontSize: 28, fontWeight: 700, color: '#111827', letterSpacing: '-0.6px', marginBottom: 8 }}>
-                What type of business are you?
-              </h1>
-              <p style={{ fontSize: 15, color: '#4b5563', lineHeight: 1.5 }}>
-                We'll customize your WhatsApp AI agent and dashboard specifically for your industry.
-              </p>
-            </>
-          ) : (
-            <>
-              <h1 style={{ fontSize: 28, fontWeight: 700, color: '#111827', letterSpacing: '-0.6px', marginBottom: 8 }}>
-                Tell us about your business
-              </h1>
-              <p style={{ fontSize: 15, color: '#4b5563' }}>Almost there! Just a few details to personalize your dashboard.</p>
-            </>
-          )}
         </div>
 
+        {renderProgress()}
+
         {errorMsg && (
-          <div style={{
-            background: '#fef2f2',
-            border: '1px solid #fee2e2',
-            color: '#b91c1c',
-            borderRadius: 10,
-            padding: '12px 16px',
-            fontSize: 13.5,
-            marginBottom: 20,
-            textAlign: 'center',
-            fontWeight: 500
-          }}>
+          <div style={{ background: '#fef2f2', border: '1px solid #fee2e2', color: '#b91c1c', borderRadius: 10, padding: '12px 16px', fontSize: 13.5, marginBottom: 20, textAlign: 'center', fontWeight: 500 }}>
             {errorMsg}
           </div>
         )}
 
-        {step === 1 && (
-          <>
-            {/* Features strip */}
-            <div style={{ display: 'flex', gap: 12, marginBottom: 24, justifyContent: 'center' }}>
-              {[
-                { icon: MessageSquare, text: 'WhatsApp AI Agent' },
-                { icon: BarChart2, text: 'Live CRM Dashboard' },
-                { icon: Zap, text: 'Auto-pilot conversations' },
-              ].map(({ icon: Icon, text }) => (
-                <div key={text} style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: 6, 
-                  background: '#fff', 
-                  border: '1px solid rgba(220,38,38,0.15)', 
-                  borderRadius: 20, 
-                  padding: '6px 14px', 
-                  fontSize: 12.5, 
-                  fontWeight: 500, 
-                  color: '#dc2626' 
-                }}>
-                  <Icon size={13} /> {text}
-                </div>
-              ))}
-            </div>
-
-            {/* Niche grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 24 }}>
-              {niches.map(niche => (
-                <div
-                  key={niche.id}
-                  onClick={() => setSelected(niche.id)}
-                  style={{
-                    background: '#fff',
-                    border: selected === niche.id ? `2px solid #dc2626` : '1.5px solid rgba(220,38,38,0.12)',
-                    borderRadius: 14, padding: '18px 14px',
-                    cursor: 'pointer', transition: 'all 0.13s',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
-                    position: 'relative',
-                    boxShadow: selected === niche.id ? '0 0 0 4px rgba(220,38,38,0.1)' : '0 1px 3px rgba(0,0,0,0.05)',
-                  }}
-                  onMouseEnter={e => { if (selected !== niche.id) (e.currentTarget as HTMLElement).style.borderColor = '#f87171'; }}
-                  onMouseLeave={e => { if (selected !== niche.id) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(220,38,38,0.12)'; }}
-                >
-                  {selected === niche.id && (
-                    <div style={{ position: 'absolute', top: 10, right: 10, width: 20, height: 20, borderRadius: '50%', background: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Check size={11} color="#fff" strokeWidth={3} />
-                    </div>
-                  )}
-                  <div style={{ fontSize: 32 }}>{niche.icon}</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', textAlign: 'center', lineHeight: 1.3 }}>{niche.label}</div>
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={handleStart}
-              disabled={!selected}
-              style={{
-                width: '100%', padding: '14px', fontSize: 15, fontWeight: 600,
-                background: selected ? 'linear-gradient(135deg, #dc2626, #b91c1c)' : '#e5e7eb',
-                color: selected ? '#fff' : '#9ca3af',
-                border: 'none', borderRadius: 12, cursor: selected ? 'pointer' : 'default',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                transition: 'all 0.15s',
-                boxShadow: selected ? '0 4px 14px rgba(220,38,38,0.3)' : 'none',
-              }}
-            >
-              Continue <ArrowRight size={16} />
-            </button>
-          </>
-        )}
-
-        {step === 2 && (
-          <div style={{ background: '#fff', borderRadius: 16, padding: '28px 32px', boxShadow: '0 4px 24px rgba(0,0,0,0.07)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24, padding: '12px 14px', background: '#fef2f2', borderRadius: 10 }}>
-              <span style={{ fontSize: 24 }}>{niches.find(n => n.id === selected)?.icon}</span>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{niches.find(n => n.id === selected)?.label}</div>
-                <div style={{ fontSize: 11.5, color: '#6b7280' }}>Selected niche</div>
+        <div style={{ background: '#fff', borderRadius: 16, padding: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.07)' }}>
+          {/* STEP 1 */}
+          {step === 1 && (
+            <div className="step-content animate-in">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <div style={{ background: '#fef2f2', padding: 8, borderRadius: 8 }}><Sparkles size={20} color="#dc2626" /></div>
+                <h2 style={{ fontSize: 22, fontWeight: 700, color: '#111827', margin: 0 }}>Business Identity</h2>
               </div>
-              <button onClick={() => setStep(1)} style={{ marginLeft: 'auto', fontSize: 12, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Change</button>
-            </div>
+              <p style={{ fontSize: 14, color: '#4b5563', marginBottom: 24 }}>Let's customize your AI agent based on your industry and basic details.</p>
 
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Business Name</label>
-              <input
-                value={businessName}
-                onChange={e => setBusinessName(e.target.value)}
-                placeholder={`e.g. ${selected === 'restaurant' ? 'Spice Garden Restaurant' : selected === 'dental' ? 'Smile Dental Clinic' : 'Your Business Name'}`}
-                style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, background: '#fafafa', fontFamily: 'inherit', color: '#111', outline: 'none' }}
-              />
-            </div>
+              <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 8 }}>Select your niche (Required)</label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
+                {niches.map(n => (
+                  <div key={n.id} onClick={() => setNiche(n.id)} style={{
+                    background: '#fff', border: niche === n.id ? `2px solid #dc2626` : '1.5px solid rgba(220,38,38,0.12)',
+                    borderRadius: 12, padding: '14px 10px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                    boxShadow: niche === n.id ? '0 0 0 3px rgba(220,38,38,0.1)' : 'none',
+                  }}>
+                    <div style={{ fontSize: 24 }}>{n.icon}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', textAlign: 'center' }}>{n.label}</div>
+                  </div>
+                ))}
+              </div>
 
-            <div style={{ marginBottom: 24 }}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>WhatsApp Business Number</label>
-              <input
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-                placeholder="+92 300 0000000"
-                style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, background: '#fafafa', fontFamily: 'inherit', color: '#111', outline: 'none' }}
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 24 }}>
-              {[
-                { icon: '🤖', text: 'AI agent pre-configured for your niche' },
-                { icon: '📊', text: 'CRM dashboard ready instantly' },
-                { icon: '💬', text: 'WhatsApp + Instagram connected' },
-              ].map(f => (
-                <div key={f.text} style={{ background: '#fef2f2', borderRadius: 10, padding: '12px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 20, marginBottom: 6 }}>{f.icon}</div>
-                  <div style={{ fontSize: 11.5, color: '#dc2626', fontWeight: 600, lineHeight: 1.4 }}>{f.text}</div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Business Name (Required)</label>
+                <input value={businessName} onChange={e => setBusinessName(e.target.value)} placeholder="Your Business Name" style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none' }} />
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Legal Name <span style={{ color: '#9ca3af', fontWeight: 400 }}>(Optional)</span></label>
+                  <input value={legalName} onChange={e => setLegalName(e.target.value)} placeholder="For Meta verification" style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none' }} />
                 </div>
-              ))}
-            </div>
+                <div>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Timezone</label>
+                  <select value={timezone} onChange={e => setTimezone(e.target.value)} style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none', background: '#fff' }}>
+                    <option value="Asia/Karachi">Asia/Karachi (PKT)</option>
+                    <option value="Asia/Dubai">Asia/Dubai (GST)</option>
+                    <option value="UTC">UTC</option>
+                  </select>
+                </div>
+              </div>
 
-            <button
-              onClick={handleStart}
-              disabled={loading}
-              style={{
-                width: '100%', padding: '14px', fontSize: 15, fontWeight: 600,
-                background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff',
-                border: 'none', borderRadius: 12, cursor: loading ? 'default' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                boxShadow: '0 4px 14px rgba(220,38,38,0.3)',
-                opacity: loading ? 0.8 : 1
-              }}
-            >
-              {loading ? (
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Business Description <span style={{ color: '#9ca3af', fontWeight: 400 }}>(Optional)</span></label>
+                <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Briefly describe what you do. This helps the AI understand your business." rows={2} style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none', resize: 'none' }} />
+              </div>
+              
+              <div style={{ marginBottom: 24 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>City / Address <span style={{ color: '#9ca3af', fontWeight: 400 }}>(Optional)</span></label>
+                <input value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. Clifton, Karachi" style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none' }} />
+              </div>
+
+              <button onClick={nextStep} disabled={!niche || !businessName} style={{ width: '100%', padding: '14px', fontSize: 14, fontWeight: 600, background: niche && businessName ? '#dc2626' : '#fca5a5', color: '#fff', border: 'none', borderRadius: 9, cursor: niche && businessName ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                Continue to WhatsApp Connection <ArrowRight size={16} />
+              </button>
+            </div>
+          )}
+
+          {/* STEP 2 */}
+          {step === 2 && (
+            <div className="step-content animate-in">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <div style={{ background: '#fef2f2', padding: 8, borderRadius: 8 }}><MessageSquare size={20} color="#dc2626" /></div>
+                <h2 style={{ fontSize: 22, fontWeight: 700, color: '#111827', margin: 0 }}>WhatsApp Business Connection</h2>
+              </div>
+              <p style={{ fontSize: 14, color: '#4b5563', marginBottom: 24 }}>Connect your WhatsApp API to enable AI messaging.</p>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>WhatsApp Number (Required)</label>
+                <input value={waPhone} onChange={e => setWaPhone(e.target.value)} placeholder="+92 300 0000000" style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none' }} />
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Display Name (Required)</label>
+                <input value={waDisplayName} onChange={e => setWaDisplayName(e.target.value)} placeholder="Your Business Display Name" style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none' }} />
+              </div>
+
+              <div style={{ marginBottom: 24 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>API Access Token <span style={{ color: '#9ca3af', fontWeight: 400 }}>(Optional if pending)</span></label>
+                <input value={waToken} onChange={e => setWaToken(e.target.value)} placeholder="EAAG..." type="password" style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none' }} />
+                <p style={{ fontSize: 12, color: '#6b7280', marginTop: 6 }}>If your Meta verification is pending, you can skip this and add it later in Settings.</p>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button onClick={prevStep} style={{ flex: 1, padding: '14px', fontSize: 14, fontWeight: 600, background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 9, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <ArrowLeft size={16} /> Back
+                </button>
+                <button onClick={nextStep} disabled={!waPhone || !waDisplayName} style={{ flex: 2, padding: '14px', fontSize: 14, fontWeight: 600, background: waPhone && waDisplayName ? '#dc2626' : '#fca5a5', color: '#fff', border: 'none', borderRadius: 9, cursor: waPhone && waDisplayName ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  Continue <ArrowRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3 */}
+          {step === 3 && (
+            <div className="step-content animate-in">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <div style={{ background: '#fef2f2', padding: 8, borderRadius: 8 }}><Clock size={20} color="#dc2626" /></div>
+                <h2 style={{ fontSize: 22, fontWeight: 700, color: '#111827', margin: 0 }}>Operating Hours</h2>
+              </div>
+              <p style={{ fontSize: 14, color: '#4b5563', marginBottom: 24 }}>Set your availability. You can easily skip and configure this later.</p>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 10, marginBottom: 20 }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>24/7 Availability</div>
+                  <div style={{ fontSize: 12, color: '#6b7280' }}>AI will handle messages anytime</div>
+                </div>
+                <div onClick={() => setIs247(!is247)} style={{ width: 44, height: 24, background: is247 ? '#dc2626' : '#e5e7eb', borderRadius: 12, position: 'relative', cursor: 'pointer', transition: 'background 0.2s' }}>
+                  <div style={{ position: 'absolute', top: 2, left: is247 ? 22 : 2, width: 20, height: 20, background: '#fff', borderRadius: '50%', transition: 'left 0.2s' }} />
+                </div>
+              </div>
+
+              {!is247 && (
+                <div style={{ marginBottom: 24 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Off-hours Auto-reply</label>
+                  <textarea value={autoReply} onChange={e => setAutoReply(e.target.value)} placeholder="We are currently closed. We will reply when we are back..." rows={3} style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none', resize: 'none' }} />
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: 12, marginTop: is247 ? 24 : 0 }}>
+                <button onClick={prevStep} style={{ flex: 1, padding: '14px', fontSize: 14, fontWeight: 600, background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 9, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <ArrowLeft size={16} /> Back
+                </button>
+                <button onClick={nextStep} style={{ flex: 2, padding: '14px', fontSize: 14, fontWeight: 600, background: '#111827', color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  Skip or Continue <ArrowRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 4 */}
+          {step === 4 && (
+            <div className="step-content animate-in">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <div style={{ background: '#fef2f2', padding: 8, borderRadius: 8 }}><FileText size={20} color="#dc2626" /></div>
+                <h2 style={{ fontSize: 22, fontWeight: 700, color: '#111827', margin: 0 }}>Knowledge Base Seeding</h2>
+              </div>
+              <p style={{ fontSize: 14, color: '#4b5563', marginBottom: 16 }}>Give your AI the context it needs to answer customer queries.</p>
+              
+              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', padding: '10px 14px', borderRadius: 8, marginBottom: 20 }}>
+                <p style={{ fontSize: 12.5, color: '#92400e', margin: 0, fontWeight: 500 }}>
+                  ⚠️ Your AI won't know your prices or specific details until you add this. You can skip and upload files later from the dashboard.
+                </p>
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Common FAQs (Paste text)</label>
+                <textarea value={kbFaqs} onChange={e => setKbFaqs(e.target.value)} placeholder="Q: Do you deliver? A: Yes, nationwide!&#10;Q: What is the refund policy? A: 7 days..." rows={3} style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none', resize: 'none' }} />
+              </div>
+
+              <div style={{ marginBottom: 24 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Product / Service Catalog Text</label>
+                <textarea value={kbCatalog} onChange={e => setKbCatalog(e.target.value)} placeholder="e.g. Lawn Kurti - PKR 2500, Consultation Fee - PKR 1500..." rows={3} style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none', resize: 'none' }} />
+              </div>
+
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button onClick={prevStep} style={{ flex: 1, padding: '14px', fontSize: 14, fontWeight: 600, background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 9, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <ArrowLeft size={16} /> Back
+                </button>
+                <button onClick={nextStep} style={{ flex: 2, padding: '14px', fontSize: 14, fontWeight: 600, background: '#111827', color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  Skip for now <ArrowRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 5 */}
+          {step === 5 && (
+            <div className="step-content animate-in">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <div style={{ background: '#fef2f2', padding: 8, borderRadius: 8 }}><Settings size={20} color="#dc2626" /></div>
+                <h2 style={{ fontSize: 22, fontWeight: 700, color: '#111827', margin: 0 }}>Niche Settings ({niches.find(n => n.id === niche)?.label || 'General'})</h2>
+              </div>
+              <p style={{ fontSize: 14, color: '#4b5563', marginBottom: 24 }}>Custom settings for your specific business type.</p>
+
+              {niche === 'ecommerce' ? (
                 <>
-                  <Loader2 size={16} className="animate-spin" /> Customizing Workspace...
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Accepted Payment Methods</label>
+                    <input value={nicheSetting1} onChange={e => setNicheSetting1(e.target.value)} placeholder="COD, JazzCash, EasyPaisa, Bank Transfer" style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none' }} />
+                  </div>
+                  <div style={{ marginBottom: 24 }}>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Delivery Charges / Areas</label>
+                    <input value={nicheSetting2} onChange={e => setNicheSetting2(e.target.value)} placeholder="PKR 250 flat rate, Nationwide delivery" style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none' }} />
+                  </div>
+                </>
+              ) : ['dental', 'clinic', 'salon', 'restaurant'].includes(niche) ? (
+                <>
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Appointment Slot Duration (Minutes)</label>
+                    <input type="number" value={nicheSetting1} onChange={e => setNicheSetting1(e.target.value)} placeholder="30" style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none' }} />
+                  </div>
+                  <div style={{ marginBottom: 24 }}>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Booking/Reservation Policy</label>
+                    <input value={nicheSetting2} onChange={e => setNicheSetting2(e.target.value)} placeholder="Requires 24h notice for cancellations" style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none' }} />
+                  </div>
                 </>
               ) : (
-                <>
-                  Launch My Dashboard 🚀
-                </>
+                <div style={{ marginBottom: 24 }}>
+                  <p style={{ fontSize: 13.5, color: '#4b5563' }}>No specific settings required for your niche right now. You can configure more in the dashboard.</p>
+                </div>
               )}
-            </button>
-          </div>
-        )}
+
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button onClick={prevStep} style={{ flex: 1, padding: '14px', fontSize: 14, fontWeight: 600, background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 9, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <ArrowLeft size={16} /> Back
+                </button>
+                <button onClick={nextStep} style={{ flex: 2, padding: '14px', fontSize: 14, fontWeight: 600, background: '#111827', color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  Skip or Continue <ArrowRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 6 */}
+          {step === 6 && (
+            <div className="step-content animate-in">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <div style={{ background: '#fef2f2', padding: 8, borderRadius: 8 }}><Bot size={20} color="#dc2626" /></div>
+                <h2 style={{ fontSize: 22, fontWeight: 700, color: '#111827', margin: 0 }}>AI Personality & Escalation</h2>
+              </div>
+              <p style={{ fontSize: 14, color: '#4b5563', marginBottom: 24 }}>Configure how your AI interacts with customers.</p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Bot Persona / Tone</label>
+                  <select value={aiTone} onChange={e => setAiTone(e.target.value)} style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none', background: '#fff' }}>
+                    <option value="Friendly and professional">Friendly & Professional</option>
+                    <option value="Formal and polite">Formal & Polite</option>
+                    <option value="Enthusiastic and energetic">Enthusiastic</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Language Preference</label>
+                  <select value={aiLanguage} onChange={e => setAiLanguage(e.target.value)} style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none', background: '#fff' }}>
+                    <option value="English">English</option>
+                    <option value="Urdu">Urdu</option>
+                    <option value="Roman Urdu">Roman Urdu</option>
+                    <option value="Bilingual (Auto-detect)">Bilingual (Auto-detect)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 24 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Human Handoff Number <span style={{ color: '#9ca3af', fontWeight: 400 }}>(Strongly Recommended)</span></label>
+                <input value={humanHandoffNumber} onChange={e => setHumanHandoffNumber(e.target.value)} placeholder="Number to notify for escalation (e.g. +92...)" style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none' }} />
+                <p style={{ fontSize: 12, color: '#6b7280', marginTop: 6 }}>Without this, AI escalation has nowhere to route urgent queries.</p>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button onClick={prevStep} style={{ flex: 1, padding: '14px', fontSize: 14, fontWeight: 600, background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 9, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <ArrowLeft size={16} /> Back
+                </button>
+                <button onClick={nextStep} style={{ flex: 2, padding: '14px', fontSize: 14, fontWeight: 600, background: '#111827', color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  Continue <ArrowRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 7 */}
+          {step === 7 && (
+            <div className="step-content animate-in">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <div style={{ background: '#fef2f2', padding: 8, borderRadius: 8 }}><CreditCard size={20} color="#dc2626" /></div>
+                <h2 style={{ fontSize: 22, fontWeight: 700, color: '#111827', margin: 0 }}>Plan & Finalize</h2>
+              </div>
+              <p style={{ fontSize: 14, color: '#4b5563', marginBottom: 24 }}>Select your plan to activate your workspace. You can invite your team later.</p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+                {['trial', 'starter', 'growth'].map(p => (
+                  <div key={p} onClick={() => setPlan(p)} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px',
+                    border: plan === p ? '2px solid #dc2626' : '1.5px solid rgba(220,38,38,0.15)',
+                    borderRadius: 12, cursor: 'pointer', background: plan === p ? '#fef2f2' : '#fff',
+                    boxShadow: plan === p ? '0 0 0 3px rgba(220,38,38,0.05)' : 'none'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', textTransform: 'capitalize' }}>{p === 'trial' ? '14-Day Free Trial' : `${p} Plan`}</div>
+                      <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{p === 'trial' ? 'Test all features for free' : p === 'starter' ? 'Perfect for small businesses' : 'For growing teams'}</div>
+                    </div>
+                    {plan === p && <Check size={20} color="#dc2626" />}
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button onClick={prevStep} disabled={loading} style={{ flex: 1, padding: '14px', fontSize: 14, fontWeight: 600, background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 9, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <ArrowLeft size={16} /> Back
+                </button>
+                <button onClick={handleFinish} disabled={loading} style={{ flex: 2, padding: '14px', fontSize: 15, fontWeight: 600, background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff', border: 'none', borderRadius: 9, cursor: loading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px rgba(220,38,38,0.3)', opacity: loading ? 0.8 : 1 }}>
+                  {loading ? <><Loader2 size={16} className="animate-spin" /> Setting up Workspace...</> : <>Complete Setup 🚀</>}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
+      <style>{`
+        .animate-in {
+          animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }

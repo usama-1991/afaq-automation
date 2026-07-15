@@ -71,6 +71,14 @@ function SettingsInner() {
   const [waNumber, setWaNumber] = useState('');
   const [location, setLocation] = useState('');
   const [website, setWebsite] = useState('');
+  const [legalName, setLegalName] = useState('');
+  const [description, setDescription] = useState('');
+  const [timezone, setTimezone] = useState('Asia/Karachi');
+  const [is247, setIs247] = useState(true);
+  const [autoReply, setAutoReply] = useState('');
+  const [aiTone, setAiTone] = useState('Friendly and professional');
+  const [aiLanguage, setAiLanguage] = useState('English');
+  const [humanHandoffNumber, setHumanHandoffNumber] = useState('');
 
   // Dynamic niche fields — start empty
   const [menuLink, setMenuLink] = useState('');
@@ -212,6 +220,14 @@ function SettingsInner() {
               if (ns.specialties) setSpecialties(ns.specialties);
               if (ns.slotCapacity) setSlotCapacity(ns.slotCapacity);
               if (ns.isHalal !== undefined) setIsHalal(ns.isHalal);
+              if (ns.timezone) setTimezone(ns.timezone);
+              if (ns.legalName) setLegalName(ns.legalName);
+              if (ns.description) setDescription(ns.description);
+              if (ns.is247 !== undefined) setIs247(ns.is247);
+              if (ns.autoReply) setAutoReply(ns.autoReply);
+              if (ns.aiTone) setAiTone(ns.aiTone);
+              if (ns.aiLanguage) setAiLanguage(ns.aiLanguage);
+              if (ns.humanHandoffNumber) setHumanHandoffNumber(ns.humanHandoffNumber);
             }
 
             // Load knowledge base entries
@@ -465,6 +481,14 @@ function SettingsInner() {
         if (parsed.ownerName) setOwnerName(parsed.ownerName);
         if (parsed.location) setLocation(parsed.location);
         if (parsed.website) setWebsite(parsed.website);
+        if (parsed.legalName) setLegalName(parsed.legalName);
+        if (parsed.description) setDescription(parsed.description);
+        if (parsed.timezone) setTimezone(parsed.timezone);
+        if (parsed.is247 !== undefined) setIs247(parsed.is247);
+        if (parsed.autoReply) setAutoReply(parsed.autoReply);
+        if (parsed.aiTone) setAiTone(parsed.aiTone);
+        if (parsed.aiLanguage) setAiLanguage(parsed.aiLanguage);
+        if (parsed.humanHandoffNumber) setHumanHandoffNumber(parsed.humanHandoffNumber);
       }
     } catch (_) {}
   }, [niche]);
@@ -484,7 +508,8 @@ function SettingsInner() {
           const nicheSettings = {
             dentalEmergency, slotLength, insurances, agencyLicense,
             operatingCities, propertyTypes, stylistsCount, bridalPackages,
-            opdHours, emergencyPhone, specialties, slotCapacity, isHalal
+            opdHours, emergencyPhone, specialties, slotCapacity, isHalal,
+            timezone, legalName, description, is247, autoReply, aiTone, aiLanguage, humanHandoffNumber
           };
           const updatePayload: Record<string, any> = {
             business_name: businessName,
@@ -518,7 +543,8 @@ function SettingsInner() {
       menuLink, slotCapacity, isHalal, dentalEmergency, slotLength, insurances,
       catalogLink, codEnabled, deliveryDays, minOrder, agencyLicense, operatingCities,
       propertyTypes, stylistsCount, bridalPackages, opdHours, emergencyPhone, specialties,
-      businessName, ownerName, waNumber, location, website
+      businessName, ownerName, waNumber, location, website,
+      timezone, legalName, description, is247, autoReply, aiTone, aiLanguage, humanHandoffNumber
     };
     localStorage.setItem(`ittisalo_custom_settings_${niche.id}`, JSON.stringify(localSettings));
 
@@ -671,10 +697,46 @@ function SettingsInner() {
               </div>
               <Field label="Business Name" value={businessName} onChange={setBusinessName} />
               <Field label="Owner Name" value={ownerName} onChange={setOwnerName} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <Field label="Legal Name" value={legalName} onChange={setLegalName} hint="For Meta verification" />
+                <div>
+                  <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Timezone</label>
+                  <select value={timezone} onChange={e => setTimezone(e.target.value)} style={{ width: '100%', maxWidth: 480, padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fff', outline: 'none' }}>
+                    <option value="Asia/Karachi">Asia/Karachi (PKT)</option>
+                    <option value="Asia/Dubai">Asia/Dubai (GST)</option>
+                    <option value="UTC">UTC</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Business Description</label>
+                <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Briefly describe what you do..." rows={2} style={{ width: '100%', maxWidth: 480, padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, outline: 'none', resize: 'none' }} />
+              </div>
               <Field label="WhatsApp Business Number" value={waNumber} onChange={setWaNumber} hint="Used to display in AI conversations" />
               <Field label="HQ Location" value={location} onChange={setLocation} />
               <Field label="Website Link" value={website} onChange={setWebsite} type="url" hint="Auto-scraped as primary knowledge base resource" />
             </div>
+
+            {/* Operating Hours & Escalation */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16 }}>
+                <Volume2 size={16} color="#dc2626" />
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Operating Hours & Escalation</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', maxWidth: 480, marginBottom: 10 }}>
+                <div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block' }}>24/7 Availability</span>
+                  <span style={{ fontSize: 11, color: '#9ca3af' }}>AI will handle messages anytime</span>
+                </div>
+                <Toggle checked={is247} onChange={() => setIs247(!is247)} />
+              </div>
+              {!is247 && (
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Off-hours Auto-reply</label>
+                  <textarea value={autoReply} onChange={e => setAutoReply(e.target.value)} placeholder="We are currently closed..." rows={2} style={{ width: '100%', maxWidth: 480, padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, outline: 'none', resize: 'none' }} />
+                </div>
+              )}
+              <Field label="Human Handoff Number" value={humanHandoffNumber} onChange={setHumanHandoffNumber} hint="Number to notify for escalation (e.g. +92...)" />
 
             {/* Niche-Specific Context Settings Panel */}
             <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
@@ -849,6 +911,32 @@ function SettingsInner() {
         {/* ── AI Knowledge Tab ── */}
         {tab === 'AI Knowledge' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* AI Personality Settings */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16 }}>
+                <Bot size={16} color="#dc2626" />
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>AI Personality & Behavior</div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div>
+                  <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Bot Persona / Tone</label>
+                  <select value={aiTone} onChange={e => setAiTone(e.target.value)} style={{ width: '100%', maxWidth: 480, padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fff', outline: 'none' }}>
+                    <option value="Friendly and professional">Friendly & Professional</option>
+                    <option value="Formal and polite">Formal & Polite</option>
+                    <option value="Enthusiastic and energetic">Enthusiastic</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Language Preference</label>
+                  <select value={aiLanguage} onChange={e => setAiLanguage(e.target.value)} style={{ width: '100%', maxWidth: 480, padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fff', outline: 'none' }}>
+                    <option value="English">English</option>
+                    <option value="Urdu">Urdu</option>
+                    <option value="Roman Urdu">Roman Urdu</option>
+                    <option value="Bilingual (Auto-detect)">Bilingual (Auto-detect)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
             {/* URL Scraper */}
             <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
