@@ -737,6 +737,7 @@ function SettingsInner() {
                 </div>
               )}
               <Field label="Human Handoff Number" value={humanHandoffNumber} onChange={setHumanHandoffNumber} hint="Number to notify for escalation (e.g. +92...)" />
+            </div>
 
             {/* Niche-Specific Context Settings Panel */}
             <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
