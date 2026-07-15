@@ -151,7 +151,7 @@ function ActionCenterDashboard({ userName }: { userName: string }) {
     <div style={{ padding: '32px 32px 50px', minHeight: '100%', background: '#faf9f9', maxWidth: 1100, margin: '0 auto' }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 24, fontWeight: 800, color: '#111827', letterSpacing: '-0.5px' }}>
-          Hey {userName}, Welcome to Ittisalo!
+          Hey {tenantInfo?.business_name || userName}, Welcome to Ittisalo!
         </h1>
         <p style={{ fontSize: 14, color: '#6b7280', marginTop: 4 }}>
           Connect your business to get your business phone number and unlock AI features.
@@ -525,7 +525,7 @@ export default function DashboardPage() {
         <div>
           <div style={{ fontSize: 12, color: '#9ca3af', fontWeight: 650, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{dateLabel}</div>
           <h1 className="dashboard-greeting" style={{ fontSize: 28, fontWeight: 900, color: DARK, letterSpacing: '-0.7px', lineHeight: 1.1 }}>
-            {greeting}{displayName ? `,${displayName}` : ''} 👋
+            {greeting}{tenantInfo?.business_name ? `, ${tenantInfo.business_name}` : (displayName ? `,${displayName}` : '')} 👋
           </h1>
           <p style={{ fontSize: 14, color: '#6b7280', marginTop: 4, fontWeight: 500 }}>
             Here is your live industry metrics panel for <strong style={{ color: RED }}>{niche.label}</strong>.

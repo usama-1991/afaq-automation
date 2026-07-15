@@ -91,8 +91,8 @@ function SettingsInner() {
 
   const [catalogLink, setCatalogLink] = useState('');
   const [codEnabled, setCodEnabled] = useState(true);
-  const [deliveryDays, setDeliveryDays] = useState('3');
-  const [minOrder, setMinOrder] = useState('0');
+  const [deliveryDays, setDeliveryDays] = useState('');
+  const [minOrder, setMinOrder] = useState('');
 
   const [agencyLicense, setAgencyLicense] = useState('');
   const [operatingCities, setOperatingCities] = useState('');
@@ -454,44 +454,7 @@ function SettingsInner() {
     setEcomSaving(false);
   };
 
-  // Load custom simulated niche fields from localstorage
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(`ittisalo_custom_settings_${niche.id}`);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.menuLink) setMenuLink(parsed.menuLink);
-        if (parsed.slotCapacity) setSlotCapacity(parsed.slotCapacity);
-        if (parsed.isHalal !== undefined) setIsHalal(parsed.isHalal);
-        if (parsed.dentalEmergency) setDentalEmergency(parsed.dentalEmergency);
-        if (parsed.slotLength) setSlotLength(parsed.slotLength);
-        if (parsed.insurances) setInsurances(parsed.insurances);
-        if (parsed.catalogLink) setCatalogLink(parsed.catalogLink);
-        if (parsed.codEnabled !== undefined) setCodEnabled(parsed.codEnabled);
-        if (parsed.deliveryDays) setDeliveryDays(parsed.deliveryDays);
-        if (parsed.minOrder) setMinOrder(parsed.minOrder);
-        if (parsed.agencyLicense) setAgencyLicense(parsed.agencyLicense);
-        if (parsed.operatingCities) setOperatingCities(parsed.operatingCities);
-        if (parsed.propertyTypes) setPropertyTypes(parsed.propertyTypes);
-        if (parsed.stylistsCount) setStylistsCount(parsed.stylistsCount);
-        if (parsed.bridalPackages !== undefined) setBridalPackages(parsed.bridalPackages);
-        if (parsed.opdHours) setOpdHours(parsed.opdHours);
-        if (parsed.emergencyPhone) setEmergencyPhone(parsed.emergencyPhone);
-        if (parsed.specialties) setSpecialties(parsed.specialties);
-        if (parsed.ownerName) setOwnerName(parsed.ownerName);
-        if (parsed.location) setLocation(parsed.location);
-        if (parsed.website) setWebsite(parsed.website);
-        if (parsed.legalName) setLegalName(parsed.legalName);
-        if (parsed.description) setDescription(parsed.description);
-        if (parsed.timezone) setTimezone(parsed.timezone);
-        if (parsed.is247 !== undefined) setIs247(parsed.is247);
-        if (parsed.autoReply) setAutoReply(parsed.autoReply);
-        if (parsed.aiTone) setAiTone(parsed.aiTone);
-        if (parsed.aiLanguage) setAiLanguage(parsed.aiLanguage);
-        if (parsed.humanHandoffNumber) setHumanHandoffNumber(parsed.humanHandoffNumber);
-      }
-    } catch (_) {}
-  }, [niche]);
+
 
   const handleSave = async () => {
     try {
@@ -538,15 +501,7 @@ function SettingsInner() {
       console.error('Error saving settings to Supabase:', err);
     }
     
-    // Save other simulated fields to localstorage
-    const localSettings = {
-      menuLink, slotCapacity, isHalal, dentalEmergency, slotLength, insurances,
-      catalogLink, codEnabled, deliveryDays, minOrder, agencyLicense, operatingCities,
-      propertyTypes, stylistsCount, bridalPackages, opdHours, emergencyPhone, specialties,
-      businessName, ownerName, waNumber, location, website,
-      timezone, legalName, description, is247, autoReply, aiTone, aiLanguage, humanHandoffNumber
-    };
-    localStorage.setItem(`ittisalo_custom_settings_${niche.id}`, JSON.stringify(localSettings));
+
 
     setSaved(true); 
     setTimeout(() => setSaved(false), 2000); 
@@ -813,27 +768,7 @@ function SettingsInner() {
               )}
             </div>
 
-            {/* Business Logo Upload */}
-            <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 8 }}>Dashboard Logo</div>
-              <div style={{ 
-                border: '2.5px dashed rgba(220,38,38,0.15)', borderRadius: 12, padding: '24px', 
-                textAlign: 'center', cursor: 'pointer', background: '#fff5f5', transition: 'all 0.15s' 
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = '#fef2f2';
-                e.currentTarget.style.borderColor = '#dc2626';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = '#fff5f5';
-                e.currentTarget.style.borderColor = 'rgba(220,38,38,0.15)';
-              }}
-              >
-                <Upload size={22} color="#dc2626" style={{ margin: '0 auto 8px' }} />
-                <div style={{ fontSize: 13, color: '#4b5563', fontWeight: 600 }}>Upload company logo</div>
-                <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>Supports SVG, PNG (Max 2MB)</div>
-              </div>
-            </div>
+
 
             {/* Danger Zone */}
             <div style={{ padding: '18px', background: '#fef2f2', borderRadius: 14, border: '1.5px solid rgba(220,38,38,0.2)' }}>
