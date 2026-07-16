@@ -26,8 +26,9 @@ export interface ShopifyCredentials {
 }
 
 export interface WooCommerceCredentials {
-  store_url: string;      // e.g. "https://mysite.com"
-  consumer_key: string;   // e.g. "ck_xxxx"
+  store_url?: string;      // e.g. "https://mysite.com"
+  site_url?: string;       // e.g. "https://mysite.com" (alternative key used in frontend)
+  consumer_key: string;    // e.g. "ck_xxxx"
   consumer_secret: string; // e.g. "cs_xxxx"
 }
 
@@ -135,13 +136,13 @@ export async function pushOrderToWooCommerce(
       Buffer.from(`${creds.consumer_key}:${creds.consumer_secret}`).toString('base64');
 
     // Normalize store URL — strip trailing slash
-    const storeUrl = (creds.store_url || '').replace(/\/+$/, '');
+    const storeUrl = (creds.site_url || creds.store_url || '').replace(/\/+$/, '');
     if (!storeUrl) {
       return {
         success: false,
         platform_order_id: null,
         platform_order_number: null,
-        error: `WooCommerce push failed: store_url is missing in credentials`,
+        error: `WooCommerce push failed: site_url/store_url is missing in credentials`,
       };
     }
 
@@ -217,7 +218,7 @@ export async function sendOrderConfirmationEmail(
   order: OrderData & { platform_order_number?: string | null },
   businessName: string
 ): Promise<{ success: boolean; error?: string }> {
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = process.env.RESEND_API_KEY || 're_GgEzK9tC_JnGcgPyFj23Xnqt9xPAiB1aw';
   if (!apiKey) {
     return { success: false, error: 'RESEND_API_KEY not configured' };
   }
