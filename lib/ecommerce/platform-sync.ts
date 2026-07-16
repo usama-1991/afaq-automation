@@ -135,7 +135,15 @@ export async function pushOrderToWooCommerce(
       Buffer.from(`${creds.consumer_key}:${creds.consumer_secret}`).toString('base64');
 
     // Normalize store URL — strip trailing slash
-    const storeUrl = creds.store_url.replace(/\/+$/, '');
+    const storeUrl = (creds.store_url || '').replace(/\/+$/, '');
+    if (!storeUrl) {
+      return {
+        success: false,
+        platform_order_id: null,
+        platform_order_number: null,
+        error: `WooCommerce push failed: store_url is missing in credentials`,
+      };
+    }
 
     const response = await fetch(`${storeUrl}/wp-json/wc/v3/orders`, {
       method: 'POST',
