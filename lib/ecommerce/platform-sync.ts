@@ -172,6 +172,7 @@ export async function pushOrderToWooCommerce(
           phone: order.customer_phone,
         },
         line_items: (order.items || []).map(item => ({
+          product_id: 0, // 0 tells WooCommerce this is a custom line item
           name: item.name || 'Product',
           quantity: item.qty || 1,
           total: String((item.price || 0) * (item.qty || 1)),
@@ -238,8 +239,8 @@ export async function sendOrderConfirmationEmail(
     )
     .join('');
 
-  const fromDomain = process.env.RESEND_FROM_DOMAIN || 'ittisalo.com';
-  const fromEmail = process.env.RESEND_FROM_EMAIL || `orders@${fromDomain}`;
+  const fromDomain = process.env.RESEND_FROM_DOMAIN || 'resend.dev';
+  const fromEmail = process.env.RESEND_FROM_EMAIL || `onboarding@resend.dev`;
 
   try {
     const response = await fetch('https://api.resend.com/emails', {
