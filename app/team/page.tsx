@@ -12,25 +12,25 @@ interface Agent {
   permissions: Record<string, number>;
 }
 
-const defaultAgents: Agent[] = [
-  { id: '1', name: 'Jason Brown', email: 'jason.b@ittisalo.io', role: 'Agent', permissions: { 'Lead Management': 14, 'Live Chat': 5, 'Templates': 6, 'Campaigns': 1, 'Flows': 1, 'Reports': 2, 'User Management': 1 } },
-  { id: '2', name: 'Sarah Connor', email: 'sarah.c@ittisalo.io', role: 'Team Lead', permissions: { 'Lead Management': 14, 'Live Chat': 5, 'Templates': 6, 'Campaigns': 4, 'Flows': 4, 'Reports': 2, 'User Management': 1 } },
-];
+// defaultAgents removed
 
 const PERMISSION_CATEGORIES = [
   { id: 'Lead Management', label: 'Lead Management', icon: MessageSquare, max: 14, color: '#10b981' },
   { id: 'Live Chat', label: 'Live Chat', icon: MessageSquare, max: 5, color: '#10b981' },
   { id: 'Templates', label: 'Templates', icon: FileText, max: 6, color: '#10b981' },
   { id: 'Campaigns', label: 'Campaigns', icon: Megaphone, max: 4, color: '#f59e0b' },
-  { id: 'Flows', label: 'Flows', icon: Zap, max: 4, color: '#f59e0b' },
   { id: 'Reports', label: 'Reports', icon: BarChart2, max: 2, color: '#10b981' },
   { id: 'User Management', label: 'User Management', icon: Users, max: 1, color: '#10b981' },
 ];
 
+import { supabase } from '@/lib/supabase/client';
+import { useEffect } from 'react';
+
 export default function TeamPage() {
-  const [agents, setAgents] = useState<Agent[]>(defaultAgents);
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [view, setView] = useState<'list' | 'edit'>('list');
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
+  const [tenantId, setTenantId] = useState<string>('');
   
   // Create state
   const [newName, setNewName] = useState('');
@@ -42,6 +42,37 @@ export default function TeamPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [generatedCreds, setGeneratedCreds] = useState({ email: '', password: '' });
   const [copied, setCopied] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchAgents();
+  }, []);
+
+  const fetchAgents = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { data: profile } = await supabase.from('users').select('tenant_id').eq('id', user.id).single();
+      if (profile?.tenant_id) {
+        setTenantId(profile.tenant_id);
+        const { data: usersData } = await supabase.from('users').select('*').eq('tenant_id', profile.tenant_id);
+        
+        if (usersData) {
+          const formattedAgents: Agent[] = usersData.map(u => ({
+            id: u.id,
+            name: u.full_name || 'Unnamed Agent',
+            email: u.email || 'No Email',
+            role: u.role === 'admin' ? 'Admin' : u.role === 'Team Lead' ? 'Team Lead' : 'Agent',
+            permissions: u.permissions || {}
+          }));
+          setAgents(formattedAgents);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch team members:', err);
+    }
+  };
 
   const handleCopy = (text: string, type: string) => {
     navigator.clipboard.writeText(text);
@@ -70,35 +101,58 @@ export default function TeamPage() {
     setView('edit');
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setLoading(true);
     if (editingAgent) {
       // Update existing
-      setAgents(prev => prev.map(a => a.id === editingAgent.id ? {
-        ...a,
-        name: newName || a.name,
-        email: newEmail || a.email,
-        role: isTeamLead ? 'Team Lead' : 'Agent',
-        permissions: tempPermissions
-      } : a));
-      setView('list');
+      try {
+        const dbRole = isTeamLead ? 'Team Lead' : 'agent';
+        await supabase.from('users').update({
+          full_name: newName || editingAgent.name,
+          email: newEmail || editingAgent.email,
+          role: dbRole,
+          permissions: tempPermissions
+        }).eq('id', editingAgent.id);
+        
+        await fetchAgents();
+        setView('list');
+      } catch (err) {
+        alert('Failed to update agent.');
+      }
     } else {
       // Create new
-      if (!newName || !newEmail) return alert('Name and email are required to create an agent.');
-      const newId = Math.random().toString(36).substring(7);
-      const newAgent: Agent = {
-        id: newId,
-        name: newName,
-        email: newEmail,
-        role: isTeamLead ? 'Team Lead' : 'Agent',
-        permissions: tempPermissions
-      };
-      setAgents(prev => [...prev, newAgent]);
+      if (!newName || !newEmail) {
+        setLoading(false);
+        return alert('Name and email are required to create an agent.');
+      }
       
-      // Generate random password
-      const tempPass = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-2);
-      setGeneratedCreds({ email: newEmail, password: tempPass });
-      setShowSuccessModal(true);
+      try {
+        const res = await fetch('/api/team', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: newName,
+            email: newEmail,
+            role: isTeamLead ? 'Team Lead' : 'Agent',
+            permissions: tempPermissions,
+            tenantId: tenantId
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+          setGeneratedCreds({ email: newEmail, password: data.tempPass });
+          await fetchAgents();
+          setShowSuccessModal(true);
+        } else {
+          alert('Error: ' + data.error);
+        }
+      } catch (err) {
+        alert('Failed to create agent.');
+      }
     }
+    setLoading(false);
   };
 
   const totalPerms = Object.values(tempPermissions).reduce((acc, val) => acc + val, 0);
@@ -274,9 +328,10 @@ export default function TeamPage() {
             </div>
             <button 
               onClick={handleSave}
-              style={{ background: '#10b981', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+              disabled={loading}
+              style={{ background: '#10b981', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.7 : 1 }}
             >
-              Save Changes
+              {loading ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </div>
