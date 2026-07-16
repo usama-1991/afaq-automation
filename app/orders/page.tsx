@@ -410,7 +410,14 @@ export default function OrdersPage() {
                       onMouseLeave={e => e.currentTarget.style.background = '#fff'}
                     >
                       <td style={{ padding: '16px 24px' }}>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 2 }}>{name}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{name}</span>
+                          {tableName === 'orders' && item.platform_order_number && (
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 6, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                              #{item.platform_order_number}
+                            </span>
+                          )}
+                        </div>
                         <div style={{ fontSize: 12, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 4 }}><Phone size={11} /> {phone}</div>
                       </td>
                       <td style={{ padding: '16px 24px', fontSize: 13, color: '#4b5563', fontWeight: 500 }}>{col2}</td>
