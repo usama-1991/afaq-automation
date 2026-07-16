@@ -146,6 +146,47 @@ export async function pushOrderToWooCommerce(
       };
     }
 
+    // Attempt to resolve WooCommerce product IDs by searching the catalog by name
+    const resolvedLineItems = await Promise.all(
+      (order.items || []).map(async item => {
+        let productId = null;
+        if (item.name) {
+          try {
+            const searchRes = await fetch(
+              `${storeUrl}/wp-json/wc/v3/products?search=${encodeURIComponent(item.name)}&per_page=1`,
+              { headers: { Authorization: authHeader } }
+            );
+            if (searchRes.ok) {
+              const products = await searchRes.json();
+              if (products && products.length > 0) {
+                productId = products[0].id;
+              }
+            }
+          } catch (e) {
+            console.error('WooCommerce product search failed', e);
+          }
+        }
+        return {
+          product_id: productId,
+          name: item.name || 'Product',
+          quantity: item.qty || 1,
+          total: String((item.price || 0) * (item.qty || 1)),
+        };
+      })
+    );
+
+    // WooCommerce requires product_id for line_items. If it's null, we push it as a fee_line instead so the order still goes through.
+    const validLineItems = resolvedLineItems.filter(i => i.product_id !== null).map(i => ({
+      product_id: i.product_id,
+      quantity: i.quantity,
+      total: i.total,
+    }));
+    
+    const feeLines = resolvedLineItems.filter(i => i.product_id === null).map(i => ({
+      name: `${i.quantity}x ${i.name}`,
+      total: i.total,
+    }));
+
     const response = await fetch(`${storeUrl}/wp-json/wc/v3/orders`, {
       method: 'POST',
       headers: {
@@ -171,12 +212,8 @@ export async function pushOrderToWooCommerce(
           address_1: order.delivery_address || '',
           phone: order.customer_phone,
         },
-        line_items: (order.items || []).map(item => ({
-          product_id: 0, // 0 tells WooCommerce this is a custom line item
-          name: item.name || 'Product',
-          quantity: item.qty || 1,
-          total: String((item.price || 0) * (item.qty || 1)),
-        })),
+        line_items: validLineItems,
+        fee_lines: feeLines,
         meta_data: [
           { key: '_ittisalo_synced', value: 'true' },
           { key: '_ittisalo_order_id', value: order.id },
