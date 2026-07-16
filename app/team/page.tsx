@@ -59,7 +59,7 @@ export default function TeamPage() {
         const { data: usersData } = await supabase.from('users').select('*').eq('tenant_id', profile.tenant_id);
         
         if (usersData) {
-          const formattedAgents: Agent[] = usersData.map(u => ({
+          const formattedAgents: Agent[] = usersData.map((u: any) => ({
             id: u.id,
             name: u.full_name || 'Unnamed Agent',
             email: u.email || 'No Email',
