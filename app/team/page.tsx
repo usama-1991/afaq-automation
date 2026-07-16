@@ -295,7 +295,14 @@ export default function TeamPage() {
                 const isFull = tempPermissions[cat.id] === cat.max;
                 const isEmpty = tempPermissions[cat.id] === 0;
                 return (
-                  <div key={cat.id} style={{ 
+                  <div key={cat.id} 
+                    onClick={() => {
+                      setTempPermissions(prev => ({
+                        ...prev,
+                        [cat.id]: prev[cat.id] === cat.max ? 0 : cat.max
+                      }));
+                    }}
+                    style={{ 
                     background: '#fff', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 12, padding: '20px',
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.01)',
                     cursor: 'pointer'
