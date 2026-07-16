@@ -218,7 +218,7 @@ export async function sendOrderConfirmationEmail(
   order: OrderData & { platform_order_number?: string | null },
   businessName: string
 ): Promise<{ success: boolean; error?: string }> {
-  const apiKey = process.env.RESEND_API_KEY || 're_GgEzK9tC_JnGcgPyFj23Xnqt9xPAiB1aw';
+  const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     return { success: false, error: 'RESEND_API_KEY not configured' };
   }
