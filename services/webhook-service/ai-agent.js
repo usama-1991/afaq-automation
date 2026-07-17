@@ -518,74 +518,10 @@ export async function processAIAgent(ctx) {
       updated_at: new Date().toISOString()
     }).eq('id', ctx.conversation_id);
 
-    // 6. Send Reply to Meta
-    await sendReplyToMeta(ctx, ai_reply);
-
     console.log(`[AI-Agent] Processing complete for conv_id: ${ctx.conversation_id}`);
     return { success: true, reply: ai_reply, intent: ai_intent };
 
   } catch (error) {
     console.error(`[AI-Agent] Error processing message:`, error);
-  }
-}
-
-async function sendReplyToMeta(ctx, messageText) {
-  try {
-    if (ctx.platform === 'whatsapp') {
-      if (!ctx.wa_phone_number_id || !ctx.wa_access_token) {
-        console.warn('[AI-Agent] Missing WA credentials, cannot send reply.');
-        return;
-      }
-      const url = `https://graph.facebook.com/v21.0/${ctx.wa_phone_number_id}/messages`;
-      const body = {
-        messaging_product: 'whatsapp',
-        recipient_type: 'individual',
-        to: ctx.customer_phone,
-        type: 'text',
-        text: { preview_url: false, body: messageText }
-      };
-      
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${ctx.wa_access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
-      });
-      
-      const data = await res.json();
-      if (data.error) console.error('[AI-Agent] WA Send Error:', data.error);
-      else console.log('[AI-Agent] Reply sent to WA successfully.');
-      
-    } else if (ctx.platform === 'instagram' || ctx.platform === 'messenger') {
-      const pageOrIgId = ctx.wa_phone_number_id; // in webhook-service, externalAccountId is used for phone_number_id mapping
-      const token = ctx.platform === 'instagram' 
-        ? (process.env.INSTAGRAM_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN)
-        : (process.env.MESSENGER_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN);
-        
-      if (!token) {
-        console.warn(`[AI-Agent] Missing ${ctx.platform} token.`);
-        return;
-      }
-      
-      const url = `https://graph.facebook.com/v21.0/me/messages?access_token=${token}`;
-      const body = {
-        recipient: { id: ctx.customer_phone },
-        message: { text: messageText }
-      };
-      
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      
-      const data = await res.json();
-      if (data.error) console.error(`[AI-Agent] ${ctx.platform} Send Error:`, data.error);
-      else console.log(`[AI-Agent] Reply sent to ${ctx.platform} successfully.`);
-    }
-  } catch (error) {
-    console.error(`[AI-Agent] Failed to send reply to Meta:`, error);
   }
 }
