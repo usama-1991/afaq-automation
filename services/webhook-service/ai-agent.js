@@ -1,9 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
+import ws from 'ws';
 
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabaseUrl = process.env.SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder';
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  realtime: { transport: ws }
+});
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
