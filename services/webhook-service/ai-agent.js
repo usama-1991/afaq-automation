@@ -42,9 +42,26 @@ export async function processAIAgent(ctx) {
       }
     }
 
+    // 2b. Search Products (if ecommerce)
+    let productDocs = [];
+    if (['ecommerce', 'restaurant', 'food_delivery'].includes(ctx.niche)) {
+      const { data: prodRes, error: prodErr } = await supabase.rpc('search_products', {
+        p_tenant_id: ctx.tenant_id,
+        p_query: ctx.normalized_message || '',
+        p_limit: 10
+      });
+      if (!prodErr && prodRes) {
+        productDocs = prodRes;
+      }
+    }
+
     // 3. Assemble Context
     const kbEntries = kbDocs.length > 0
       ? kbDocs.map((kb, i) => `[${i + 1}] ${kb.title}:\n${kb.content}`).join('\n\n')
+      : '';
+      
+    const productEntries = productDocs.length > 0
+      ? productDocs.map(p => `- ${p.name} (Category: ${p.category || 'General'}) - Price: ${p.price || 'Ask'} - Desc: ${p.description || 'N/A'}`).join('\n')
       : '';
 
     let finalContext = '';
@@ -68,9 +85,15 @@ export async function processAIAgent(ctx) {
       en: 'Reply in clear, warm, conversational English.'
     };
 
-    const kbSection = kbEntries
-      ? `KNOWLEDGE BASE (${kbDocs.length} relevant results):\n${kbEntries}`
-      : 'KNOWLEDGE BASE: No specific content found. Answer only from what you know about this business from the system prompt above.';
+    let kbSection = kbEntries
+      ? `KNOWLEDGE BASE (${kbDocs.length} relevant results):\n${kbEntries}\n\n`
+      : 'KNOWLEDGE BASE: No specific policies found.\n\n';
+      
+    if (productEntries) {
+      kbSection += `AVAILABLE PRODUCTS CATALOG (${productDocs.length} items):\n${productEntries}\n\nUse this catalog to suggest products and prices.`;
+    } else if (['ecommerce', 'restaurant', 'food_delivery'].includes(ctx.niche)) {
+      kbSection += 'AVAILABLE PRODUCTS: No specific products matched or catalog is empty. Ask the customer for details.';
+    }
 
     // Check for existing order
     let existingOrder = null;
@@ -475,8 +498,11 @@ export async function processAIAgent(ctx) {
 
     if (createRecord) {
       console.log(`[AI-Agent] Upserting ${recordType} record...`);
+      let upsertedOrderId = null;
+      
       if (recordType === 'order') {
-        await supabase.from('orders').upsert(recordData, { onConflict: 'conversation_id' });
+        const { data: ord } = await supabase.from('orders').upsert(recordData, { onConflict: 'conversation_id' }).select('id').single();
+        if (ord) upsertedOrderId = ord.id;
       } else if (recordType === 'appointment') {
         await supabase.from('appointments').upsert(recordData, { onConflict: 'conversation_id' });
       } else if (recordType === 'lead') {
@@ -491,6 +517,26 @@ export async function processAIAgent(ctx) {
         context_data: { extracted_info: recordData, updated_at: new Date().toISOString() },
         updated_at: new Date().toISOString()
       }, { onConflict: 'conversation_id' });
+      
+      // Trigger Ecommerce Sync if Order is Confirmed
+      if (recordType === 'order' && recordData.status === 'confirmed' && upsertedOrderId) {
+        const dashboardUrl = process.env.DASHBOARD_URL;
+        const syncKey = process.env.ORDERS_SYNC_API_KEY || process.env.OPENAI_API_KEY; // Fallback so it at least tries
+        
+        if (dashboardUrl) {
+           console.log(`[AI-Agent] Order confirmed! Triggering ecommerce sync to ${dashboardUrl}/api/orders/sync...`);
+           fetch(`${dashboardUrl}/api/orders/sync`, {
+             method: 'POST',
+             headers: {
+               'Content-Type': 'application/json',
+               'x-api-key': syncKey
+             },
+             body: JSON.stringify({ order_id: upsertedOrderId })
+           }).catch(err => console.error(`[AI-Agent] Sync trigger failed:`, err));
+        } else {
+           console.warn(`[AI-Agent] Order confirmed, but DASHBOARD_URL is not set. Cannot trigger WooCommerce sync.`);
+        }
+      }
     }
 
     const needs_human_handoff = /human|agent|representative|insaan|baat|connect|transfer/i.test(msgLower);
