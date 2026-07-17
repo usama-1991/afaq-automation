@@ -61,7 +61,7 @@ export async function processAIAgent(ctx) {
       : '';
       
     const productEntries = productDocs.length > 0
-      ? productDocs.map(p => `- ${p.name} (Category: ${p.category || 'General'}) - Price: ${p.price || 'Ask'} - Desc: ${p.description || 'N/A'}`).join('\n')
+      ? productDocs.map(p => `- ${p.name} (Category: ${p.category || 'General'}) - Price: ${p.price || 'Ask'} - Desc: ${p.description || 'N/A'}${p.image_url ? ` - Image: ${p.image_url}` : ''}`).join('\n')
       : '';
 
     let finalContext = '';
@@ -153,6 +153,7 @@ export async function processAIAgent(ctx) {
       '4. Keep responses under 3 short paragraphs — be concise.',
       '5. Be warm, human, and conversational. Never sound robotic.',
       `6. Channel: ${ctx.platform}`,
+      '7. If you recommend a product and the catalog below provides an "Image:" URL for it, you MUST include it in your response using exact markdown format: `![Product Name](URL)`. Do not use HTML.',
       '',
       orderStateBlock,
       '',
