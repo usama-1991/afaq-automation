@@ -138,7 +138,7 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
   // 2. Find or Create Conversation — scoped to this tenant + customer phone
   let { data: conversation } = await supabase
     .from('conversations')
-    .select('id, unread_count, status')
+    .select('id, unread_count, status, assigned_to')
     .eq('tenant_id', tenantId)
     .eq('external_conversation_id', customerId)
     .order('created_at', { ascending: true })
@@ -155,14 +155,14 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
         external_conversation_id: customerId,
         customer_name: customerName,
       }, { onConflict: 'tenant_id,external_conversation_id', ignoreDuplicates: false })
-      .select('id, unread_count, status')
+      .select('id, unread_count, status, assigned_to')
       .single();
 
     if (newConvError) {
       // Race condition: another request created it — fetch it now
       const { data: retryConv } = await supabase
         .from('conversations')
-        .select('id, unread_count, status')
+        .select('id, unread_count, status, assigned_to')
         .eq('tenant_id', tenantId)
         .eq('external_conversation_id', customerId)
         .order('created_at', { ascending: true })
@@ -222,9 +222,9 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
 
   fastify.log.info(`[${platform}] Message inserted and counter updated to ${currentCount + 1}.`);
 
-  // 3b. Human handoff gate: if conversation is 'pending', skip AI
-  if (conversation?.status === 'pending') {
-    fastify.log.info(`[${platform}] Conversation ${conversation.id} is in human handoff (pending). Skipping n8n AI.`);
+  // 3b. Human handoff gate: if conversation is 'pending' or assigned to a human, skip AI
+  if (conversation?.status === 'pending' || conversation?.assigned_to) {
+    fastify.log.info(`[${platform}] Conversation ${conversation.id} is in human handoff (pending or assigned). Skipping n8n AI.`);
     return;
   }
 
