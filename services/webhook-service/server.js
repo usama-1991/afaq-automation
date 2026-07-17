@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import { createClient } from '@supabase/supabase-js';
 import ws from 'ws';
+import { processAIAgent } from './ai-agent.js';
 
 const fastify = Fastify({ logger: true });
 
@@ -353,43 +354,33 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
       _raw_meta:            false,
     };
 
-    fetch(n8nUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.N8N_API_KEY || '',
-      },
-      body: JSON.stringify(n8nPayload),
-    }).catch(err => fastify.log.error(`Failed to trigger n8n: ${err.message}`));
+    // 5. Fire internal AI Agent instead of n8n
+    processAIAgent(n8nPayload).catch(err => fastify.log.error(`Failed to process AI agent: ${err.message}`));
 
   } catch (enrichErr) {
     fastify.log.error(`[${platform}] Enrichment failed — firing n8n with minimal safe payload: ${enrichErr.message}`);
-    // Fallback: at minimum send conversation_id and WA creds so n8n can still reply
-    fetch(n8nUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.N8N_API_KEY || '' },
-      body: JSON.stringify({
-        tenant_id:            tenantId,
-        conversation_id:      conversation.id,
-        customer_phone:       customerId,
-        customer_name:        customerName,
-        platform:             platform,
-        message_type:         'text',
-        message:              messageText,
-        normalized_message:   messageText,
-        external_message_id:  messageId,
-        niche:                tenantNiche,
-        business_name:        tenantBusinessName,
-        wa_phone_number_id:   waPhoneNumberId,
-        wa_access_token:      waAccessToken,
-        phone_number_id:      waPhoneNumberId,
-        knowledge_base:       [],
-        conversation_history: [],
-        existing_context:     null,
-        timestamp:            new Date().toISOString(),
-        _raw_meta:            false,
-      }),
-    }).catch(err => fastify.log.error(`Fallback n8n trigger failed: ${err.message}`));
+    // Fallback: minimal payload to AI agent
+    processAIAgent({
+      tenant_id:            tenantId,
+      conversation_id:      conversation.id,
+      customer_phone:       customerId,
+      customer_name:        customerName,
+      platform:             platform,
+      message_type:         'text',
+      message:              messageText,
+      normalized_message:   messageText,
+      external_message_id:  messageId,
+      niche:                tenantNiche,
+      business_name:        tenantBusinessName,
+      wa_phone_number_id:   waPhoneNumberId,
+      wa_access_token:      waAccessToken,
+      phone_number_id:      waPhoneNumberId,
+      knowledge_base:       [],
+      conversation_history: [],
+      existing_context:     null,
+      timestamp:            new Date().toISOString(),
+      _raw_meta:            false,
+    }).catch(err => fastify.log.error(`Fallback AI agent trigger failed: ${err.message}`));
   }
 }
 
