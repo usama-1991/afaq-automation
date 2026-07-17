@@ -229,13 +229,7 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
     return;
   }
 
-  // 4. Fetch enrichment data in parallel, then fire n8n with COMPLETE payload
-  const n8nUrl = process.env.N8N_WEBHOOK_URL;
-  if (!n8nUrl) {
-    fastify.log.warn(`[${platform}] N8N_WEBHOOK_URL not set — skipping n8n trigger`);
-    return;
-  }
-
+  // 4. Fetch enrichment data in parallel, then fire internal AI agent
   try {
     const [kbResult, historyResult, integResult, agentResult, contextResult] = await Promise.allSettled([
 
