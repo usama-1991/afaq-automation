@@ -24,12 +24,34 @@ fastify.get('/health', async (request, reply) => {
 
 const parseMediaContent = (content) => {
   if (!content) return null;
+  
+  let category = '';
+  let fileName = '';
+  let fileUrl = '';
+  let caption = '';
+
+  // 1. Check for old format: [Media: Images] fileName|url
   const mediaRegex = /^\[Media:\s*(Images|Documents|Videos|Audio)\]\s*([^|]+)\|(.+)$/i;
   const match = content.match(mediaRegex);
-  if (!match) return null;
-
-  const [_, category, fileName, fileUrl] = match;
-  const catLower = category.toLowerCase();
+  
+  if (match) {
+    category = match[1].toLowerCase();
+    fileName = match[2];
+    fileUrl = match[3];
+  } else {
+    // 2. Check for standard Markdown Image: ![Caption](URL)
+    const mdRegex = /!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/i;
+    const mdMatch = content.match(mdRegex);
+    if (mdMatch) {
+      category = 'images';
+      fileName = mdMatch[1] || 'product_image.jpg';
+      fileUrl = mdMatch[2];
+      // Remove the markdown image string to use the rest of the AI's reply as the caption
+      caption = content.replace(mdMatch[0], '').trim();
+    } else {
+      return null;
+    }
+  }
   
   let isBase64 = false;
   let base64Data = '';
@@ -41,19 +63,20 @@ const parseMediaContent = (content) => {
     mimeType = parts[0].replace('data:', '');
     base64Data = parts[1];
   } else {
-    if (catLower === 'images') mimeType = 'image/jpeg';
-    else if (catLower === 'videos') mimeType = 'video/mp4';
-    else if (catLower === 'audio') mimeType = 'audio/mpeg';
+    if (category === 'images') mimeType = 'image/jpeg';
+    else if (category === 'videos') mimeType = 'video/mp4';
+    else if (category === 'audio') mimeType = 'audio/mpeg';
     else mimeType = 'application/octet-stream';
   }
 
   return {
-    category: catLower,
+    category,
     fileName,
     fileUrl,
     isBase64,
     base64Data,
-    mimeType
+    mimeType,
+    caption
   };
 };
 
@@ -150,6 +173,11 @@ async function dispatchOutboundMessage(message) {
 
       if (waType === 'document') {
         payload.document.filename = mediaInfo.fileName;
+      } else if (mediaInfo.caption) {
+        // WhatsApp captions are limited to 1024 characters
+        payload[waType].caption = mediaInfo.caption.length > 1024 
+          ? mediaInfo.caption.substring(0, 1020) + '...' 
+          : mediaInfo.caption;
       }
     } else {
       payload = {
@@ -244,6 +272,19 @@ async function dispatchOutboundMessage(message) {
         });
       } else {
         // Hosted URL payload
+        
+        // If there's a caption, send it first as a text message since Messenger attachments don't support native captions
+        if (mediaInfo.caption) {
+          await fetch(sendUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              recipient: { id: customerPhone },
+              message: { text: mediaInfo.caption }
+            })
+          });
+        }
+
         metaResponse = await fetch(sendUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

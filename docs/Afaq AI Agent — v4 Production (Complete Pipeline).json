@@ -240,14 +240,14 @@
     },
     {
       "parameters": {
-        "jsCode": "// ─────────────────────────────────────────────\n// NODE 12: Assemble full context for AI\n// ─────────────────────────────────────────────\nconst ctx       = $('Merge Tenant').first().json;\nconst agentItem = $('Load Agent').first().json;\nconst convItem  = $('Find Conversation').first().json;\n\n// Extract knowledge base docs from all split items of Search Knowledge Base\nconst kbDocs = $input.all()\n  .map(item => item.json)\n  .filter(doc => doc && doc.title && doc.content);\n\n// Agent prompt — from agents table\nconst agent      = agentItem?.id ? agentItem : null;\nconst agentPrompt = agent?.prompt ||\n  `You are a helpful AI assistant for ${ctx.business_name}. Answer customer questions professionally.`;\n\n// Format knowledge base entries\nconst kbEntries = kbDocs.length > 0\n  ? kbDocs.map((kb, i) => `[${i + 1}] ${kb.title}:\\n${kb.content}`).join('\\n\\n')\n  : '';\n\n// Existing conversation\nconst existingConv      = convItem?.id ? convItem : null;\nconst conversation_id   = ctx.conversation_id || existingConv?.id || null;\nconst is_new_conversation = !existingConv;\n\nreturn [{\n  json: {\n    ...ctx,\n    agent_prompt:       agentPrompt,\n    kb_entries:         kbEntries,\n    kb_count:           kbDocs.length,\n    conversation_id:    conversation_id,\n    is_new_conversation: is_new_conversation\n  }\n}];"
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 12: Assemble full context for AI\n// ─────────────────────────────────────────────\nconst ctx       = $('Merge Tenant').first().json;\nconst agentItem = $('Load Agent').first().json;\nconst convItem  = $('Find Conversation').first().json;\n\n// Extract knowledge base docs\nconst kbDocs = $('Search Knowledge Base').all()\n  .map(item => item.json)\n  .filter(doc => doc && doc.title && doc.content && !doc.error);\n\n// Extract products\nlet productDocs = [];\ntry {\n  productDocs = $('Search Products').all()\n    .map(item => item.json)\n    .filter(doc => doc && doc.name && !doc.error);\n} catch(e) {}\n\n// Agent prompt — from agents table\nconst agent      = agentItem?.id ? agentItem : null;\nconst agentPrompt = agent?.prompt ||\n  `You are a helpful AI assistant for ${ctx.business_name}. Answer customer questions professionally.`;\n\n// Format knowledge base entries\nconst kbEntries = kbDocs.length > 0\n  ? kbDocs.map((kb, i) => `[${i + 1}] ${kb.title}:\\n${kb.content}`).join('\\n\\n')\n  : '';\n\n// Format product entries (Phase 3 Commerce V2)\nconst productEntries = productDocs.length > 0\n  ? productDocs.map(p => {\n      let desc = p.description ? p.description.substring(0, 150) + '...' : '';\n      return `- ${p.name} | Price: ${p.price} ${p.currency}\\n  Category: ${p.category}\\n  Desc: ${desc}\\n  URL: ${p.product_url || ''}\\n  Image: ${p.image_url || ''}`;\n    }).join('\\n\\n')\n  : '';\n\nlet finalContext = '';\nif (kbEntries) finalContext += `=== GENERAL POLICIES & FAQS ===\\n${kbEntries}\\n\\n`;\nif (productEntries) finalContext += `=== LIVE PRODUCT CATALOG ===\\n${productEntries}\\n\\n`;\n\n// Existing conversation\nconst existingConv      = convItem?.id ? convItem : null;\nconst conversation_id   = ctx.conversation_id || existingConv?.id || null;\nconst is_new_conversation = !existingConv;\n\nreturn [{\n  json: {\n    ...ctx,\n    agent_prompt:       agentPrompt,\n    kb_entries:         finalContext,\n    kb_count:           kbDocs.length,\n    product_count:      productDocs.length,\n    conversation_id:    conversation_id,\n    is_new_conversation: is_new_conversation\n  }\n}];"
       },
       "id": "a04d7db5-b9e5-418a-8976-cf7470169e49",
       "name": "Assemble Context",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1440,
+        -1248,
         544
       ]
     },
@@ -285,7 +285,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ─────────────────────────────────────────────\n// NODE 14: Build complete AI prompt\n// ─────────────────────────────────────────────\nconst ctx          = $('Assemble Context').first().json;\nconst historyItems = $input.all();\n\nconst history = historyItems\n  .map(item => item.json)\n  .filter(m => m.id && m.content)\n  .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));\n\nconst language = ctx.detected_language || 'ar';\n\nconst nicheInstructions = {\n  restaurant:    'You help customers with menu items, prices, opening hours, delivery, and reservations.',\n  dental:        'You help patients with appointments, treatments, pricing, and clinic hours. Always recommend professional consultation.',\n  real_estate:   'You help clients find properties, understand pricing, and arrange viewings.',\n  salon:         'You help with bookings, services, available slots, and pricing.',\n  ecommerce:     'You help with products, availability, orders, delivery, and returns.',\n  food_delivery: 'You help with order tracking, menu items, delivery times, and issues.',\n  medical:       'You help with appointments and general clinic information. Always recommend professional medical consultation.',\n  general:       'You help customers with their inquiries professionally and helpfully.'\n};\n\nconst languageInstructions = {\n  ar: 'يجب أن تجيب باللغة العربية الفصحى أو بنفس لهجة العميل. اجعل ردودك طبيعية ودافئة.',\n  ur: 'آپ کو اردو میں جواب دینا ہے۔ قدرتی اور دوستانہ زبان استعمال کریں۔',\n  en: 'Reply in clear, warm, conversational English.'\n};\n\nconst kbSection = ctx.kb_entries\n  ? `KNOWLEDGE BASE (${ctx.kb_count} relevant results):\\n${ctx.kb_entries}`\n  : 'KNOWLEDGE BASE: No specific content found. Answer only from what you know about this business from the system prompt above.';\n\n// ── NEW: pull the existing order row, if any ──\nlet existingOrderRows = [];\ntry {\n  existingOrderRows = $('Load Existing Orders').first().json;\n  if (!Array.isArray(existingOrderRows)) existingOrderRows = [existingOrderRows];\n} catch (e) {\n  existingOrderRows = [];\n}\nconst existingOrder = (existingOrderRows && existingOrderRows[0]) || null;\n\nlet orderStateBlock = '';\nif (['ecommerce', 'restaurant', 'food_delivery'].includes(ctx.niche) ) {\n  if (existingOrder) {\n    const items = Array.isArray(existingOrder.items) ? existingOrder.items : [];\n    const itemsStr = items.length\n      ? items.map(i => `${i.qty || 1}x ${i.name || 'item'}${i.price ? ` @ USD ${i.price}` : ''}`).join(', ')\n      : '(none yet)';\n\n    orderStateBlock = [\n      '--- CURRENT ORDER STATE (authoritative — trust this over anything implied by chat history) ---',\n      `Product(s): ${itemsStr}`,\n      `Order total: ${existingOrder.order_amount ? 'USD ' + existingOrder.order_amount : '(not yet calculated)'}`,\n      `Delivery address: ${existingOrder.delivery_address || '(not yet provided)'}`,\n      `Email: ${existingOrder.customer_email || '(not yet provided)'}`,\n      `Payment method: ${existingOrder.payment_method || '(not yet provided)'}`,\n      `Status: ${existingOrder.status || 'pending_address'}`,\n      '',\n      'Instructions for using this state:',\n      '- Only ask the customer for fields above that are still \"(not yet provided)\".',\n      '- NEVER ask again for a field that already has a value here, even if you cannot see it stated in the recent chat history.',\n      '- If Status is \"confirmed\", do not re-ask anything — just acknowledge the order is already confirmed and help with anything new.',\n      '- If all fields are filled and Status is not yet \"confirmed\", ask the customer to confirm the order.',\n      '- If the customer names a clearly different product than the one listed above, treat it as a new order and ignore the old product/quantity (but you may reuse a previously given delivery address or payment method if the customer does not provide a new one).',\n    ].join('\\n');\n  } else {\n    orderStateBlock = '--- CURRENT ORDER STATE ---\\nNo order in progress yet for this conversation.';\n  }\n}\n\nconst systemPrompt = [\n  `You are the AI assistant for ${ctx.business_name}.`,\n  `Business type: ${ctx.niche || 'general'}`,\n  '',\n  ctx.agent_prompt,\n  '',\n  nicheInstructions[ctx.niche] || nicheInstructions.general,\n  languageInstructions[language] || languageInstructions.en,\n  '',\n  '--- RULES ---',\n  '1. Answer ONLY using the knowledge base content provided below.',\n  '2. If the answer is not in the knowledge base, say you will connect the customer with a team member.',\n  '3. NEVER invent prices, hours, availability, or contact details.',\n  '4. Keep responses under 3 short paragraphs — be concise.',\n  '5. Be warm, human, and conversational. Never sound robotic.',\n  `6. Channel: ${ctx.platform}`,\n  '',\n  orderStateBlock,\n  '',\n  kbSection,\n  '',\n  '--- MANDATORY ORDER SUMMARY ---',\n  'If you are actively handling an order, you MUST summarize the details at the end of your reply (especially when asking for an email, address, payment method, or confirming).',\n  'Always include the Unit Price if known. Use this exact format:',\n  '*Product(s)*: [Qty]x [Item Name] @ USD [Unit Price]',\n  '*Total Amount*: USD [Total Amount]',\n  '*Delivery Address*: [Address or Pending]',\n  '*Email*: [Email Address or Pending]',\n  '*Payment Method*: [Method or Pending]',\n  '',\n  '--- MANDATORY INTENT TAG ---',\n  'At the VERY END of your message, on a new line, you MUST append exactly ONE of these tags:',\n  'Intent: general_inquiry (for questions)',\n  'Intent: order_placed (wants to buy, needs details)',\n  'Intent: address_provided (user gave address)',\n  'Intent: order_confirmed (user confirmed final order)',\n  'Intent: checkout_intent (asking how to pay)',\n  'Intent: human_handoff (user asked for human)',\n  'Example: [Your reply...] \\n\\nIntent: order_placed'\n].join('\\n');\n\nconst messages = [{ role: 'system', content: systemPrompt }];\n\nfor (const msg of history) {\n  if (msg.sender_type === 'customer') {\n    messages.push({ role: 'user', content: msg.content });\n  } else if (msg.sender_type === 'bot') {\n    messages.push({ role: 'assistant', content: msg.content });\n  }\n}\n\nmessages.push({ role: 'user', content: ctx.normalized_message });\n\nreturn [{\n  json: {\n    ...ctx,\n    prompt_messages: messages,\n    system_prompt:   systemPrompt,\n    existing_order:  existingOrder\n  }\n}];\n"
+        "jsCode": "// ─────────────────────────────────────────────\n// NODE 14: Build complete AI prompt\n// ─────────────────────────────────────────────\nconst ctx          = $('Assemble Context').first().json;\nconst historyItems = $input.all();\n\nconst history = historyItems\n  .map(item => item.json)\n  .filter(m => m.id && m.content)\n  .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));\n\nconst language = ctx.detected_language || 'ar';\n\nconst nicheInstructions = {\n  restaurant:    'You help customers with menu items, prices, opening hours, delivery, and reservations.',\n  dental:        'You help patients with appointments, treatments, pricing, and clinic hours. Always recommend professional consultation.',\n  real_estate:   'You help clients find properties, understand pricing, and arrange viewings.',\n  salon:         'You help with bookings, services, available slots, and pricing.',\n  ecommerce:     'You help with products, availability, orders, delivery, and returns.',\n  food_delivery: 'You help with order tracking, menu items, delivery times, and issues.',\n  medical:       'You help with appointments and general clinic information. Always recommend professional medical consultation.',\n  general:       'You help customers with their inquiries professionally and helpfully.'\n};\n\nconst languageInstructions = {\n  ar: 'يجب أن تجيب باللغة العربية الفصحى أو بنفس لهجة العميل. اجعل ردودك طبيعية ودافئة.',\n  ur: 'آپ کو اردو میں جواب دینا ہے۔ قدرتی اور دوستانہ زبان استعمال کریں۔',\n  en: 'Reply in clear, warm, conversational English.'\n};\n\n// NEW IN PHASE 3: Tell AI how to format product cards if we want to add UI later\nconst productCardInstruction = \"\\n\\n--- PRODUCT MEDIA MESSAGES ---\\nIf you are recommending a product from the LIVE PRODUCT CATALOG and it has an Image URL, you should format your response nicely so the user sees the product clearly.\";\n\nconst kbSection = ctx.kb_entries\n  ? `KNOWLEDGE BASE (${ctx.kb_count} relevant results):\\n${ctx.kb_entries}`\n  : 'KNOWLEDGE BASE: No specific content found. Answer only from what you know about this business from the system prompt above.';\n\n// ── NEW: pull the existing order row, if any ──\nlet existingOrderRows = [];\ntry {\n  existingOrderRows = $('Load Existing Orders').first().json;\n  if (!Array.isArray(existingOrderRows)) existingOrderRows = [existingOrderRows];\n} catch (e) {\n  existingOrderRows = [];\n}\nconst existingOrder = (existingOrderRows && existingOrderRows[0]) || null;\n\nlet orderStateBlock = '';\nif (['ecommerce', 'restaurant', 'food_delivery'].includes(ctx.niche) ) {\n  if (existingOrder) {\n    const items = Array.isArray(existingOrder.items) ? existingOrder.items : [];\n    const itemsStr = items.length\n      ? items.map(i => `${i.qty || 1}x ${i.name || 'item'}${i.price ? ` @ USD ${i.price}` : ''}`).join(', ')\n      : '(none yet)';\n\n    orderStateBlock = [\n      '--- CURRENT ORDER STATE (authoritative — trust this over anything implied by chat history) ---',\n      `Product(s): ${itemsStr}`,\n      `Order total: ${existingOrder.order_amount ? 'USD ' + existingOrder.order_amount : '(not yet calculated)'}`,\n      `Delivery address: ${existingOrder.delivery_address || '(not yet provided)'}`,\n      `Email: ${existingOrder.customer_email || '(not yet provided)'}`,\n      `Payment method: ${existingOrder.payment_method || '(not yet provided)'}`,\n      `Status: ${existingOrder.status || 'pending_address'}`,\n      '',\n      'Instructions for using this state:',\n      '- Only ask the customer for fields above that are still \"(not yet provided)\".',\n      '- NEVER ask again for a field that already has a value here, even if you cannot see it stated in the recent chat history.',\n      '- If Status is \"confirmed\", do not re-ask anything — just acknowledge the order is already confirmed and help with anything new.',\n      '- If all fields are filled and Status is not yet \"confirmed\", ask the customer to confirm the order.',\n      '- If the customer names a clearly different product than the one listed above, treat it as a new order and ignore the old product/quantity (but you may reuse a previously given delivery address or payment method if the customer does not provide a new one).',\n    ].join('\\n');\n  } else {\n    orderStateBlock = '--- CURRENT ORDER STATE ---\\nNo order in progress yet for this conversation.';\n  }\n}\n\nconst systemPrompt = [\n  `You are the AI assistant for ${ctx.business_name}.`,\n  `Business type: ${ctx.niche || 'general'}`,\n  '',\n  ctx.agent_prompt,\n  '',\n  nicheInstructions[ctx.niche] || nicheInstructions.general,\n  languageInstructions[language] || languageInstructions.en,\n  '',\n  '--- RULES ---',\n  '1. Answer ONLY using the knowledge base content provided below.',\n  '2. If the answer is not in the knowledge base, say you will connect the customer with a team member.',\n  '3. NEVER invent prices, hours, availability, or contact details.',\n  '4. Keep responses under 3 short paragraphs — be concise.',\n  '5. Be warm, human, and conversational. Never sound robotic.',\n  `6. Channel: ${ctx.platform}`,\n  '',\n  orderStateBlock,\n  '',\n  kbSection,\n  '',\n  '--- MANDATORY ORDER SUMMARY ---',\n  'If you are actively handling an order, you MUST summarize the details at the end of your reply (especially when asking for an email, address, payment method, or confirming).',\n  'Always include the Unit Price if known. Use this exact format:',\n  '*Product(s)*: [Qty]x [Item Name] @ USD [Unit Price]',\n  '*Total Amount*: USD [Total Amount]',\n  '*Delivery Address*: [Address or Pending]',\n  '*Email*: [Email Address or Pending]',\n  '*Payment Method*: [Method or Pending]',\n  '',\n  '--- MANDATORY INTENT TAG ---',\n  'At the VERY END of your message, on a new line, you MUST append exactly ONE of these tags:',\n  'Intent: general_inquiry (for questions)',\n  'Intent: order_placed (wants to buy, needs details)',\n  'Intent: address_provided (user gave address)',\n  'Intent: order_confirmed (user confirmed final order)',\n  'Intent: checkout_intent (asking how to pay)',\n  'Intent: human_handoff (user asked for human)',\n  'Example: [Your reply...] \\n\\nIntent: order_placed'\n].join('\\n');\n\nconst messages = [{ role: 'system', content: systemPrompt }];\n\nfor (const msg of history) {\n  if (msg.sender_type === 'customer') {\n    messages.push({ role: 'user', content: msg.content });\n  } else if (msg.sender_type === 'bot') {\n    messages.push({ role: 'assistant', content: msg.content });\n  }\n}\n\nmessages.push({ role: 'user', content: ctx.normalized_message });\n\nreturn [{\n  json: {\n    ...ctx,\n    prompt_messages: messages,\n    system_prompt:   systemPrompt,\n    existing_order:  existingOrder\n  }\n}];\n"
       },
       "id": "6c7c885b-92d0-4e15-922c-a06f20900bf3",
       "name": "Build AI Prompt",
@@ -997,6 +997,356 @@
         -100
       ],
       "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sync-woocommerce",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-woo-sync",
+      "name": "Webhook: Sync WooCommerce",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        -700
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\n\nif (!body.tenant_id || !body.store_url || !body.consumer_key || !body.consumer_secret) {\n  throw new Error('Missing required fields: tenant_id, store_url, consumer_key, consumer_secret');\n}\n\n// Format URL to ensure no trailing slash\nconst storeUrl = body.store_url.replace(/\\/$/, '');\n\nreturn [{\n  json: {\n    tenant_id: body.tenant_id,\n    store_url: storeUrl,\n    consumer_key: body.consumer_key,\n    consumer_secret: body.consumer_secret,\n    products_url: `${storeUrl}/wp-json/wc/v3/products`\n  }\n}];"
+      },
+      "id": "code-prep-woo",
+      "name": "Prepare Woo Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        -700
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.products_url }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "per_page",
+              "value": "100"
+            },
+            {
+              "name": "status",
+              "value": "publish"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "credentials": {
+          "httpBasicAuth": {
+            "id": "={{ $json.consumer_key }}",
+            "password": "={{ $json.consumer_secret }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "http-fetch-woo",
+      "name": "Fetch Woo Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        -700
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "body",
+        "options": {}
+      },
+      "id": "split-woo-products",
+      "name": "Split Woo Products",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3,
+      "position": [
+        1960,
+        -700
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const product = $input.first().json;\nconst tenant_id = $('Prepare Woo Request').first().json.tenant_id;\n\n// Strip HTML from description\nconst stripHtml = (html) => html ? html.replace(/<[^>]*>?/gm, '').trim() : '';\n\nconst record = {\n  tenant_id: tenant_id,\n  external_product_id: String(product.id),\n  name: product.name,\n  category: (product.categories && product.categories.length > 0) ? product.categories[0].name : 'Uncategorized',\n  description: stripHtml(product.description || product.short_description),\n  price: parseFloat(product.price || 0),\n  currency: 'USD', // WooCommerce doesn't return currency per product by default, update later if needed\n  image_url: (product.images && product.images.length > 0) ? product.images[0].src : null,\n  product_url: product.permalink,\n  stock_status: product.stock_status || 'instock',\n  is_active: product.status === 'publish',\n  updated_at: new Date().toISOString()\n};\n\nreturn [{ json: record }];"
+      },
+      "id": "code-map-woo",
+      "name": "Map to Schema",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        -700
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/products?on_conflict=tenant_id,external_product_id",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "http-upsert-products",
+      "name": "Upsert into Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2360,
+        -700
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "BothqFLEOZUsG3Ms",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sync-scraper",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-scrape-sync",
+      "name": "Webhook: Sync Web Scraper",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        -400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\n\nif (!body.tenant_id || !body.website_url) {\n  throw new Error('Missing required fields: tenant_id, website_url');\n}\n\nreturn [{\n  json: {\n    tenant_id: body.tenant_id,\n    website_url: body.website_url\n  }\n}];"
+      },
+      "id": "code-prep-scrape",
+      "name": "Prepare Scrape Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        -400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.firecrawl.dev/v0/scrape",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer fc-YOUR_FIRECRAWL_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ url: $json.website_url, pageOptions: { onlyMainContent: true } }) }}",
+        "options": {}
+      },
+      "id": "http-firecrawl",
+      "name": "Scrape with Firecrawl",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        -400
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({\n  model: 'gpt-4o-mini',\n  messages: [\n    { role: 'system', content: 'You are a data extractor. Extract all products and their details from the provided website text. Return ONLY a raw JSON array of objects with the following keys: name, category, description, price (number), currency (string, e.g. USD), image_url (if any URL found), product_url (if any). Do not use markdown blocks, just raw JSON.' },\n    { role: 'user', content: $json.data && $json.data.markdown ? $json.data.markdown : '' }\n  ]\n}) }}",
+        "options": {}
+      },
+      "id": "http-openai-extract",
+      "name": "Extract Products (OpenAI)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1960,
+        -400
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "BIvBbKLw9MFQV3gf",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "try {\n  const response = $input.first().json;\n  const content = response.choices[0].message.content;\n  // Clean possible markdown backticks\n  const cleanContent = content.replace(/^```json\\n?|```$/gm, '').trim();\n  const products = JSON.parse(cleanContent);\n  return products.map(p => ({ json: p }));\n} catch(e) {\n  return [];\n}"
+      },
+      "id": "code-parse-openai",
+      "name": "Parse Products JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        -400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const product = $input.first().json;\nconst tenant_id = $('Prepare Scrape Request').first().json.tenant_id;\n\nfunction makeUUID() {\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {\n    const r = Math.random() * 16 | 0;\n    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);\n  });\n}\n\nconst record = {\n  tenant_id: tenant_id,\n  external_product_id: 'scraped-' + makeUUID(),\n  name: product.name,\n  category: product.category || 'Uncategorized',\n  description: product.description || '',\n  price: parseFloat(product.price || 0),\n  currency: product.currency || 'USD',\n  image_url: product.image_url || null,\n  product_url: product.product_url || null,\n  stock_status: 'instock',\n  is_active: true,\n  updated_at: new Date().toISOString()\n};\n\nreturn [{ json: record }];"
+      },
+      "id": "code-map-scraped",
+      "name": "Map Scraped to Schema",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2360,
+        -400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/products?on_conflict=tenant_id,external_product_id",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "http-upsert-scraped-products",
+      "name": "Upsert Scraped Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2560,
+        -400
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "BothqFLEOZUsG3Ms",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ldtqnpenpobmqqvdrbmq.supabase.co/rest/v1/rpc/search_products",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({\n  p_tenant_id: $('Merge Tenant').first().json.tenant_id,\n  p_query: $('Merge Tenant').first().json.message\n}) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "search-products-node-id",
+      "name": "Search Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1648,
+        744
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "BothqFLEOZUsG3Ms",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "wait"
+      },
+      "id": "merge-kb-products",
+      "name": "Merge Search Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        -1448,
+        544
+      ]
     }
   ],
   "pinData": {},
@@ -1096,6 +1446,11 @@
             "node": "Search Knowledge Base",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Search Products",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -1104,7 +1459,7 @@
       "main": [
         [
           {
-            "node": "Assemble Context",
+            "node": "Merge Search Results",
             "type": "main",
             "index": 0
           }
@@ -1417,6 +1772,149 @@
         [
           {
             "node": "Sync Platform Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook: Sync WooCommerce": {
+      "main": [
+        [
+          {
+            "node": "Prepare Woo Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Woo Request": {
+      "main": [
+        [
+          {
+            "node": "Fetch Woo Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Woo Products": {
+      "main": [
+        [
+          {
+            "node": "Split Woo Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Woo Products": {
+      "main": [
+        [
+          {
+            "node": "Map to Schema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map to Schema": {
+      "main": [
+        [
+          {
+            "node": "Upsert into Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook: Sync Web Scraper": {
+      "main": [
+        [
+          {
+            "node": "Prepare Scrape Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Scrape Request": {
+      "main": [
+        [
+          {
+            "node": "Scrape with Firecrawl",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape with Firecrawl": {
+      "main": [
+        [
+          {
+            "node": "Extract Products (OpenAI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Products (OpenAI)": {
+      "main": [
+        [
+          {
+            "node": "Parse Products JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Products JSON": {
+      "main": [
+        [
+          {
+            "node": "Map Scraped to Schema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Scraped to Schema": {
+      "main": [
+        [
+          {
+            "node": "Upsert Scraped Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Products": {
+      "main": [
+        [
+          {
+            "node": "Merge Search Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Search Results": {
+      "main": [
+        [
+          {
+            "node": "Assemble Context",
             "type": "main",
             "index": 0
           }

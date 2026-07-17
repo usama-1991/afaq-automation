@@ -21,6 +21,7 @@ erDiagram
     tenants ||--o{ usage_metrics : "has"
     tenants ||--o{ funnel_events : "has"
     tenants ||--o{ subscriptions : "has"
+    tenants ||--o{ products : "has"
     
     conversations ||--o{ messages : "contains"
     conversations ||--o{ conversation_context : "has"
@@ -59,6 +60,7 @@ The central table. Every business is a tenant. All other data is scoped to a ten
 | `delivery_days` | INTEGER | `3` | Default delivery days |
 | `min_order` | INTEGER | `0` | Minimum order amount |
 | `cod_enabled` | BOOLEAN | `true` | Cash on delivery enabled |
+| `default_currency` | TEXT | `'PKR'` | Default localization currency |
 | `niche_settings` | JSONB | `'{}'` | Niche-specific config |
 | `plan` | TEXT | `'trial'` | Plan tier: `starter`, `growth`, `enterprise`, `trial` |
 | `plan_status` | TEXT | `'trial'` | Status: `active`, `suspended`, `trial`, `cancelled` |
@@ -123,7 +125,30 @@ The central table. Every business is a tenant. All other data is scoped to a ten
 | `is_read` | BOOLEAN | `false` | Read status |
 | `created_at` | TIMESTAMPTZ | `now()` | — |
 
-### 2.5 `orders` — eCommerce & Restaurant Orders
+### 2.5 `products` — Inventory & Conversational Commerce
+Caches the inventory locally to allow instant searches and reduce AI token costs.
+
+| Column | Type | Default | Description |
+|--------|------|---------|-------------|
+| `id` | UUID (PK) | `gen_random_uuid()` | — |
+| `tenant_id` | UUID (FK) | — | Owning tenant |
+| `external_product_id` | TEXT | — | Shopify/WooCommerce ID (hidden from user) |
+| `name` | TEXT | NOT NULL | Product name |
+| `category` | TEXT | — | Product category |
+| `description` | TEXT | — | Description for AI matching |
+| `price` | DECIMAL(12,2)| `0.00` | Product price |
+| `currency` | TEXT | `'PKR'` | Currency for the product |
+| `image_url` | TEXT | — | Link to product image |
+| `product_url` | TEXT | — | Link to the website product page |
+| `stock_status` | TEXT | `'instock'`| `instock` or `outofstock` |
+| `is_active` | BOOLEAN | `true` | Active toggle |
+| `metadata` | JSONB | `'{}'` | Extra data |
+| `created_at` | TIMESTAMPTZ | `now()` | — |
+| `updated_at` | TIMESTAMPTZ | `now()` | — |
+
+**Unique:** `(tenant_id, external_product_id)` — prevents duplicate sync records.
+
+### 2.6 `orders` — eCommerce & Restaurant Orders
 
 | Column | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -356,3 +381,4 @@ Every table with `tenant_id` has RLS enabled with tenant isolation policies. The
 | `20260623_*` | Super admin privileges |
 | `20260625_*` | Conversation columns, RLS fixes |
 | `20260626_*` | Tenant settings columns |
+| `20260717_*` | Commerce V2 Products table and tenant default currency |
