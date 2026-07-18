@@ -113,13 +113,13 @@ export async function processAIAgent(ctx) {
       if (existingOrder) {
         const items = Array.isArray(existingOrder.items) ? existingOrder.items : [];
         const itemsStr = items.length
-          ? items.map(i => `${i.qty || 1}x ${i.name || 'item'}${i.price ? ` @ USD ${i.price}` : ''}`).join(', ')
+          ? items.map(i => `${i.qty || 1}x ${i.name || 'item'}${i.price ? ` @ ${ctx.currency || 'PKR'} ${i.price}` : ''}`).join(', ')
           : '(none yet)';
 
         orderStateBlock = [
           '--- CURRENT ORDER STATE (authoritative — trust this over anything implied by chat history) ---',
-          `Product(s): ${itemsStr}`,
-          `Order total: ${existingOrder.order_amount ? 'USD ' + existingOrder.order_amount : '(not yet calculated)'}`,
+          `Items: ${itemsStr}`,
+          `Order total: ${existingOrder.order_amount ? (ctx.currency || 'PKR') + ' ' + existingOrder.order_amount : '(not yet calculated)'}`,
           `Delivery address: ${existingOrder.delivery_address || '(not yet provided)'}`,
           `Email: ${existingOrder.customer_email || '(not yet provided)'}`,
           `Payment method: ${existingOrder.payment_method || '(not yet provided)'}`,
@@ -162,8 +162,8 @@ export async function processAIAgent(ctx) {
       '--- MANDATORY ORDER SUMMARY ---',
       'If you are actively handling an order, you MUST summarize the details at the end of your reply (especially when asking for an email, address, payment method, or confirming).',
       'Always include the Unit Price if known. Use this exact format:',
-      '*Product(s)*: [Qty]x [Item Name] @ USD [Unit Price]',
-      '*Total Amount*: USD [Total Amount]',
+      `*Product(s)*: [Qty]x [Item Name] @ ${ctx.currency || 'PKR'} [Unit Price]`,
+      `*Total Amount*: ${ctx.currency || 'PKR'} [Total Amount]`,
       '*Delivery Address*: [Address or Pending]',
       '*Email*: [Email Address or Pending]',
       '*Payment Method*: [Method or Pending]',
@@ -247,13 +247,13 @@ export async function processAIAgent(ctx) {
         const aiQtyMatch = ai_reply.match(/\*[Qq]uantity\*\s*[:\-]\s*(\d+)/);
         
         const combinedForPrice = ai_reply + ' ' + msg;
-        const unitPriceMatches = [...combinedForPrice.matchAll(/(?:USD|\\$|PKR|Rs\\.?|pkr)\s*([\d,.]+)\s*(?:per\s+pack|per\s+piece|each|\/pack|\/piece|\/pcs)|(?:price|costs)[\s\w]{0,15}(?:USD|\\$|PKR|Rs\\.?|pkr)\s*([\d,.]+)/gi)];
+        const unitPriceMatches = [...combinedForPrice.matchAll(/(?:USD|\\$|PKR|Rs\\.?|pkr|[A-Z]{3})\s*([\d,.]+)\s*(?:per\s+pack|per\s+piece|each|\/pack|\/piece|\/pcs)|(?:price|costs)[\s\w]{0,15}(?:USD|\\$|PKR|Rs\\.?|pkr|[A-Z]{3})\s*([\d,.]+)/gi)];
         let unitPrice = 0;
         if (unitPriceMatches.length > 0) {
            unitPrice = parseFloat((unitPriceMatches[0][1] || unitPriceMatches[0][2]).replace(/,/g, ''));
         }
 
-        const totalMatches = [...ai_reply.matchAll(/(?:total(?:\s+amount)?|amount|bill)[\s\w]*?(?:USD|\\$|PKR|Rs\\.?|pkr)\s*([\d,.]+)/gi)];
+        const totalMatches = [...ai_reply.matchAll(/(?:total(?:\s+amount)?|amount|bill)[\s\w]*?(?:USD|\\$|PKR|Rs\\.?|pkr|[A-Z]{3})\s*([\d,.]+)/gi)];
         let orderTotal = 0;
         if (totalMatches.length > 0) {
           orderTotal = parseFloat(totalMatches[totalMatches.length - 1][1].replace(/,/g, ''));
@@ -265,10 +265,10 @@ export async function processAIAgent(ctx) {
           let rawName = aiProductMatch[1];
           let parsedQty = 1;
           
-          const inlinePriceMatch = rawName.match(/@\s*(?:USD|\\$|PKR|Rs\\.?|pkr)\s*([\d,.]+)/i);
+          const inlinePriceMatch = rawName.match(/@\s*(?:USD|\\$|PKR|Rs\\.?|pkr|[A-Z]{3})\s*([\d,.]+)/i);
           if (inlinePriceMatch) {
             unitPrice = parseFloat(inlinePriceMatch[1].replace(/,/g, ''));
-            rawName = rawName.replace(/@\s*(?:USD|\\$|PKR|Rs\\.?|pkr)\s*([\d,.]+)/i, '').trim();
+            rawName = rawName.replace(/@\s*(?:USD|\\$|PKR|Rs\\.?|pkr|[A-Z]{3})\s*([\d,.]+)/i, '').trim();
           }
 
           const inlineQtyMatch = rawName.match(/^(\d+)[xX]\s*(.*)/);
@@ -286,7 +286,7 @@ export async function processAIAgent(ctx) {
           }];
         } else {
           const patA = /(\d+)\s*(?:pack|packs|piece|pieces|pcs|pc|item|items|x)\s+(?:of\s+)?([a-zA-Z0-9][a-zA-Z0-9\s\-\.\s]{2,50}?)(?=\s*(?:chaie|chahiye|chahie|order|deliver|pkr|rs|\.|,|$|\n))/gi;
-          const patC = /(?:i\s+want(?:\s+to)?(?:\s+order)?|i\s+need(?:\s+to)?(?:\s+order)?|i\s+would\s+like|send\s+me|give\s+me|order)\s+([a-zA-Z0-9][a-zA-Z0-9\s\-\.\s]{1,50}?)\s+(\d+)\s*(?:pack|packs|piece|pieces|pcs|pc|item|items)/gi;
+          const patC = /(?:i\s+want(?:\s+to)?(?:\s+order)?|i\s+need(?:\s+to)?(?:\s+order)?|i\s+would\s+like|send\s+me|give\s+me|order)\s+([a-zA-Z0-9][a-zA-Z0-9\s\-\.\s]{1,50}?)\s+(\d+)\s*(?:pack|packs|piece|pieces|pcs)/gi;
           const patD = /(?:mujhe|muje|mjhe|mjhay)\s+([a-zA-Z0-9][a-zA-Z0-9\s\-\.\s]{2,50}?)(?:\s+chaie|\s+chahiye|\s+chahie|\s+chahiyen|\s+lena|\s+order)/gi;
           const patE = /(?:product|item)\s*[:\-]?\s*([a-zA-Z0-9][a-zA-Z0-9\s\-\.\s]{2,50}?)\s+(\d+)\s*(?:pack|packs|piece|pieces|pcs)/gi;
 
@@ -402,10 +402,12 @@ export async function processAIAgent(ctx) {
           order_amount: calculatedTotal,
           payment_method: paymentMethod,
           delivery_address: deliveryAddress,
+          notes: previousInfo.notes || '',
           source: ctx.platform || 'whatsapp',
           handled_by: 'bot',
           status: newStatus,
-          currency: 'USD',
+          currency: ctx.currency || 'PKR',
+          updated_at: new Date().toISOString()
         };
 
         if (newStatus === 'confirmed') {

@@ -89,13 +89,14 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
   // Columns verified from migrations: niche, business_name, metadata, wa_phone_number_id, wa_token_enc
   let tenantNiche        = 'general';
   let tenantBusinessName = '';
+  let tenantCurrency     = 'PKR';
   let waPhoneNumberId    = '';
   let waAccessToken      = '';
 
   try {
     const { data: tenantRecord, error: tenantErr } = await supabase
       .from('tenants')
-      .select('niche, business_name, metadata, wa_phone_number_id, wa_token_enc')
+      .select('niche, business_name, metadata, wa_phone_number_id, wa_token_enc, default_currency')
       .eq('id', tenantId)
       .single();
 
@@ -104,6 +105,7 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
     } else if (tenantRecord) {
       tenantNiche        = tenantRecord.niche          || 'general';
       tenantBusinessName = tenantRecord.business_name  || '';
+      tenantCurrency     = tenantRecord.default_currency || 'PKR';
       // wa_phone_number_id is stored directly on tenants (migration 20260626)
       waPhoneNumberId    = tenantRecord.wa_phone_number_id || '';
       // wa_token_enc is the encrypted access token stored on tenants (migration 20260626)
@@ -320,6 +322,7 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
       // ── Business context ──────────────────────────────────────────────────
       niche:                tenantNiche,
       business_name:        tenantBusinessName,
+      currency:             tenantCurrency,
 
       // ── WhatsApp credentials for n8n reply node ───────────────────────────
       wa_phone_number_id:   waPhoneNumberId,        // FIX: was missing — n8n had no token to send replies
@@ -366,6 +369,7 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
       external_message_id:  messageId,
       niche:                tenantNiche,
       business_name:        tenantBusinessName,
+      currency:             tenantCurrency,
       wa_phone_number_id:   waPhoneNumberId,
       wa_access_token:      waAccessToken,
       phone_number_id:      waPhoneNumberId,
