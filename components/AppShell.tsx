@@ -228,14 +228,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return <Spinner />;
   }
 
-  // Root '/' is a redirect gateway
-  if (pathname === '/') return <Spinner />;
-
-  // Full screen pages — no sidebar/banner
   const isBrowser = typeof window !== 'undefined';
   const currentHost = isBrowser ? window.location.hostname : '';
   const isLandingRender = (currentHost === 'ittisalo.com' || currentHost === 'www.ittisalo.com') && pathname === '/';
-  
+
+  // Root '/' is a redirect gateway
+  if (pathname === '/' && !isLandingRender) return <Spinner />;
+
+  // Full screen pages — no sidebar/banner
   if (isOnboarding || isLogin || pathname === '/update-password' || pathname === '/landing' || isLandingRender) return <>{children}</>;
 
   const initials = userName.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase() || 'U';
