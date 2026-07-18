@@ -50,7 +50,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isOnboarding = pathname === '/onboarding';
   const isLogin = pathname === '/login';
   const isAdminRoute = pathname.startsWith('/admin');
-  const isLanding = pathname === '/landing';
 
   const bootstrapTenantNiche = async (user: any) => {
     try {
@@ -139,8 +138,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!hydrated || !sessionChecked) return;
 
+    const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+    const isMainDomain = hostname === 'ittisalo.com' || hostname === 'www.ittisalo.com';
+    const isLandingPage = isMainDomain && pathname === '/';
+
     if (!session) {
-      if (!isLogin && pathname !== '/update-password' && !isLanding) {
+      if (!isLogin && pathname !== '/update-password' && !isLandingPage && pathname !== '/landing') {
         router.replace('/login');
       }
       return;
@@ -149,6 +152,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     const isAdminUser = session.user?.email === 'admin@ittisalo.io';
 
     if (pathname === '/') {
+      if (isLandingPage) return;
       if (isAdminUser) router.replace('/admin');
       else router.replace(onboarded ? '/dashboard' : '/onboarding');
       return;
@@ -228,7 +232,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   if (pathname === '/') return <Spinner />;
 
   // Full screen pages — no sidebar/banner
-  if (isOnboarding || isLogin || pathname === '/update-password' || isLanding) return <>{children}</>;
+  const isBrowser = typeof window !== 'undefined';
+  const currentHost = isBrowser ? window.location.hostname : '';
+  const isLandingRender = (currentHost === 'ittisalo.com' || currentHost === 'www.ittisalo.com') && pathname === '/';
+  
+  if (isOnboarding || isLogin || pathname === '/update-password' || pathname === '/landing' || isLandingRender) return <>{children}</>;
 
   const initials = userName.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase() || 'U';
 
