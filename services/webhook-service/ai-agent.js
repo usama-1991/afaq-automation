@@ -153,7 +153,7 @@ export async function processAIAgent(ctx) {
       '4. Keep responses under 3 short paragraphs — be concise.',
       '5. Be warm, human, and conversational. Never sound robotic.',
       `6. Channel: ${ctx.platform}`,
-      '7. If you recommend a product and the catalog below provides an "Image:" URL for it, you MUST include it in your response using exact markdown format: `![Product Name](URL)`. Do not use HTML.',
+      '7. If you are recommending or showing EXACTLY ONE specific product, you MUST include its image using markdown: `![Product Name](Image_URL)`. However, if you are listing MULTIPLE products (like a catalog or menu), DO NOT include any images. Only show images when focusing on a single item.',
       '',
       orderStateBlock,
       '',
