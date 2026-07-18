@@ -50,6 +50,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isOnboarding = pathname === '/onboarding';
   const isLogin = pathname === '/login';
   const isAdminRoute = pathname.startsWith('/admin');
+  const isLanding = pathname === '/landing';
 
   const bootstrapTenantNiche = async (user: any) => {
     try {
@@ -139,7 +140,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     if (!hydrated || !sessionChecked) return;
 
     if (!session) {
-      if (!isLogin && pathname !== '/update-password') {
+      if (!isLogin && pathname !== '/update-password' && !isLanding) {
         router.replace('/login');
       }
       return;
@@ -227,7 +228,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   if (pathname === '/') return <Spinner />;
 
   // Full screen pages — no sidebar/banner
-  if (isOnboarding || isLogin || pathname === '/update-password') return <>{children}</>;
+  if (isOnboarding || isLogin || pathname === '/update-password' || isLanding) return <>{children}</>;
 
   const initials = userName.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase() || 'U';
 
