@@ -322,3 +322,72 @@ html, body {
   }
 }
 
+/* ── Ittisalo Landing Page CSS ─────────────────────── */
+
+@theme {
+  --color-ink: #0E1629;
+  --color-paper: #FAF6EF;
+  --color-paperdim: #F3ECDF;
+  --color-maroon: #B8262F;
+  --color-maroon-dark: #8C1C24;
+  --color-maroon-light: #D63A3F;
+  --color-saffron: #F2A93B;
+  --color-saffron-dark: #D98E1F;
+  --color-teal: #1B7F79;
+  --color-teal-dark: #12554F;
+  --color-teal-light: #3EA69E;
+  
+  --font-display: var(--font-fraunces), serif;
+  --font-body: var(--font-inter), sans-serif;
+  --font-mono: var(--font-plex-mono), monospace;
+  
+  --animate-marquee: marquee 28s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
+
+  @keyframes marquee {
+    0% { transform: translateX(0%); }
+    100% { transform: translateX(-50%); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(var(--rot, 0deg)); }
+    50% { transform: translateY(-10px) rotate(var(--rot, 0deg)); }
+  }
+}
+
+.jaan-border {
+  --c1: #B8262F;
+  --c2: #F2A93B;
+  --c3: #1B7F79;
+  background-image:
+    radial-gradient(circle at 10px 10px, var(--c2) 0 3px, transparent 4px),
+    linear-gradient(90deg, var(--c1) 0 50%, var(--c3) 50% 100%);
+  background-size: 20px 20px, 100% 6px;
+  background-repeat: repeat-x, no-repeat;
+  background-position: 0 0, 0 100%;
+  height: 22px;
+}
+
+.jaan-border-thin {
+  background-image: repeating-linear-gradient(
+    90deg,
+    #B8262F 0 10px,
+    #F2A93B 10px 20px,
+    #1B7F79 20px 30px
+  );
+  height: 4px;
+  opacity: 0.9;
+}
+
+.grain-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: multiply;
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyMDAnIGhlaWdodD0nMjAwJz48ZmlsdGVyIGlkPSdub2lzZSc+PGZlVHVyYnVsZW5jZSB0eXBlPSdmcmFjdGFsTm9pc2UnIGJhc2VGcmVxdWVuY3k9JzAuOCcgbnVtT2N0YXZlcz0nMycgc3RpdGNoVGlsZXM9J3N0aXRjaCcvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIGZpbHRlcj0ndXJsKCNub2lzZSknIG9wYWNpdHk9JzAuNScvPjwvc3ZnPg==');
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
