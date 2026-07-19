@@ -61,7 +61,7 @@ export async function processAIAgent(ctx) {
       : '';
       
     const productEntries = productDocs.length > 0
-      ? productDocs.map(p => `- ${p.name} (Category: ${p.category || 'General'}) - Price: ${p.price || 'Ask'} - Desc: ${p.description || 'N/A'}${p.image_url ? ` - Image: ${p.image_url}` : ''}`).join('\n')
+      ? productDocs.map(p => `- ${p.name} (Category: ${p.category || 'General'}) - Price: ${ctx.currency || 'PKR'} ${p.price || 'Ask'} - Desc: ${p.description || 'N/A'}${p.image_url ? ` - Image: ${p.image_url}` : ''}`).join('\n')
       : '';
 
     let finalContext = '';
@@ -196,6 +196,9 @@ export async function processAIAgent(ctx) {
 
     // 4. Call GPT-4o-mini
     console.log(`[AI-Agent] Calling OpenAI for conv_id: ${ctx.conversation_id}`);
+    // DEBUG LOG FOR SYSTEM PROMPT
+    console.log(`[DEBUG] System Prompt: ${messages[0].content}`);
+
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: messages,
