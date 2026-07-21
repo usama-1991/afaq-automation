@@ -48,7 +48,7 @@ export async function processAIAgent(ctx) {
       const { data: prodRes, error: prodErr } = await supabase.rpc('search_products', {
         p_tenant_id: ctx.tenant_id,
         p_query: ctx.normalized_message || '',
-        p_limit: 10
+        p_limit: 40
       });
       if (!prodErr && prodRes) {
         productDocs = prodRes;
@@ -61,7 +61,7 @@ export async function processAIAgent(ctx) {
       : '';
       
     const productEntries = productDocs.length > 0
-      ? productDocs.map(p => `- ${p.name} (Category: ${p.category || 'General'}) - Price: ${ctx.currency || 'USD'} ${p.price || 'Ask'} - Desc: ${p.description || 'N/A'}${p.image_url ? ` - Image: ${p.image_url}` : ''}`).join('\n')
+      ? productDocs.map(p => `- ${p.name} (Category: ${p.category || 'General'}) - Price: ${ctx.currency || 'USD'} ${p.price || 'Ask'} - Desc: ${p.description || 'N/A'}${p.image_url ? ` - Image: ${p.image_url}` : ''}${p.product_url ? ` - Link: ${p.product_url}` : ''}${p.external_product_id ? ` - ID: ${p.external_product_id}` : ''}`).join('\n')
       : '';
 
     let finalContext = '';
@@ -153,7 +153,7 @@ export async function processAIAgent(ctx) {
       '4. Keep responses under 3 short paragraphs — be concise.',
       '5. Be warm, human, and conversational. Never sound robotic.',
       `6. Channel: ${ctx.platform}`,
-      '7. If you are recommending or showing EXACTLY ONE specific product, you MUST include its image using markdown: `![Product Name](Image_URL)`. However, if you are listing MULTIPLE products (like a catalog or menu), DO NOT include any image URLs at all. This is strictly required because WhatsApp only renders the first image preview, making multiple image links look messy.',
+      '7. When recommending or showing products, you MUST format EACH product exactly like this:\nTitle: [Product Name]\nPrice: [Price]\nLink: [Link]\nID: [ID]\n![Product Name](Image_URL)\n\nDo this for EVERY product you recommend so they are formatted beautifully. If you are listing categories, just list the category names.',
       '8. NEVER assume a payment method, address, or email. You MUST explicitly ask the customer for these details if they are "(not yet provided)".',
       '9. DO NOT say the order is confirmed if Address, Email, or Payment Method is still missing.',
       '10. Once ALL details are gathered, you MUST show the final summary and ask "Please reply with YES to confirm your order." DO NOT say the order is confirmed until the customer explicitly agrees.',
@@ -360,14 +360,21 @@ export async function processAIAgent(ctx) {
           if (addrMatch) newAddress = addrMatch[0].trim();
         }
 
-        if (newAddress) deliveryAddress = newAddress;
+        if (newAddress) {
+          deliveryAddress = newAddress;
+        } else if (!deliveryAddress || deliveryAddress.length < 10) {
+          const botAddressMatch = ai_reply.match(/\*?Delivery\s+Address\*?\s*[:\-]\s*([^(\n]+)/i);
+          if (botAddressMatch && !botAddressMatch[1].toLowerCase().includes('pending') && !botAddressMatch[1].toLowerCase().includes('not yet')) {
+            deliveryAddress = botAddressMatch[1].replace(/[.!]+$/, '').trim();
+          }
+        }
 
         let customerEmail = recordData.customer_email || null;
         const emailMatch = msg.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/i);
         if (emailMatch) {
           customerEmail = emailMatch[1];
         } else if (!customerEmail) {
-          const botEmailMatch = ai_reply.match(/\*[Ee]mail\*\s*[:\-]\s*([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/);
+          const botEmailMatch = ai_reply.match(/\*?[Ee]mail\*?\s*[:\-]\s*([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/);
           if (botEmailMatch) customerEmail = botEmailMatch[1];
         }
         
@@ -382,7 +389,7 @@ export async function processAIAgent(ctx) {
           
           // Fallback: check AI reply ONLY IF it explicitly states "*Payment Method*: COD" in the summary
           if (!paymentMethod) {
-            const aiSummaryMatch = ai_reply.match(/\*[Pp]ayment\s+Method\*\s*[:\-]\s*([^\n]+)/i);
+            const aiSummaryMatch = ai_reply.match(/\*?[Pp]ayment\s+Method\*?\s*[:\-]\s*([^\n]+)/i);
             if (aiSummaryMatch) {
               const pm = aiSummaryMatch[1].toLowerCase();
               if (!pm.includes('pending') && !pm.includes('not yet provided')) {
@@ -397,7 +404,7 @@ export async function processAIAgent(ctx) {
 
         const calculatedTotal = orderTotal > 0 ? orderTotal : currentItems.reduce((s, i) => s + ((i.price || 0) * (i.qty || 1)), 0);
 
-        const customerConfirmed = /^\s*(confirm(ed)?|order\s*karain|haan\s*confirm|yes,?\s*confirm|yes\s*proceed)\s*[.!]?\s*$/i.test(msg.trim());
+        const customerConfirmed = /^\s*(confirm(ed)?|order\s*karain|haan\s*confirm|yes,?\s*confirm|yes\s*proceed|yes|yeah|yep|sure|y)\s*[.!]?\s*$/i.test(msg.trim());
         const aiConfirmed = /confirm ho gaya|order confirm|order placed|confirmed your order|order ki tayari|order accept|finalize your order|Your order is confirmed/i.test(ai_reply);
 
         let newStatus = recordData.status || 'pending_address';
@@ -548,7 +555,7 @@ export async function processAIAgent(ctx) {
       
       // Trigger Ecommerce Sync if Order is Confirmed
       if (recordType === 'order' && recordData.status === 'confirmed' && upsertedOrderId) {
-        const dashboardUrl = process.env.DASHBOARD_URL;
+        const dashboardUrl = process.env.DASHBOARD_URL || 'http://localhost:3000';
         const syncKey = process.env.ORDERS_SYNC_API_KEY || process.env.OPENAI_API_KEY; // Fallback so it at least tries
         
         if (dashboardUrl) {
