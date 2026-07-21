@@ -61,7 +61,7 @@ export async function processAIAgent(ctx) {
       : '';
       
     const productEntries = productDocs.length > 0
-      ? productDocs.map(p => `- ${p.name} (Category: ${p.category || 'General'}) - Price: ${ctx.currency || 'PKR'} ${p.price || 'Ask'} - Desc: ${p.description || 'N/A'}${p.image_url ? ` - Image: ${p.image_url}` : ''}`).join('\n')
+      ? productDocs.map(p => `- ${p.name} (Category: ${p.category || 'General'}) - Price: ${ctx.currency || 'USD'} ${p.price || 'Ask'} - Desc: ${p.description || 'N/A'}${p.image_url ? ` - Image: ${p.image_url}` : ''}`).join('\n')
       : '';
 
     let finalContext = '';
@@ -113,13 +113,13 @@ export async function processAIAgent(ctx) {
       if (existingOrder) {
         const items = Array.isArray(existingOrder.items) ? existingOrder.items : [];
         const itemsStr = items.length
-          ? items.map(i => `${i.qty || 1}x ${i.name || 'item'}${i.price ? ` @ ${ctx.currency || 'PKR'} ${i.price}` : ''}`).join(', ')
+          ? items.map(i => `${i.qty || 1}x ${i.name || 'item'}${i.price ? ` @ ${ctx.currency || 'USD'} ${i.price}` : ''}`).join(', ')
           : '(none yet)';
 
         orderStateBlock = [
           '--- CURRENT ORDER STATE (authoritative — trust this over anything implied by chat history) ---',
           `Items: ${itemsStr}`,
-          `Order total: ${existingOrder.order_amount ? (ctx.currency || 'PKR') + ' ' + existingOrder.order_amount : '(not yet calculated)'}`,
+          `Order total: ${existingOrder.order_amount ? (ctx.currency || 'USD') + ' ' + existingOrder.order_amount : '(not yet calculated)'}`,
           `Delivery address: ${existingOrder.delivery_address || '(not yet provided)'}`,
           `Email: ${existingOrder.customer_email || '(not yet provided)'}`,
           `Payment method: ${existingOrder.payment_method || '(not yet provided)'}`,
@@ -153,7 +153,10 @@ export async function processAIAgent(ctx) {
       '4. Keep responses under 3 short paragraphs — be concise.',
       '5. Be warm, human, and conversational. Never sound robotic.',
       `6. Channel: ${ctx.platform}`,
-      '7. If you are recommending or showing EXACTLY ONE specific product, you MUST include its image using markdown: `![Product Name](Image_URL)`. However, if you are listing MULTIPLE products (like a catalog or menu), DO NOT include any images. Only show images when focusing on a single item.',
+      '7. If you are recommending or showing EXACTLY ONE specific product, you MUST include its image using markdown: `![Product Name](Image_URL)`. However, if you are listing MULTIPLE products (like a catalog or menu), DO NOT include any image URLs at all. This is strictly required because WhatsApp only renders the first image preview, making multiple image links look messy.',
+      '8. NEVER assume a payment method, address, or email. You MUST explicitly ask the customer for these details if they are "(not yet provided)".',
+      '9. DO NOT say the order is confirmed if Address, Email, or Payment Method is still missing.',
+      '10. Once ALL details are gathered, you MUST show the final summary and ask "Please reply with YES to confirm your order." DO NOT say the order is confirmed until the customer explicitly agrees.',
       '',
       orderStateBlock,
       '',
@@ -162,8 +165,8 @@ export async function processAIAgent(ctx) {
       '--- MANDATORY ORDER SUMMARY ---',
       'If you are actively handling an order, you MUST summarize the details at the end of your reply (especially when asking for an email, address, payment method, or confirming).',
       'Always include the Unit Price if known. Use this exact format:',
-      `*Product(s)*: [Qty]x [Item Name] @ ${ctx.currency || 'PKR'} [Unit Price]`,
-      `*Total Amount*: ${ctx.currency || 'PKR'} [Total Amount]`,
+      `*Product(s)*: [Qty]x [Item Name] @ ${ctx.currency || 'USD'} [Unit Price]`,
+      `*Total Amount*: ${ctx.currency || 'USD'} [Total Amount]`,
       '*Delivery Address*: [Address or Pending]',
       '*Email*: [Email Address or Pending]',
       '*Payment Method*: [Method or Pending]',
@@ -250,13 +253,13 @@ export async function processAIAgent(ctx) {
         const aiQtyMatch = ai_reply.match(/\*[Qq]uantity\*\s*[:\-]\s*(\d+)/);
         
         const combinedForPrice = ai_reply + ' ' + msg;
-        const unitPriceMatches = [...combinedForPrice.matchAll(/(?:USD|\\$|PKR|Rs\\.?|pkr|[A-Z]{3})\s*([\d,.]+)\s*(?:per\s+pack|per\s+piece|each|\/pack|\/piece|\/pcs)|(?:price|costs)[\s\w]{0,15}(?:USD|\\$|PKR|Rs\\.?|pkr|[A-Z]{3})\s*([\d,.]+)/gi)];
+        const unitPriceMatches = [...combinedForPrice.matchAll(/(?:USD|\\$|PKR|Rs\\.?|pkr|AED|SAR|[A-Z]{3})\s*([\d,.]+)\s*(?:per\s+pack|per\s+piece|each|\/pack|\/piece|\/pcs)|(?:price|costs)[\s\w]{0,15}(?:USD|\\$|PKR|Rs\\.?|pkr|AED|SAR|[A-Z]{3})\s*([\d,.]+)/gi)];
         let unitPrice = 0;
         if (unitPriceMatches.length > 0) {
            unitPrice = parseFloat((unitPriceMatches[0][1] || unitPriceMatches[0][2]).replace(/,/g, ''));
         }
 
-        const totalMatches = [...ai_reply.matchAll(/(?:total(?:\s+amount)?|amount|bill)[\s\w]*?(?:USD|\\$|PKR|Rs\\.?|pkr|[A-Z]{3})\s*([\d,.]+)/gi)];
+        const totalMatches = [...ai_reply.matchAll(/(?:total(?:\s+amount)?|amount|bill)[\s\w]*?(?:USD|\\$|PKR|Rs\\.?|pkr|AED|SAR|[A-Z]{3})\s*([\d,.]+)/gi)];
         let orderTotal = 0;
         if (totalMatches.length > 0) {
           orderTotal = parseFloat(totalMatches[totalMatches.length - 1][1].replace(/,/g, ''));
@@ -268,10 +271,10 @@ export async function processAIAgent(ctx) {
           let rawName = aiProductMatch[1];
           let parsedQty = 1;
           
-          const inlinePriceMatch = rawName.match(/@\s*(?:USD|\\$|PKR|Rs\\.?|pkr|[A-Z]{3})\s*([\d,.]+)/i);
+          const inlinePriceMatch = rawName.match(/@\s*(?:USD|\\$|PKR|Rs\\.?|pkr|AED|SAR|[A-Z]{3})\s*([\d,.]+)/i);
           if (inlinePriceMatch) {
             unitPrice = parseFloat(inlinePriceMatch[1].replace(/,/g, ''));
-            rawName = rawName.replace(/@\s*(?:USD|\\$|PKR|Rs\\.?|pkr|[A-Z]{3})\s*([\d,.]+)/i, '').trim();
+            rawName = rawName.replace(/@\s*(?:USD|\\$|PKR|Rs\\.?|pkr|AED|SAR|[A-Z]{3})\s*([\d,.]+)/i, '').trim();
           }
 
           const inlineQtyMatch = rawName.match(/^(\d+)[xX]\s*(.*)/);
@@ -370,11 +373,26 @@ export async function processAIAgent(ctx) {
         
         let paymentMethod = recordData.payment_method || null;
         if (!paymentMethod || ai_intent === 'checkout_intent') {
-          const combined = msgLower + ' ' + ai_reply.toLowerCase();
-          if (/\bcod\b|cash\s+on\s+delivery/.test(combined)) paymentMethod = 'COD';
-          else if (/easypaisa/.test(combined)) paymentMethod = 'Easypaisa';
-          else if (/jazzcash/.test(combined)) paymentMethod = 'JazzCash';
-          else if (/bank\s*transfer/.test(combined)) paymentMethod = 'Bank Transfer';
+          // Extract primarily from the customer message to prevent AI hallucinations locking in a method
+          const customerMsgLower = msgLower;
+          if (/\bcod\b|cash\s+on\s+delivery/.test(customerMsgLower)) paymentMethod = 'COD';
+          else if (/easypaisa/.test(customerMsgLower)) paymentMethod = 'Easypaisa';
+          else if (/jazzcash/.test(customerMsgLower)) paymentMethod = 'JazzCash';
+          else if (/bank\s*transfer/.test(customerMsgLower)) paymentMethod = 'Bank Transfer';
+          
+          // Fallback: check AI reply ONLY IF it explicitly states "*Payment Method*: COD" in the summary
+          if (!paymentMethod) {
+            const aiSummaryMatch = ai_reply.match(/\*[Pp]ayment\s+Method\*\s*[:\-]\s*([^\n]+)/i);
+            if (aiSummaryMatch) {
+              const pm = aiSummaryMatch[1].toLowerCase();
+              if (!pm.includes('pending') && !pm.includes('not yet provided')) {
+                if (pm.includes('cod') || pm.includes('cash on delivery')) paymentMethod = 'COD';
+                else if (pm.includes('easypaisa')) paymentMethod = 'Easypaisa';
+                else if (pm.includes('jazzcash')) paymentMethod = 'JazzCash';
+                else if (pm.includes('bank transfer')) paymentMethod = 'Bank Transfer';
+              }
+            }
+          }
         }
 
         const calculatedTotal = orderTotal > 0 ? orderTotal : currentItems.reduce((s, i) => s + ((i.price || 0) * (i.qty || 1)), 0);
@@ -383,12 +401,14 @@ export async function processAIAgent(ctx) {
         const aiConfirmed = /confirm ho gaya|order confirm|order placed|confirmed your order|order ki tayari|order accept|finalize your order|Your order is confirmed/i.test(ai_reply);
 
         let newStatus = recordData.status || 'pending_address';
-        if (ai_intent === 'order_confirmed' || aiConfirmed || customerConfirmed) {
+        const hasAllFields = !!(deliveryAddress && paymentMethod && customerEmail);
+
+        if (hasAllFields && (ai_intent === 'order_confirmed' || aiConfirmed || customerConfirmed)) {
           newStatus = 'confirmed';
-        } else if (deliveryAddress && paymentMethod && customerEmail) {
+        } else if (hasAllFields) {
           newStatus = 'pending';
-        } else if (deliveryAddress || customerEmail || ai_intent === 'address_provided') {
-          newStatus = 'pending';
+        } else if (deliveryAddress || customerEmail || paymentMethod || ai_intent === 'address_provided' || ai_intent === 'checkout_intent') {
+          newStatus = 'pending_address';
         } else {
           newStatus = 'pending_address';
         }
@@ -409,7 +429,7 @@ export async function processAIAgent(ctx) {
           source: ctx.platform || 'whatsapp',
           handled_by: 'bot',
           status: newStatus,
-          currency: ctx.currency || 'PKR',
+          currency: ctx.currency || 'USD',
           updated_at: new Date().toISOString()
         };
 
@@ -507,12 +527,15 @@ export async function processAIAgent(ctx) {
       let upsertedOrderId = null;
       
       if (recordType === 'order') {
-        const { data: ord } = await supabase.from('orders').upsert(recordData, { onConflict: 'conversation_id' }).select('id').single();
+        const { data: ord, error: ordErr } = await supabase.from('orders').upsert(recordData).select('id').single();
+        if (ordErr) console.error("[AI-Agent] Order Upsert Error:", ordErr);
         if (ord) upsertedOrderId = ord.id;
       } else if (recordType === 'appointment') {
-        await supabase.from('appointments').upsert(recordData, { onConflict: 'conversation_id' });
+        const { error: apptErr } = await supabase.from('appointments').upsert(recordData);
+        if (apptErr) console.error("[AI-Agent] Appointment Upsert Error:", apptErr);
       } else if (recordType === 'lead') {
-        await supabase.from('leads').upsert(recordData, { onConflict: 'conversation_id' });
+        const { error: leadErr } = await supabase.from('leads').upsert(recordData);
+        if (leadErr) console.error("[AI-Agent] Lead Upsert Error:", leadErr);
       }
 
       await supabase.from('conversation_context').upsert({
