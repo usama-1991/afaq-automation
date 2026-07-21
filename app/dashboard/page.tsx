@@ -515,7 +515,7 @@ export default function DashboardPage() {
   const todayWcOrdersConfirmed = wcOrders.filter((o: any) => o.status === 'processing' || o.status === 'completed').length;
   const todayWcOnHold = wcOrders.filter((o: any) => o.status === 'on-hold').length;
   const todayWcCodPending = wcOrders.filter((o: any) => o.status === 'pending').reduce((sum: number, o: any) => sum + parseFloat(o.total || 0), 0);
-  const wcCurrency = wcOrders[0]?.currency || 'PKR';
+  const wcCurrency = wcOrders[0]?.currency || 'USD';
 
   return (
     <div className="dashboard-page-wrap" style={{ padding: '32px 32px 50px', minHeight: '100%', background: '#faf9f9' }}>

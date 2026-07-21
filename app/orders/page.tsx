@@ -129,7 +129,7 @@ export default function OrdersPage() {
     let csvData: string[][] = [];
 
     if (tableName === 'orders') {
-      headers = ['Order ID', 'Date', 'Customer Name', 'Phone', 'Amount (PKR)', 'Status', 'Order Type', 'Delivery Address', 'Payment Method', 'Items'];
+      headers = ['Order ID', 'Date', 'Customer Name', 'Phone', 'Amount', 'Status', 'Order Type', 'Delivery Address', 'Payment Method', 'Items'];
       csvData = filtered.map(item => [
         item.id,
         new Date(item.created_at).toLocaleString(),
@@ -326,7 +326,10 @@ export default function OrdersPage() {
               <div style={{ background: '#f0fdf4', padding: 8, borderRadius: 10, color: '#16a34a' }}><DollarSign size={18} /></div>
               <span style={{ fontSize: 13, fontWeight: 600, color: '#6b7280' }}>Estimated Revenue</span>
             </div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#111827' }}>PKR {metrics.revenue.toLocaleString()}</div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#111827' }}>
+              <span style={{ fontSize: 18, color: '#6b7280', marginRight: 4 }}>{data.find(d => d.currency)?.currency || 'USD'}</span>
+              {metrics.revenue.toLocaleString()}
+            </div>
           </div>
         )}
       </div>
@@ -397,7 +400,7 @@ export default function OrdersPage() {
                   }
 
                   let col3 = '';
-                  if (tableName === 'orders') col3 = `PKR ${item.order_amount || 0}`;
+                  if (tableName === 'orders') col3 = `${item.currency || 'USD'} ${item.order_amount || 0}`;
                   else if (tableName === 'leads') col3 = `${item.budget_min||0} - ${item.budget_max||'Any'}`;
                   else col3 = `${item.appointment_date || ''} ${item.appointment_time || ''}`;
 
@@ -490,7 +493,7 @@ export default function OrdersPage() {
                     
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px dashed #e5e7eb', marginBottom: 16 }}>
                       <span style={{ fontSize: 14, color: '#4b5563' }}>Total Amount</span>
-                      <span style={{ fontSize: 20, fontWeight: 800, color: '#dc2626' }}>PKR {selectedRecord.order_amount || 0}</span>
+                      <span style={{ fontSize: 20, fontWeight: 800, color: '#dc2626' }}>{selectedRecord.currency || 'USD'} {selectedRecord.order_amount || 0}</span>
                     </div>
 
                     <h4 style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Items Ordered</h4>
@@ -500,7 +503,7 @@ export default function OrdersPage() {
                           <div style={{ background: '#fef2f2', color: '#dc2626', fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 6 }}>{item.qty || 1}x</div>
                           <div style={{ flex: 1 }}>
                             <div style={{ fontSize: 13.5, fontWeight: 600, color: '#1f2937', lineHeight: 1.3 }}>{item.name || item.title || 'Product Item'}</div>
-                            {item.price && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>PKR {item.price} each</div>}
+                            {item.price && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{selectedRecord.currency || 'USD'} {item.price} each</div>}
                           </div>
                         </div>
                       )) : (

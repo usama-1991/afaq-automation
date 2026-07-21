@@ -115,7 +115,7 @@ export async function POST(request: Request) {
       customer_email: order.customer_email,
       items: order.items || [],
       order_amount: order.order_amount || 0,
-      currency: order.currency || 'PKR',
+      currency: order.currency || 'USD',
       delivery_address: order.delivery_address,
       payment_method: order.payment_method,
       notes: order.notes,

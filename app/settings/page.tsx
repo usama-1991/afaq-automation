@@ -727,7 +727,7 @@ function SettingsInner() {
                 <>
                   <Field label="Product Catalog URL" value={catalogLink} onChange={setCatalogLink} hint="Sent to customers asking for catalogs or shop link" />
                   <Field label="Standard Delivery Days" value={deliveryDays} onChange={setDeliveryDays} type="number" hint="Expected transit time for shipments" />
-                  <Field label="Minimum Order Value (PKR)" value={minOrder} onChange={setMinOrder} type="number" hint="Minimum cart subtotal to process checkouts" />
+                  <Field label="Minimum Order Value (USD)" value={minOrder} onChange={setMinOrder} type="number" hint="Minimum cart subtotal to process checkouts" />
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', maxWidth: 480 }}>
                     <div>
                       <span style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block' }}>Cash On Delivery (COD)</span>
@@ -1164,7 +1164,7 @@ function SettingsInner() {
                   <Field label="Property Title" value={listingForm.title} onChange={v => setListingForm({...listingForm, title: v})} hint="e.g. Luxury 2-Bed Apartment in DHA" />
                 </div>
                 <Field label="Area / Location" value={listingForm.area} onChange={v => setListingForm({...listingForm, area: v})} hint="e.g. DHA Phase 6" />
-                <Field label="Price (PKR)" value={listingForm.price} onChange={v => setListingForm({...listingForm, price: v})} type="number" hint="e.g. 50000000" />
+                <Field label="Price (USD)" value={listingForm.price} onChange={v => setListingForm({...listingForm, price: v})} type="number" hint="e.g. 500" />
                 
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Property Type</label>
@@ -1321,7 +1321,7 @@ function SettingsInner() {
                         <div style={{ fontSize: 12, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 12 }}>
                           <span>📍 {listing.area || 'N/A'}</span>
                           <span>🛏️ {listing.bedrooms} Beds</span>
-                          <span>💰 PKR {listing.price?.toLocaleString()}</span>
+                          <span>💰 USD {listing.price?.toLocaleString()}</span>
                         </div>
                       </div>
                       
@@ -1619,9 +1619,9 @@ function SettingsInner() {
             {/* Pricing Packages */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {[
-                { name: 'Starter Plan', price: '$49', pricePKR: 'PKR 13,600', current: false, features: ['WhatsApp Single Channel', '1,000 monthly messages', 'Standard voice transcription', 'Basic email support'] },
-                { name: 'Growth Plan', price: '$149', pricePKR: 'PKR 41,300', current: true, features: ['All Channels (WA + TikTok + IG)', '10,000 monthly messages', 'Premium Whisper transcribing', 'Instant human handoff controls', 'Priority WhatsApp support'] },
-                { name: 'Enterprise Hub', price: '$399', pricePKR: 'PKR 110,700', current: false, features: ['Unlimited Omni-Channels', 'White-labeled studio portal', 'Full webhook and custom API key limits', '24/7 dedicated support staff'] },
+                { name: 'Starter Plan', price: '$49', pricePKR: '$49', current: false, features: ['WhatsApp Single Channel', '1,000 monthly messages', 'Standard voice transcription', 'Basic email support'] },
+                { name: 'Growth Plan', price: '$149', pricePKR: '$149', current: true, features: ['All Channels (WA + TikTok + IG)', '10,000 monthly messages', 'Premium Whisper transcribing', 'Instant human handoff controls', 'Priority WhatsApp support'] },
+                { name: 'Enterprise Hub', price: '$399', pricePKR: '$399', current: false, features: ['Unlimited Omni-Channels', 'White-labeled studio portal', 'Full webhook and custom API key limits', '24/7 dedicated support staff'] },
               ].map(plan => (
                 <div 
                   key={plan.name} 

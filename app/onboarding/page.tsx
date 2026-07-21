@@ -341,7 +341,7 @@ export default function OnboardingPage() {
 
               <div style={{ marginBottom: 24 }}>
                 <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Product / Service Catalog Text</label>
-                <textarea value={kbCatalog} onChange={e => setKbCatalog(e.target.value)} placeholder="e.g. Lawn Kurti - PKR 2500, Consultation Fee - PKR 1500..." rows={3} style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none', resize: 'none' }} />
+                <textarea value={kbCatalog} onChange={e => setKbCatalog(e.target.value)} placeholder="e.g. Lawn Kurti - USD 25, Consultation Fee - USD 15..." rows={3} style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none', resize: 'none' }} />
               </div>
 
               <div style={{ display: 'flex', gap: 12 }}>
@@ -372,7 +372,7 @@ export default function OnboardingPage() {
                   </div>
                   <div style={{ marginBottom: 24 }}>
                     <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Delivery Charges / Areas</label>
-                    <input value={nicheSetting2} onChange={e => setNicheSetting2(e.target.value)} placeholder="PKR 250 flat rate, Nationwide delivery" style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none' }} />
+                    <input value={nicheSetting2} onChange={e => setNicheSetting2(e.target.value)} placeholder="USD 5 flat rate, Nationwide delivery" style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none' }} />
                   </div>
                 </>
               ) : ['dental', 'clinic', 'salon', 'restaurant'].includes(niche) ? (

@@ -425,7 +425,6 @@ export async function processAIAgent(ctx) {
           order_amount: calculatedTotal,
           payment_method: paymentMethod,
           delivery_address: deliveryAddress,
-          notes: previousInfo.notes || '',
           source: ctx.platform || 'whatsapp',
           handled_by: 'bot',
           status: newStatus,
@@ -527,14 +526,14 @@ export async function processAIAgent(ctx) {
       let upsertedOrderId = null;
       
       if (recordType === 'order') {
-        const { data: ord, error: ordErr } = await supabase.from('orders').upsert(recordData).select('id').single();
+        const { data: ord, error: ordErr } = await supabase.from('orders').upsert(recordData, { onConflict: 'conversation_id' }).select('id').single();
         if (ordErr) console.error("[AI-Agent] Order Upsert Error:", ordErr);
         if (ord) upsertedOrderId = ord.id;
       } else if (recordType === 'appointment') {
-        const { error: apptErr } = await supabase.from('appointments').upsert(recordData);
+        const { error: apptErr } = await supabase.from('appointments').upsert(recordData, { onConflict: 'conversation_id' });
         if (apptErr) console.error("[AI-Agent] Appointment Upsert Error:", apptErr);
       } else if (recordType === 'lead') {
-        const { error: leadErr } = await supabase.from('leads').upsert(recordData);
+        const { error: leadErr } = await supabase.from('leads').upsert(recordData, { onConflict: 'conversation_id' });
         if (leadErr) console.error("[AI-Agent] Lead Upsert Error:", leadErr);
       }
 
