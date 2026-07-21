@@ -137,13 +137,32 @@ if (['ecommerce', 'restaurant'].includes(niche)) {
     const combinedForAddr = msg + ' ' + aiReply;
 
     const addrLabelMatch = combinedForAddr.match(/(?:[Dd]elivery\s+[Aa]ddress|[Dd]eliver\s+to)\s*[:\-]?\s*([^\n,\.]{8,100})/i);
+    let newAddress = null;
     if (addrLabelMatch && (!deliveryAddress || intent === 'address_provided')) {
-      deliveryAddress = addrLabelMatch[1].trim();
-    }
-    if (!deliveryAddress) {
+      newAddress = addrLabelMatch[1].trim();
+    } else if (!deliveryAddress) {
       const addrKeywords = /\b(dha|clifton|gulshan|phase|block|street|road|avenue|lane|sector|town|garden|colony|defence|bahria|nazimabad|korangi|malir|johar|askari|highway|rd\b)/i;
       const addrMatch = combinedForAddr.match(new RegExp(`[\\w\\s,\\.\\-\\/]{0,30}${addrKeywords.source}[\\w\\s,\\.\\-\\/]{0,40}`, 'i'));
-      if (addrMatch) deliveryAddress = addrMatch[0].trim();
+      if (addrMatch) newAddress = addrMatch[0].trim();
+    }
+
+    if (newAddress) {
+      deliveryAddress = newAddress;
+    } else if (!deliveryAddress || deliveryAddress.length < 10) {
+      const botAddressMatch = aiReply.match(/\*?Delivery\s+Address\*?\s*[:\-]\s*([^(\n]+)/i);
+      if (botAddressMatch && !botAddressMatch[1].toLowerCase().includes('pending') && !botAddressMatch[1].toLowerCase().includes('not yet')) {
+        deliveryAddress = botAddressMatch[1].replace(/[.!]+$/, '').trim();
+      }
+    }
+
+    // ── Email extraction ──
+    let customerEmail = recordData.customer_email || null;
+    const emailMatch = msg.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/i);
+    if (emailMatch) {
+      customerEmail = emailMatch[1];
+    } else if (!customerEmail) {
+      const botEmailMatch = aiReply.match(/\*?[Ee]mail\*?\s*[:\-]\s*([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/);
+      if (botEmailMatch) customerEmail = botEmailMatch[1];
     }
 
     // ── Payment method extraction ──
@@ -166,13 +185,17 @@ if (['ecommerce', 'restaurant'].includes(niche)) {
     // This handles cases where customer says 'COD' and AI says 'order confirm ho gaya'
     const aiConfirmed = /confirm ho gaya|order confirm|order placed|confirmed your order|order ki tayari|order accept/i.test(aiReply);
 
-    let newStatus;
-    if (intent === 'order_confirmed' || aiConfirmed) {
+    let newStatus = recordData.status || 'pending_address';
+    const hasAllFields = !!(deliveryAddress && paymentMethod && customerEmail);
+
+    if (hasAllFields && (intent === 'order_confirmed' || aiConfirmed)) {
       newStatus = 'confirmed';
+    } else if (hasAllFields) {
+      newStatus = 'pending';
     } else if (deliveryAddress && paymentMethod) {
-      newStatus = 'pending';
-    } else if (deliveryAddress || intent === 'address_provided') {
-      newStatus = 'pending';
+      newStatus = 'pending_email';
+    } else if (deliveryAddress || customerEmail || paymentMethod || intent === 'address_provided') {
+      newStatus = 'pending_address';
     } else {
       newStatus = ['confirmed', 'pending', 'processing'].includes(recordData.status)
         ? recordData.status
@@ -191,6 +214,7 @@ if (['ecommerce', 'restaurant'].includes(niche)) {
       order_amount: calculatedTotal,
       payment_method: paymentMethod,
       delivery_address: deliveryAddress,
+      customer_email: customerEmail,
       // FIX 2: Safe fallback so source is never null/undefined
       source: d.platform || d.source || 'whatsapp',
       handled_by: 'bot',

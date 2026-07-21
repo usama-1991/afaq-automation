@@ -61,7 +61,7 @@ export async function processAIAgent(ctx) {
       : '';
       
     const productEntries = productDocs.length > 0
-      ? productDocs.map(p => `- ${p.name} (Category: ${p.category || 'General'}) - Price: ${ctx.currency || 'USD'} ${p.price || 'Ask'} - Desc: ${p.description || 'N/A'}${p.image_url ? ` - Image: ${p.image_url}` : ''}${p.product_url ? ` - Link: ${p.product_url}` : ''}${p.external_product_id ? ` - ID: ${p.external_product_id}` : ''}`).join('\n')
+      ? productDocs.map(p => `Title: ${p.name}\nCategory: ${p.category || 'General'}\nPrice: ${ctx.currency || 'USD'} ${p.price || 'Ask'}\nDesc: ${p.description || 'N/A'}${p.image_url ? `\nImage_URL: ${p.image_url}` : ''}${p.product_url ? `\nLink: ${p.product_url}` : ''}${p.external_product_id ? `\nID: ${p.external_product_id}` : ''}\n`).join('\n')
       : '';
 
     let finalContext = '';
@@ -127,10 +127,11 @@ export async function processAIAgent(ctx) {
           '',
           'Instructions for using this state:',
           '- Only ask the customer for fields above that are still "(not yet provided)".',
-          '- NEVER ask again for a field that already has a value here, even if you cannot see it stated in the recent chat history.',
+          '- NEVER ask again for a field that already has a value here.',
+          '- You MUST collect Delivery address, Email, and Payment method. DO NOT skip any of these.',
           '- If Status is "confirmed", do not re-ask anything — just acknowledge the order is already confirmed and help with anything new.',
-          '- If all fields are filled and Status is not yet "confirmed", ask the customer to confirm the order.',
-          '- If the customer names a clearly different product than the one listed above, treat it as a new order and ignore the old product/quantity (but you may reuse a previously given delivery address or payment method if the customer does not provide a new one).',
+          '- If all fields (address, email, payment) are filled and Status is not yet "confirmed", ask the customer to confirm the order.',
+          '- If the customer names a clearly different product than the one listed above, treat it as a new order and ignore the old product/quantity.',
         ].join('\n');
       } else {
         orderStateBlock = '--- CURRENT ORDER STATE ---\nNo order in progress yet for this conversation.';
@@ -153,8 +154,8 @@ export async function processAIAgent(ctx) {
       '4. Keep responses under 3 short paragraphs — be concise.',
       '5. Be warm, human, and conversational. Never sound robotic.',
       `6. Channel: ${ctx.platform}`,
-      '7. When recommending or showing products, you MUST format EACH product exactly like this:\nTitle: [Product Name]\nPrice: [Price]\nLink: [Link]\nID: [ID]\n![Product Name](Image_URL)\n\nDo this for EVERY product you recommend so they are formatted beautifully. If you are listing categories, just list the category names.',
-      '8. NEVER assume a payment method, address, or email. You MUST explicitly ask the customer for these details if they are "(not yet provided)".',
+      '7. When recommending or showing products, you MUST format EACH product exactly like this (NO bullet points, NO markdown links for the URL):\nTitle: [Product Name]\nPrice: [Price]\nLink: [Link]\nID: [ID]\n![Product Name](Image_URL)\n\nDo this exactly for EVERY product so they render as beautiful WhatsApp cards. Do not use `- [Link](url)` format.',
+      '8. CRITICAL: You MUST explicitly ask the customer for their Email Address, Delivery Address, and Payment Method if they are "(not yet provided)". DO NOT proceed to final confirmation until you have ALL THREE of these pieces of information.',
       '9. DO NOT say the order is confirmed if Address, Email, or Payment Method is still missing.',
       '10. Once ALL details are gathered, you MUST show the final summary and ask "Please reply with YES to confirm your order." DO NOT say the order is confirmed until the customer explicitly agrees.',
       '',
@@ -414,6 +415,8 @@ export async function processAIAgent(ctx) {
           newStatus = 'confirmed';
         } else if (hasAllFields) {
           newStatus = 'pending';
+        } else if (deliveryAddress && paymentMethod) {
+          newStatus = 'pending_email'; // if only missing email
         } else if (deliveryAddress || customerEmail || paymentMethod || ai_intent === 'address_provided' || ai_intent === 'checkout_intent') {
           newStatus = 'pending_address';
         } else {
