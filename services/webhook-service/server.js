@@ -89,7 +89,7 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
   // Columns verified from migrations: niche, business_name, metadata, wa_phone_number_id, wa_token_enc
   let tenantNiche        = 'general';
   let tenantBusinessName = '';
-  let tenantCurrency     = 'PKR';
+  let tenantCurrency     = 'USD';
   let waPhoneNumberId    = '';
   let waAccessToken      = '';
 
@@ -105,7 +105,7 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
     } else if (tenantRecord) {
       tenantNiche        = tenantRecord.niche          || 'general';
       tenantBusinessName = tenantRecord.business_name  || '';
-      tenantCurrency     = tenantRecord.default_currency || 'PKR';
+      tenantCurrency     = tenantRecord.default_currency || 'USD';
       // wa_phone_number_id is stored directly on tenants (migration 20260626)
       waPhoneNumberId    = tenantRecord.wa_phone_number_id || '';
       // wa_token_enc is the encrypted access token stored on tenants (migration 20260626)

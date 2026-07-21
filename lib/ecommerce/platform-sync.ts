@@ -78,7 +78,7 @@ export async function pushOrderToShopify(
               last_name: lastName,
               address1: order.delivery_address || 'To be confirmed',
               phone: order.customer_phone,
-              country: 'PK',
+              country: 'US',
             },
             financial_status: 'pending',
             fulfillment_status: null,
@@ -198,7 +198,7 @@ export async function pushOrderToWooCommerce(
         payment_method: 'cod',
         payment_method_title: 'Cash on Delivery',
         set_paid: false,
-        currency: order.currency || 'PKR',
+        currency: order.currency || 'USD',
         billing: {
           first_name: firstName,
           last_name: lastName,
@@ -271,7 +271,7 @@ export async function sendOrderConfirmationEmail(
       i =>
         `<tr>
           <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;font-size:14px">${i.qty || 1}x ${i.name || 'Product'}</td>
-          <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;font-size:14px;text-align:right">${order.currency || 'PKR'} ${i.price || 0}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;font-size:14px;text-align:right">${order.currency || 'USD'} ${i.price || 0}</td>
         </tr>`
     )
     .join('');
@@ -308,7 +308,7 @@ export async function sendOrderConfirmationEmail(
                 ${itemsHtml}
                 <tr style="background:#f9fafb">
                   <td style="padding:12px;font-weight:700;font-size:15px">Total</td>
-                  <td style="padding:12px;font-weight:800;font-size:18px;text-align:right;color:#dc2626">${order.currency || 'PKR'} ${order.order_amount || 0}</td>
+                  <td style="padding:12px;font-weight:800;font-size:18px;text-align:right;color:#dc2626">${order.currency || 'USD'} ${order.order_amount || 0}</td>
                 </tr>
               </table>
 

@@ -87,12 +87,16 @@ export async function processAIAgent(ctx) {
 
     let kbSection = kbEntries
       ? `KNOWLEDGE BASE (${kbDocs.length} relevant results):\n${kbEntries}\n\n`
-      : 'KNOWLEDGE BASE: No specific policies found.\n\n';
+      : '';
       
     if (productEntries) {
-      kbSection += `AVAILABLE PRODUCTS CATALOG (${productDocs.length} items):\n${productEntries}\n\nUse this catalog to suggest products and prices.`;
+      kbSection += `PRODUCT CATALOG (${productDocs.length} items — THIS IS PART OF YOUR KNOWLEDGE BASE, use it to answer product/category questions):\n${productEntries}\n\nUse this catalog to answer ALL product and category inquiries. You can list categories by grouping product categories from this catalog.`;
     } else if (['ecommerce', 'restaurant', 'food_delivery'].includes(ctx.niche)) {
-      kbSection += 'AVAILABLE PRODUCTS: No specific products matched or catalog is empty. Ask the customer for details.';
+      kbSection += 'AVAILABLE PRODUCTS: No specific products matched. Ask the customer for more details about what they are looking for.';
+    }
+    
+    if (!kbEntries && !productEntries) {
+      kbSection = 'KNOWLEDGE BASE: No specific policies found.\n\n';
     }
 
     // Check for existing order
@@ -148,14 +152,14 @@ export async function processAIAgent(ctx) {
       languageInstructions[language] || languageInstructions.en,
       '',
       '--- RULES ---',
-      '1. Answer ONLY using the knowledge base content provided below.',
-      '2. If the answer is not in the knowledge base, say you will connect the customer with a team member.',
+      '1. Answer using the knowledge base AND product catalog provided below. The product catalog IS your knowledge — use it to answer product questions, category questions, pricing, etc.',
+      '2. If the customer asks about something NOT covered by the knowledge base AND NOT in the product catalog, say you will connect them with a team member.',
       '3. NEVER invent prices, hours, availability, or contact details.',
       '4. Keep responses under 3 short paragraphs — be concise.',
       '5. Be warm, human, and conversational. Never sound robotic.',
       `6. Channel: ${ctx.platform}`,
-      '7. When recommending or showing products, you MUST format EACH product exactly like this (NO bullet points, NO markdown links for the URL):\nTitle: [Product Name]\nPrice: [Price]\nLink: [Link]\nID: [ID]\n![Product Name](Image_URL)\n\nDo this exactly for EVERY product so they render as beautiful WhatsApp cards. Do not use `- [Link](url)` format.',
-      '8. CRITICAL: You MUST explicitly ask the customer for their Email Address, Delivery Address, and Payment Method if they are "(not yet provided)". DO NOT proceed to final confirmation until you have ALL THREE of these pieces of information.',
+      '7. When listing product categories, just list the category names (no images needed). When showing specific products, format each product clearly with Title, Price, Link, ID and include the image markdown ![Name](url).',
+      '8. CRITICAL: You MUST explicitly ask the customer for their Email Address, Delivery Address, and Payment Method if they are "(not yet provided)". DO NOT proceed to final confirmation until you have ALL THREE.',
       '9. DO NOT say the order is confirmed if Address, Email, or Payment Method is still missing.',
       '10. Once ALL details are gathered, you MUST show the final summary and ask "Please reply with YES to confirm your order." DO NOT say the order is confirmed until the customer explicitly agrees.',
       '',
@@ -558,8 +562,8 @@ export async function processAIAgent(ctx) {
       
       // Trigger Ecommerce Sync if Order is Confirmed
       if (recordType === 'order' && recordData.status === 'confirmed' && upsertedOrderId) {
-        const dashboardUrl = process.env.DASHBOARD_URL || 'http://localhost:3000';
-        const syncKey = process.env.ORDERS_SYNC_API_KEY || process.env.OPENAI_API_KEY; // Fallback so it at least tries
+        const dashboardUrl = process.env.DASHBOARD_URL;
+        const syncKey = process.env.ORDERS_SYNC_API_KEY || process.env.OPENAI_API_KEY;
         
         if (dashboardUrl) {
            console.log(`[AI-Agent] Order confirmed! Triggering ecommerce sync to ${dashboardUrl}/api/orders/sync...`);
@@ -570,9 +574,11 @@ export async function processAIAgent(ctx) {
                'x-api-key': syncKey
              },
              body: JSON.stringify({ order_id: upsertedOrderId })
-           }).catch(err => console.error(`[AI-Agent] Sync trigger failed:`, err));
+           })
+           .then(res => res.json().then(data => console.log(`[AI-Agent] Sync response (${res.status}):`, JSON.stringify(data))))
+           .catch(err => console.error(`[AI-Agent] Sync trigger failed:`, err));
         } else {
-           console.warn(`[AI-Agent] Order confirmed, but DASHBOARD_URL is not set. Cannot trigger WooCommerce sync.`);
+           console.error(`[AI-Agent] ❌ DASHBOARD_URL env var is NOT SET on webhook-service. Order ${upsertedOrderId} confirmed but WooCommerce sync and email SKIPPED. Set DASHBOARD_URL to your Vercel/deployed URL.`);
         }
       }
     }
