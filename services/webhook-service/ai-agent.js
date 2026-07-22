@@ -204,8 +204,6 @@ export async function processAIAgent(ctx) {
 
     // 4. Call GPT-4o-mini
     console.log(`[AI-Agent] Calling OpenAI for conv_id: ${ctx.conversation_id}`);
-    // DEBUG LOG FOR SYSTEM PROMPT
-    console.log(`[DEBUG] System Prompt: ${messages[0].content}`);
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
