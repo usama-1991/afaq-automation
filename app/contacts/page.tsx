@@ -108,7 +108,7 @@ export default function ContactsPage() {
             id: conv.id,
             name: conv.customer_name || 'Unknown User',
             phone: phoneNum,
-            email: meta.email || '',
+            email: conv.customer_email || meta.email || '',
             visits: conv.unread_count || 0,
             lastVisit: new Date(conv.updated_at).toLocaleDateString(),
             totalSpent: '—',
