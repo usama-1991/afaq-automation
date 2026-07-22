@@ -282,7 +282,7 @@ export async function processAIAgent(ctx) {
             rawName = rawName.replace(/@\s*(?:USD|\\$|PKR|Rs\\.?|pkr|AED|SAR|[A-Z]{3})\s*([\d,.]+)/i, '').trim();
           }
 
-          const inlineQtyMatch = rawName.match(/^(\d+)[xX]\s*(.*)/);
+          const inlineQtyMatch = rawName.match(/^(\d+)\s*[xX]\s*(.*)/);
           if (inlineQtyMatch) {
             parsedQty = parseInt(inlineQtyMatch[1]);
             rawName = inlineQtyMatch[2];
