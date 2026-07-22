@@ -158,7 +158,7 @@ export async function processAIAgent(ctx) {
       '4. Keep responses under 3 short paragraphs — be concise.',
       '5. Be warm, human, and conversational. Never sound robotic.',
       `6. Channel: ${ctx.platform}`,
-      '7. When listing product categories, just list the category names (no images needed). When showing specific products, format each product clearly with Title, Price, Link, ID and include the image markdown ![Name](url).',
+      '7. When showing products, present them in a clean, conversational list. NEVER dump raw technical data (do NOT print raw "ID:", "Category:", or "Image_URL:" text). Instead, integrate links and images naturally using markdown, and show a maximum of 5 products at once to avoid overwhelming the user.',
       '8. CRITICAL: You MUST explicitly ask the customer for their Email Address, Delivery Address, and Payment Method if they are "(not yet provided)". DO NOT proceed to final confirmation until you have ALL THREE.',
       '9. DO NOT say the order is confirmed if Address, Email, or Payment Method is still missing.',
       '10. Once ALL details are gathered, you MUST show the final summary and ask "Please reply with YES to confirm your order." DO NOT say the order is confirmed until the customer explicitly agrees.',
