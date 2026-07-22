@@ -352,6 +352,33 @@ export async function processAIAgent(ctx) {
           currentItems = [{ name: 'Pending items', qty: 1, price: 0 }];
         }
 
+        // Enrich items with external_product_id from product catalog
+        // This ensures WooCommerce push uses the CORRECT product ID instead of fuzzy search
+        if (productDocs.length > 0) {
+          currentItems = currentItems.map(item => {
+            if (item.external_product_id) return item; // already has ID
+            const itemNameLower = (item.name || '').toLowerCase().trim();
+            // Try exact match first, then partial match
+            let match = productDocs.find(p => (p.name || '').toLowerCase().trim() === itemNameLower);
+            if (!match) {
+              match = productDocs.find(p => {
+                const pName = (p.name || '').toLowerCase().trim();
+                return pName.includes(itemNameLower) || itemNameLower.includes(pName);
+              });
+            }
+            if (match) {
+              console.log(`[AI-Agent] Matched item "${item.name}" -> product "${match.name}" (ext_id: ${match.external_product_id})`);
+              return {
+                ...item,
+                name: match.name, // Use the canonical product name
+                external_product_id: match.external_product_id || null,
+                price: item.price > 0 ? item.price : (parseFloat(match.price) || 0)
+              };
+            }
+            return item;
+          });
+        }
+
         let deliveryAddress = recordData.delivery_address || null;
         const combinedForAddr = msg;
         const addrLabelMatch = combinedForAddr.match(/(?:[Dd]elivery\s+[Aa]ddress|[Dd]eliver\s+to|address(?: is)?|address to this)\s*[:\-]?\s*([^\n]{8,100})/i);
@@ -560,6 +587,14 @@ export async function processAIAgent(ctx) {
         updated_at: new Date().toISOString()
       }, { onConflict: 'conversation_id' });
       
+      // Propagate customer email to conversation record for contact card display
+      if (recordData.customer_email && ctx.conversation_id) {
+        await supabase.from('conversations')
+          .update({ customer_email: recordData.customer_email })
+          .eq('id', ctx.conversation_id);
+        console.log(`[AI-Agent] Updated conversation ${ctx.conversation_id} with email: ${recordData.customer_email}`);
+      }
+      
       // ── Direct WooCommerce Sync + Email (no cross-service HTTP needed) ──
       if (recordType === 'order' && recordData.status === 'confirmed' && upsertedOrderId) {
         (async () => {
@@ -609,19 +644,39 @@ export async function processAIAgent(ctx) {
                 const firstName = nameParts[0] || '';
                 const lastName = nameParts.slice(1).join(' ') || '';
 
-                // Resolve product IDs from WooCommerce catalog
+                // Resolve product IDs — prefer stored external_product_id, fallback to WC search
                 const resolvedLineItems = await Promise.all(
                   (recordData.items || []).map(async item => {
                     let productId = null;
-                    if (item.name) {
+
+                    // Use stored external_product_id if available (from Supabase catalog match)
+                    if (item.external_product_id) {
+                      productId = parseInt(item.external_product_id);
+                      if (isNaN(productId)) productId = null;
+                      else console.log(`[AI-Agent] Using stored product ID ${productId} for "${item.name}"`);
+                    }
+
+                    // Fallback: search WooCommerce catalog by exact name
+                    if (!productId && item.name) {
                       try {
                         const searchRes = await fetch(
-                          `${storeUrl}/wp-json/wc/v3/products?search=${encodeURIComponent(item.name)}&per_page=1`,
+                          `${storeUrl}/wp-json/wc/v3/products?search=${encodeURIComponent(item.name)}&per_page=5`,
                           { headers: { Authorization: authHeader } }
                         );
                         if (searchRes.ok) {
                           const products = await searchRes.json();
-                          if (products && products.length > 0) productId = products[0].id;
+                          if (products && products.length > 0) {
+                            const exactMatch = products.find(p => p.name.toLowerCase() === item.name.toLowerCase());
+                            const partialMatch = products.find(p => p.name.toLowerCase().includes(item.name.toLowerCase()) || item.name.toLowerCase().includes(p.name.toLowerCase()));
+                            const bestMatch = exactMatch || partialMatch;
+                            
+                            if (bestMatch) {
+                              productId = bestMatch.id;
+                              console.log(`[AI-Agent] WC search matched "${item.name}" -> product ID ${productId} ("${bestMatch.name}")`);
+                            } else {
+                              console.log(`[AI-Agent] WC search returned results, but none matched "${item.name}". Safely falling back to feeLine.`);
+                            }
+                          }
                         }
                       } catch (e) { console.error('[AI-Agent] WC product search error:', e.message); }
                     }
