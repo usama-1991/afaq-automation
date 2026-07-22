@@ -560,26 +560,193 @@ export async function processAIAgent(ctx) {
         updated_at: new Date().toISOString()
       }, { onConflict: 'conversation_id' });
       
-      // Trigger Ecommerce Sync if Order is Confirmed
+      // ── Direct WooCommerce Sync + Email (no cross-service HTTP needed) ──
       if (recordType === 'order' && recordData.status === 'confirmed' && upsertedOrderId) {
-        const dashboardUrl = process.env.DASHBOARD_URL;
-        const syncKey = process.env.ORDERS_SYNC_API_KEY || process.env.OPENAI_API_KEY;
-        
-        if (dashboardUrl) {
-           console.log(`[AI-Agent] Order confirmed! Triggering ecommerce sync to ${dashboardUrl}/api/orders/sync...`);
-           fetch(`${dashboardUrl}/api/orders/sync`, {
-             method: 'POST',
-             headers: {
-               'Content-Type': 'application/json',
-               'x-api-key': syncKey
-             },
-             body: JSON.stringify({ order_id: upsertedOrderId })
-           })
-           .then(res => res.json().then(data => console.log(`[AI-Agent] Sync response (${res.status}):`, JSON.stringify(data))))
-           .catch(err => console.error(`[AI-Agent] Sync trigger failed:`, err));
-        } else {
-           console.error(`[AI-Agent] ❌ DASHBOARD_URL env var is NOT SET on webhook-service. Order ${upsertedOrderId} confirmed but WooCommerce sync and email SKIPPED. Set DASHBOARD_URL to your Vercel/deployed URL.`);
-        }
+        (async () => {
+          try {
+            console.log(`[AI-Agent] Order ${upsertedOrderId} confirmed! Starting direct platform sync...`);
+
+            // 1. Check if already synced
+            const { data: currentOrder } = await supabase.from('orders').select('platform_order_id').eq('id', upsertedOrderId).single();
+            if (currentOrder?.platform_order_id) {
+              console.log(`[AI-Agent] Order ${upsertedOrderId} already synced. Skipping.`);
+              return;
+            }
+
+            // 2. Fetch e-commerce platform credentials from integrations table
+            let platformCreds = null;
+            const { data: integrations } = await supabase
+              .from('integrations')
+              .select('platform, credentials')
+              .eq('tenant_id', ctx.tenant_id)
+              .in('platform', ['shopify', 'woocommerce'])
+              .eq('is_active', true)
+              .limit(1);
+
+            if (integrations && integrations.length > 0) {
+              platformCreds = integrations[0];
+            } else {
+              // Fallback: check integration_credentials table
+              const { data: icreds } = await supabase
+                .from('integration_credentials')
+                .select('platform, credentials')
+                .eq('tenant_id', ctx.tenant_id)
+                .in('platform', ['shopify', 'woocommerce'])
+                .eq('is_active', true)
+                .limit(1);
+              if (icreds && icreds.length > 0) platformCreds = icreds[0];
+            }
+
+            // 3. Push to WooCommerce/Shopify directly
+            if (platformCreds && platformCreds.platform === 'woocommerce') {
+              const creds = platformCreds.credentials;
+              const storeUrl = (creds.site_url || creds.store_url || '').replace(/\/+$/, '');
+              if (!storeUrl || !creds.consumer_key || !creds.consumer_secret) {
+                console.error(`[AI-Agent] WooCommerce credentials incomplete for tenant ${ctx.tenant_id}. site_url=${storeUrl}`);
+              } else {
+                const authHeader = 'Basic ' + Buffer.from(`${creds.consumer_key}:${creds.consumer_secret}`).toString('base64');
+                const nameParts = (recordData.customer_name || '').split(' ');
+                const firstName = nameParts[0] || '';
+                const lastName = nameParts.slice(1).join(' ') || '';
+
+                // Resolve product IDs from WooCommerce catalog
+                const resolvedLineItems = await Promise.all(
+                  (recordData.items || []).map(async item => {
+                    let productId = null;
+                    if (item.name) {
+                      try {
+                        const searchRes = await fetch(
+                          `${storeUrl}/wp-json/wc/v3/products?search=${encodeURIComponent(item.name)}&per_page=1`,
+                          { headers: { Authorization: authHeader } }
+                        );
+                        if (searchRes.ok) {
+                          const products = await searchRes.json();
+                          if (products && products.length > 0) productId = products[0].id;
+                        }
+                      } catch (e) { console.error('[AI-Agent] WC product search error:', e.message); }
+                    }
+                    return { product_id: productId, name: item.name || 'Product', quantity: item.qty || 1, total: String((item.price || 0) * (item.qty || 1)) };
+                  })
+                );
+
+                const validLineItems = resolvedLineItems.filter(i => i.product_id !== null).map(i => ({ product_id: i.product_id, quantity: i.quantity, total: i.total }));
+                const feeLines = resolvedLineItems.filter(i => i.product_id === null).map(i => ({ name: `${i.quantity}x ${i.name}`, total: i.total }));
+
+                console.log(`[AI-Agent] Pushing order to WooCommerce at ${storeUrl}...`);
+                const wcResponse = await fetch(`${storeUrl}/wp-json/wc/v3/orders`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+                  body: JSON.stringify({
+                    status: 'processing',
+                    payment_method: 'cod',
+                    payment_method_title: 'Cash on Delivery',
+                    set_paid: false,
+                    currency: recordData.currency || ctx.currency || 'USD',
+                    billing: { first_name: firstName, last_name: lastName, phone: recordData.customer_phone, email: recordData.customer_email || '', address_1: recordData.delivery_address || '' },
+                    shipping: { first_name: firstName, last_name: lastName, address_1: recordData.delivery_address || '', phone: recordData.customer_phone },
+                    line_items: validLineItems,
+                    fee_lines: feeLines,
+                    meta_data: [
+                      { key: '_ittisalo_synced', value: 'true' },
+                      { key: '_ittisalo_order_id', value: upsertedOrderId },
+                      { key: '_ittisalo_source', value: recordData.source || 'whatsapp' },
+                    ],
+                  }),
+                });
+
+                if (wcResponse.ok) {
+                  const wcData = await wcResponse.json();
+                  const platformOrderId = String(wcData.id);
+                  const platformOrderNumber = `#${wcData.number}`;
+                  console.log(`[AI-Agent] ✅ WooCommerce order created: ${platformOrderNumber} (ID: ${platformOrderId})`);
+
+                  await supabase.from('orders').update({
+                    platform_source: 'woocommerce',
+                    platform_order_id: platformOrderId,
+                    platform_order_number: platformOrderNumber,
+                    platform_synced_at: new Date().toISOString(),
+                  }).eq('id', upsertedOrderId);
+                } else {
+                  const errBody = await wcResponse.text().catch(() => 'unknown');
+                  console.error(`[AI-Agent] ❌ WooCommerce API error (${wcResponse.status}): ${errBody}`);
+                }
+              }
+            } else if (platformCreds && platformCreds.platform === 'shopify') {
+              // Shopify push
+              const creds = platformCreds.credentials;
+              const nameParts = (recordData.customer_name || '').split(' ');
+              const firstName = nameParts[0] || '';
+              const lastName = nameParts.slice(1).join(' ') || '';
+
+              const shopifyRes = await fetch(`https://${creds.store_domain}/admin/api/2024-10/orders.json`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': creds.access_token },
+                body: JSON.stringify({
+                  order: {
+                    line_items: (recordData.items || []).map(item => ({ title: item.name || 'Product', quantity: item.qty || 1, price: String(item.price || 0) })),
+                    customer: { first_name: firstName, last_name: lastName, phone: recordData.customer_phone, ...(recordData.customer_email ? { email: recordData.customer_email } : {}) },
+                    shipping_address: { first_name: firstName, last_name: lastName, address1: recordData.delivery_address || 'To be confirmed', phone: recordData.customer_phone, country: 'US' },
+                    financial_status: 'pending', fulfillment_status: null,
+                    note: `Created by Ittisalo CRM. Chat order via ${recordData.source || 'whatsapp'}. Ittisalo ID: ${upsertedOrderId}`,
+                    tags: 'ittisalo-synced', send_receipt: false, send_fulfillment_receipt: false,
+                  },
+                }),
+              });
+              if (shopifyRes.ok) {
+                const shopData = await shopifyRes.json();
+                console.log(`[AI-Agent] ✅ Shopify order created: ${shopData.order.name}`);
+                await supabase.from('orders').update({
+                  platform_source: 'shopify', platform_order_id: String(shopData.order.id),
+                  platform_order_number: shopData.order.name, platform_synced_at: new Date().toISOString(),
+                }).eq('id', upsertedOrderId);
+              } else {
+                const errBody = await shopifyRes.text().catch(() => 'unknown');
+                console.error(`[AI-Agent] ❌ Shopify API error (${shopifyRes.status}): ${errBody}`);
+              }
+            } else {
+              console.log(`[AI-Agent] No e-commerce platform configured for tenant ${ctx.tenant_id}. Skipping platform push.`);
+            }
+
+            // 4. Send confirmation email via Resend
+            const resendApiKey = process.env.RESEND_API_KEY;
+            if (resendApiKey && recordData.customer_email) {
+              const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+              const businessName = ctx.business_name || 'Ittisalo';
+              const orderNumber = upsertedOrderId.slice(0, 8).toUpperCase();
+              const currency = recordData.currency || ctx.currency || 'USD';
+              const itemsHtml = (recordData.items || []).map(i =>
+                `<tr><td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;font-size:14px">${i.qty || 1}x ${i.name || 'Product'}</td><td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;font-size:14px;text-align:right">${currency} ${i.price || 0}</td></tr>`
+              ).join('');
+
+              console.log(`[AI-Agent] Sending confirmation email to ${recordData.customer_email}...`);
+              const emailRes = await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${resendApiKey}` },
+                body: JSON.stringify({
+                  from: `${businessName} <${fromEmail}>`,
+                  to: recordData.customer_email,
+                  subject: `Order Confirmed — ${orderNumber}`,
+                  html: `<div style="max-width:600px;margin:0 auto;font-family:'Segoe UI',Arial,sans-serif;color:#1f2937"><div style="background:linear-gradient(135deg,#dc2626,#b91c1c);padding:32px;border-radius:16px 16px 0 0;text-align:center"><h1 style="color:#fff;margin:0;font-size:24px">Order Confirmed ✅</h1><p style="color:rgba(255,255,255,0.85);margin:8px 0 0;font-size:14px">Thank you for your order, ${recordData.customer_name || 'Customer'}!</p></div><div style="background:#fff;padding:28px;border:1px solid #e5e7eb;border-top:none"><div style="background:#fef2f2;border-radius:10px;padding:16px;margin-bottom:24px;text-align:center"><span style="font-size:13px;color:#991b1b;font-weight:600">Order Number</span><div style="font-size:28px;font-weight:800;color:#dc2626;margin-top:4px">${orderNumber}</div></div><h3 style="font-size:14px;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 12px">Items Ordered</h3><table style="width:100%;border-collapse:collapse;margin-bottom:20px">${itemsHtml}<tr style="background:#f9fafb"><td style="padding:12px;font-weight:700;font-size:15px">Total</td><td style="padding:12px;font-weight:800;font-size:18px;text-align:right;color:#dc2626">${currency} ${recordData.order_amount || 0}</td></tr></table>${recordData.delivery_address ? `<div style="border-top:1px solid #f3f4f6;padding-top:16px;margin-top:8px"><h4 style="font-size:13px;color:#6b7280;margin:0 0 6px">📍 Delivery Address</h4><p style="margin:0;font-size:14px;color:#374151">${recordData.delivery_address}</p></div>` : ''}<div style="border-top:1px solid #f3f4f6;padding-top:16px;margin-top:16px"><h4 style="font-size:13px;color:#6b7280;margin:0 0 6px">💳 Payment Method</h4><p style="margin:0;font-size:14px;color:#374151;font-weight:600">${recordData.payment_method || 'Cash on Delivery'}</p></div></div><div style="background:#f9fafb;padding:20px;border-radius:0 0 16px 16px;border:1px solid #e5e7eb;border-top:none;text-align:center"><p style="font-size:13px;color:#6b7280;margin:0">You'll receive shipping updates on WhatsApp.</p><p style="font-size:12px;color:#9ca3af;margin:8px 0 0">Powered by ${businessName}</p></div></div>`,
+                }),
+              });
+
+              if (emailRes.ok) {
+                console.log(`[AI-Agent] ✅ Confirmation email sent to ${recordData.customer_email}`);
+                await supabase.from('orders').update({ email_sent_at: new Date().toISOString() }).eq('id', upsertedOrderId);
+              } else {
+                const errBody = await emailRes.text().catch(() => 'unknown');
+                console.error(`[AI-Agent] ❌ Resend email error (${emailRes.status}): ${errBody}`);
+              }
+            } else if (!resendApiKey) {
+              console.log(`[AI-Agent] RESEND_API_KEY not set. Skipping confirmation email.`);
+            } else {
+              console.log(`[AI-Agent] No customer email on order. Skipping confirmation email.`);
+            }
+
+          } catch (syncErr) {
+            console.error(`[AI-Agent] ❌ Platform sync/email error:`, syncErr);
+          }
+        })();
       }
     }
 
