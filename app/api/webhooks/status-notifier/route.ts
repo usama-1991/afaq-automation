@@ -13,15 +13,16 @@ export async function POST(req: Request) {
 
     // 2. Parse Payload from Supabase Database Webhook
     const body = await req.json();
-    const { table, record, old_record } = body;
+    const { table, type, record, old_record } = body;
+    const tableName = table || type;
 
-    if (!record || !table) {
+    if (!record || !tableName) {
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
 
     // 3. Prevent duplicate notifications
-    const newStatus = table === 'leads' ? record.stage : record.status;
-    const oldStatus = table === 'leads' ? old_record?.stage : old_record?.status;
+    const newStatus = tableName === 'leads' ? record.stage : record.status;
+    const oldStatus = tableName === 'leads' ? old_record?.stage : old_record?.status;
 
     if (newStatus === oldStatus) {
       return NextResponse.json({ message: 'Status unchanged' }, { status: 200 });
@@ -87,19 +88,19 @@ export async function POST(req: Request) {
     }
 
     // Orders Flow
-    if (table === 'orders') {
+    if (tableName === 'orders') {
       if (newStatus === 'confirmed') messageText = `Hi ${customerName}, your order has been confirmed by ${businessName}. We will let you know once it's on the way!`;
       else if (newStatus === 'dispatched') messageText = `Great news ${customerName}, your order has been dispatched and is on its way to you!`;
       else if (newStatus === 'delivered') messageText = `Hi ${customerName}, your order has been marked as delivered. Thank you for shopping with ${businessName}!`;
       else if (newStatus === 'cancelled') messageText = `Hi ${customerName}, your order has been cancelled. Please reply if you have any questions.`;
     } 
     // Appointments Flow
-    else if (table === 'appointments') {
+    else if (tableName === 'appointments') {
       if (newStatus === 'confirmed') messageText = `Hi ${customerName}, your appointment has been confirmed! We look forward to seeing you.`;
       else if (newStatus === 'cancelled') messageText = `Hi ${customerName}, your appointment has been cancelled. Please reply to reschedule.`;
     } 
     // Leads Flow
-    else if (table === 'leads') {
+    else if (tableName === 'leads') {
       if (newStatus === 'visit_scheduled') messageText = `Hi ${customerName}, your property visit is scheduled. We will share the details shortly.`;
     }
 
@@ -133,7 +134,7 @@ export async function POST(req: Request) {
 
       // 7. Update the whatsapp_notified_status in Supabase to prevent duplicate sends
       const { error: updateError } = await supabase
-        .from(table)
+        .from(tableName)
         .update({ whatsapp_notified_status: newStatus })
         .eq('id', record.id);
 
