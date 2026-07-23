@@ -2,8 +2,12 @@ import Fastify from 'fastify';
 import { createClient } from '@supabase/supabase-js';
 import ws from 'ws';
 import { processAIAgent } from './ai-agent.js';
+import { startCronJobs } from './cron.js';
 
 const fastify = Fastify({ logger: true });
+
+// Start background cron jobs (Workflow 3 & 5)
+startCronJobs();
 
 // Initialize Supabase Client with Service Role Key
 const supabaseUrl = process.env.SUPABASE_URL || '';
