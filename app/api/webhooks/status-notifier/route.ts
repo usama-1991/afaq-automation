@@ -143,7 +143,30 @@ export async function POST(req: Request) {
         // We don't fail the request here since the message was already sent
       }
 
-      return NextResponse.json({ success: true, notified_status: newStatus, message_id: responseData.messages?.[0]?.id });
+      // 8. Save the outbound message to the conversations table so it shows up in the Inbox UI
+      const { data: conversation } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('tenant_id', record.tenant_id)
+        .eq('external_conversation_id', toPhone)
+        .maybeSingle();
+
+      if (conversation) {
+        await supabase.from('messages').insert({
+          conversation_id: conversation.id,
+          tenant_id: record.tenant_id,
+          sender_type: 'agent',
+          message_type: 'text',
+          content: messageText,
+          external_message_id: responseData.messages?.[0]?.id || `sys_${Date.now()}`
+        });
+      }
+
+      return NextResponse.json({ 
+        success: true, 
+        notified_status: newStatus,
+        message_id: responseData.messages?.[0]?.id
+      });
     }
 
     // If no specific message was defined for this status
