@@ -184,6 +184,7 @@ export async function processAIAgent(ctx) {
       'Intent: order_confirmed (user confirmed final order)',
       'Intent: checkout_intent (asking how to pay)',
       'Intent: human_handoff (user asked for human)',
+      'Intent: review_submitted (user is giving a product review or rating for a delivered order)',
       'Example: [Your reply...] \n\nIntent: order_placed'
     ].join('\n');
 
@@ -800,6 +801,26 @@ export async function processAIAgent(ctx) {
             console.error(`[AI-Agent] ❌ Platform sync/email error:`, syncErr);
           }
         })();
+      }
+    }
+
+    if (ai_intent === 'review_submitted') {
+      const ratingMatch = msg.match(/\b([1-5])\b/);
+      const rating = ratingMatch ? parseInt(ratingMatch[1]) : 5;
+      
+      const { error: reviewErr } = await supabase.from('reviews').insert({
+        tenant_id: ctx.tenant_id,
+        customer_name: ctx.customer_name,
+        customer_phone: ctx.customer_phone,
+        review_text: msg,
+        rating: rating,
+        order_id: previousInfo.id || null
+      });
+      
+      if (reviewErr) {
+        console.error(`[AI-Agent] Error saving review:`, reviewErr);
+      } else {
+        console.log(`[AI-Agent] Review saved for ${ctx.customer_name} (${rating} stars)`);
       }
     }
 

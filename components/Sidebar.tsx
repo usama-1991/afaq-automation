@@ -2,24 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, MessageSquare, Users, Bot, Plug, Settings, LogOut, FileText, Megaphone, Folder, BarChart3, Menu, X, ShoppingBag, Crown } from 'lucide-react';
+import { Star, LayoutDashboard, MessageSquare, Users, Bot, Plug, Settings, LogOut, FileText, Megaphone, Folder, BarChart3, Menu, X, ShoppingBag, Crown } from 'lucide-react';
 import { useNiche } from '@/context/NicheContext';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
-
-const nav = [
-  { href: '/dashboard',     icon: LayoutDashboard, label: 'Overview' },
-  { href: '/conversations', icon: MessageSquare,   label: 'Chats' },
-  { href: '/contacts',      icon: Users,           label: 'Contacts' },
-  { href: '/orders',        icon: ShoppingBag,     label: 'Orders' },
-  { href: '/campaigns',     icon: Megaphone,       label: 'Campaigns' },
-  { href: '/agents',        icon: Bot,             label: 'AI Agents' },
-  { href: '/team',          icon: Users,           label: 'Team' },
-  { href: '/templates',     icon: FileText,        label: 'Templates' },
-  { href: '/media',         icon: Folder,          label: 'Media' },
-  { href: '/reports',       icon: BarChart3,       label: 'Reports' },
-  { href: '/settings',      icon: Settings,        label: 'Settings' },
-];
 
 // Desktop icon-only nav item
 function NavItem({ href, icon: Icon, label, active }: { href: string; icon: any; label: string; active: boolean }) {
@@ -68,15 +54,29 @@ function NavItem({ href, icon: Icon, label, active }: { href: string; icon: any;
   );
 }
 
-// Bottom nav shown only on mobile — shows first 5 primary items
-const MOBILE_NAV = nav.slice(0, 5);
-
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { niche } = useNiche();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+
+  const nav = [
+    { href: '/dashboard',     icon: LayoutDashboard, label: 'Overview' },
+    { href: '/conversations', icon: MessageSquare,   label: 'Chats' },
+    { href: '/contacts',      icon: Users,           label: 'Contacts' },
+    { href: '/orders',        icon: ShoppingBag,     label: 'Orders' },
+    ...(niche === 'ecommerce' ? [{ href: '/reviews', icon: Star, label: 'Reviews' }] : []),
+    { href: '/campaigns',     icon: Megaphone,       label: 'Campaigns' },
+    { href: '/agents',        icon: Bot,             label: 'AI Agents' },
+    { href: '/team',          icon: Users,           label: 'Team' },
+    { href: '/templates',     icon: FileText,        label: 'Templates' },
+    { href: '/media',         icon: Folder,          label: 'Media' },
+    { href: '/reports',       icon: BarChart3,       label: 'Reports' },
+    { href: '/settings',      icon: Settings,        label: 'Settings' },
+  ];
+
+  const MOBILE_NAV = nav.slice(0, 5);
 
   useEffect(() => {
     const fetchRole = async () => {

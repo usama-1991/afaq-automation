@@ -91,7 +91,7 @@ export async function POST(req: Request) {
     if (tableName === 'orders') {
       if (newStatus === 'confirmed') messageText = `Hi ${customerName}, your order has been confirmed by ${businessName} ✅. We will let you know once it's on the way!`;
       else if (newStatus === 'dispatched') messageText = `Great news ${customerName}! 🎉 Your order has been dispatched and handed over to the courier service 🚚. Get ready to receive it soon!`;
-      else if (newStatus === 'delivered') messageText = `Hi ${customerName}, your order has been marked as delivered 📦. Thank you for shopping with ${businessName}!`;
+      else if (newStatus === 'delivered') messageText = `Hi ${customerName}, your order has been marked as delivered 📦. We hope you love it!\n\nPlease reply with a rating (1 to 5 stars) and a short review of your experience. Your feedback means the world to ${businessName}!`;
       else if (newStatus === 'cancelled') messageText = `Hi ${customerName}, your order has been cancelled ❌. Please reply if you have any questions.`;
     } 
     // Appointments Flow
