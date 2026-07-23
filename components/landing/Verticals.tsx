@@ -12,57 +12,70 @@ import {
 const verticals = [
   {
     icon: UtensilsCrossed,
-    name: "Restaurants & Dhabas",
-    detail: "Menu questions, orders, delivery status — answered before the tandoor cools.",
+    name: "Restaurants & Food",
+    detail: "Menu inquiries, order taking, delivery updates — answered before your customer finishes typing.",
+    color: "#D98E1F",
+    bgColor: "rgba(217, 142, 31, 0.08)",
   },
   {
     icon: Stethoscope,
     name: "Clinics & Labs",
-    detail: "Books appointments, sends reports, reminds patients an hour before their slot.",
+    detail: "Books appointments, sends test reports, reminds patients before their slots — no receptionist needed.",
+    color: "#1B9E96",
+    bgColor: "rgba(27, 158, 150, 0.08)",
   },
   {
     icon: ShoppingBag,
     name: "Fashion & eCommerce",
-    detail: "Checks stock, quotes price and size, and reserves the piece your customer wants.",
+    detail: "Checks stock, quotes prices and sizes, takes orders, and confirms delivery — like your best salesperson.",
+    color: "#C42B33",
+    bgColor: "rgba(196, 43, 51, 0.08)",
   },
   {
     icon: Building2,
     name: "Real Estate",
-    detail: "Qualifies leads, shares listings, and lines up site visits while you're on-site.",
+    detail: "Qualifies leads, shares property listings, and schedules site visits while you focus on closings.",
+    color: "#6366F1",
+    bgColor: "rgba(99, 102, 241, 0.08)",
   },
   {
     icon: Scissors,
     name: "Salons & Studios",
-    detail: "Manages bookings by stylist and time, and fills last-minute cancellations.",
+    detail: "Manages bookings by stylist and time slot, handles cancellations, and fills last-minute openings.",
+    color: "#EC4899",
+    bgColor: "rgba(236, 72, 153, 0.08)",
   },
 ];
 
 export default function Verticals() {
   return (
-    <section id="verticals" className="relative py-24 lg:py-32">
-      <div className="mx-auto max-w-7xl px-6 lg:px-10">
+    <section id="verticals" className="relative landing-section">
+      <div className="bg-mesh absolute inset-0" />
+      <div className="relative mx-auto max-w-7xl px-6 lg:px-10">
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.6 }}
-          className="max-w-2xl"
+          className="text-center max-w-2xl mx-auto"
         >
-          <p className="font-mono text-xs uppercase tracking-wider text-maroon">
-            Who it&apos;s for
-          </p>
-          <h2 className="mt-3 text-balance font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-            One AI, taught the language of five different shopfronts.
+          <span className="inline-flex items-center gap-2 rounded-full bg-maroon/[0.06] px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-maroon">
+            Who It&apos;s For
+          </span>
+          <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight text-ink sm:text-4xl lg:text-[2.75rem]">
+            One AI, trained for{" "}
+            <span className="bg-gradient-to-r from-maroon to-teal bg-clip-text text-transparent">
+              your industry
+            </span>
           </h2>
-          <p className="mt-4 text-balance font-body text-ink/60">
-            Ittisalo isn&apos;t a generic chatbot. Each business gets a
-            knowledge base trained on its own menu, price list, or service
-            catalogue — so the answers sound like they came from someone who
-            actually works there.
+          <p className="mt-4 text-balance text-ink/50 text-lg">
+            Ittisalo isn&apos;t a generic chatbot. Each business gets a custom AI
+            trained on its own products, prices, and services — so every answer
+            sounds like it came from your best employee.
           </p>
         </motion.div>
 
-        <div className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mt-16 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
           {verticals.map((v, i) => (
             <motion.div
               key={v.name}
@@ -70,16 +83,22 @@ export default function Verticals() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.5, delay: i * 0.08 }}
-              className="group relative overflow-hidden rounded-2xl border border-ink/10 bg-white/50 p-6 transition-colors hover:border-maroon/30 hover:bg-white lg:[&:nth-child(5)]:col-span-2 lg:[&:nth-child(5)]:sm:col-span-1"
+              className="glass-card group rounded-2xl p-7"
             >
-              <v.icon
-                className="mb-5 h-7 w-7 text-maroon transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-110"
-                strokeWidth={1.5}
-              />
-              <h3 className="font-display text-lg font-medium text-ink">
+              <div
+                className="feature-icon-wrap mb-5"
+                style={{ backgroundColor: v.bgColor }}
+              >
+                <v.icon
+                  className="h-5 w-5 transition-transform duration-300 group-hover:scale-110"
+                  style={{ color: v.color }}
+                  strokeWidth={1.8}
+                />
+              </div>
+              <h3 className="text-base font-semibold text-ink">
                 {v.name}
               </h3>
-              <p className="mt-2 font-body text-sm leading-relaxed text-ink/55">
+              <p className="mt-2 text-sm leading-relaxed text-ink/50">
                 {v.detail}
               </p>
             </motion.div>
