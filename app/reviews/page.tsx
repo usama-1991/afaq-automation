@@ -10,14 +10,14 @@ export default function ReviewsPage() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [tenantId, setTenantId] = useState<string | null>(null);
-  const { niche } = useNiche();
+  const { nicheId } = useNiche();
   const router = useRouter();
 
   useEffect(() => {
-    if (niche && niche !== 'ecommerce') {
+    if (nicheId && nicheId !== 'ecommerce') {
       router.push('/dashboard');
     }
-  }, [niche, router]);
+  }, [nicheId, router]);
 
   useEffect(() => {
     const fetchUserAndReviews = async () => {

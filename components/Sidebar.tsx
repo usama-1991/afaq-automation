@@ -57,7 +57,7 @@ function NavItem({ href, icon: Icon, label, active }: { href: string; icon: any;
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { niche } = useNiche();
+  const { nicheId } = useNiche();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
 
@@ -66,7 +66,7 @@ export default function Sidebar() {
     { href: '/conversations', icon: MessageSquare,   label: 'Chats' },
     { href: '/contacts',      icon: Users,           label: 'Contacts' },
     { href: '/orders',        icon: ShoppingBag,     label: 'Orders' },
-    ...(niche === 'ecommerce' ? [{ href: '/reviews', icon: Star, label: 'Reviews' }] : []),
+    ...(nicheId === 'ecommerce' ? [{ href: '/reviews', icon: Star, label: 'Reviews' }] : []),
     { href: '/campaigns',     icon: Megaphone,       label: 'Campaigns' },
     { href: '/agents',        icon: Bot,             label: 'AI Agents' },
     { href: '/team',          icon: Users,           label: 'Team' },
