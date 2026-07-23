@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import ws from 'ws';
 import { processAIAgent } from './ai-agent.js';
 import { startCronJobs } from './cron.js';
+import { processCampaign } from './campaign.js';
 
 const fastify = Fastify({ logger: true });
 
@@ -25,6 +26,26 @@ startCronJobs(supabase);
 
 fastify.get('/health', async (request, reply) => {
   return { status: 'ok', service: 'webhook-service' };
+});
+
+// Campaign Broadcaster Webhook
+fastify.post('/api/campaigns/send', async (request, reply) => {
+  const apiKey = request.headers['x-api-key'];
+  const validKey = process.env.META_WEBHOOK_VERIFY_TOKEN || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!apiKey || apiKey !== validKey) {
+    return reply.code(401).send({ error: 'Unauthorized' });
+  }
+
+  const { campaignId } = request.body;
+  if (!campaignId) {
+    return reply.code(400).send({ error: 'Missing campaignId in payload' });
+  }
+
+  // Fire and forget (processes in background)
+  processCampaign(supabase, campaignId);
+  
+  return { success: true, message: 'Campaign processing started in the background.' };
 });
 
 // Meta Webhook Verification
