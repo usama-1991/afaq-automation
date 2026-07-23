@@ -57,7 +57,7 @@ function NavItem({ href, icon: Icon, label, active }: { href: string; icon: any;
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { nicheId } = useNiche();
+  const { niche, nicheId } = useNiche();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
 
