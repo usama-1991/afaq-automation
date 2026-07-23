@@ -6,9 +6,6 @@ import { startCronJobs } from './cron.js';
 
 const fastify = Fastify({ logger: true });
 
-// Start background cron jobs (Workflow 3 & 5)
-startCronJobs();
-
 // Initialize Supabase Client with Service Role Key
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -22,6 +19,9 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
     transport: ws,
   },
 });
+
+// Start background cron jobs (Workflow 3 & 5)
+startCronJobs(supabase);
 
 fastify.get('/health', async (request, reply) => {
   return { status: 'ok', service: 'webhook-service' };

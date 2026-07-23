@@ -1,13 +1,7 @@
 import cron from 'node-cron';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Helper to get Meta credentials
-async function getMetaCredentials(tenantId) {
+async function getMetaCredentials(supabase, tenantId) {
   let waPhoneNumberId = '';
   let waAccessToken = '';
 
@@ -65,7 +59,7 @@ async function sendWhatsAppMessage(phone, messageText, waPhoneNumberId, waAccess
   return data;
 }
 
-export function startCronJobs() {
+export function startCronJobs(supabase) {
   console.log('[cron] Automated Cron Jobs scheduled.');
 
   // =========================================================================
@@ -93,7 +87,7 @@ export function startCronJobs() {
 
     for (const appt of appointments) {
       try {
-        const { waPhoneNumberId, waAccessToken } = await getMetaCredentials(appt.tenant_id);
+        const { waPhoneNumberId, waAccessToken } = await getMetaCredentials(supabase, appt.tenant_id);
         if (!waPhoneNumberId || !waAccessToken) continue;
 
         const time = appt.appointment_time ? ` at ${appt.appointment_time}` : '';
@@ -139,7 +133,7 @@ export function startCronJobs() {
 
     for (const lead of leads) {
       try {
-        const { waPhoneNumberId, waAccessToken } = await getMetaCredentials(lead.tenant_id);
+        const { waPhoneNumberId, waAccessToken } = await getMetaCredentials(supabase, lead.tenant_id);
         if (!waPhoneNumberId || !waAccessToken) continue;
 
         const msg = `Hi ${lead.customer_name || 'there'}, are you still interested in finding a property? Let us know if you'd like to schedule a visit for any of the options we shared!`;
