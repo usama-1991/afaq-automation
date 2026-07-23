@@ -89,10 +89,10 @@ export async function POST(req: Request) {
 
     // Orders Flow
     if (tableName === 'orders') {
-      if (newStatus === 'confirmed') messageText = `Hi ${customerName}, your order has been confirmed by ${businessName}. We will let you know once it's on the way!`;
-      else if (newStatus === 'dispatched') messageText = `Great news ${customerName}, your order has been dispatched and is on its way to you!`;
-      else if (newStatus === 'delivered') messageText = `Hi ${customerName}, your order has been marked as delivered. Thank you for shopping with ${businessName}!`;
-      else if (newStatus === 'cancelled') messageText = `Hi ${customerName}, your order has been cancelled. Please reply if you have any questions.`;
+      if (newStatus === 'confirmed') messageText = `Hi ${customerName}, your order has been confirmed by ${businessName} ✅. We will let you know once it's on the way!`;
+      else if (newStatus === 'dispatched') messageText = `Great news ${customerName}! 🎉 Your order has been dispatched and handed over to the courier service 🚚. Get ready to receive it soon!`;
+      else if (newStatus === 'delivered') messageText = `Hi ${customerName}, your order has been marked as delivered 📦. Thank you for shopping with ${businessName}!`;
+      else if (newStatus === 'cancelled') messageText = `Hi ${customerName}, your order has been cancelled ❌. Please reply if you have any questions.`;
     } 
     // Appointments Flow
     else if (tableName === 'appointments') {
@@ -138,11 +138,6 @@ export async function POST(req: Request) {
         .update({ whatsapp_notified_status: newStatus })
         .eq('id', record.id);
 
-      if (updateError) {
-        console.error('[status-notifier] Error updating notified status:', updateError);
-        // We don't fail the request here since the message was already sent
-      }
-
       // 8. Save the outbound message to the conversations table so it shows up in the Inbox UI
       const { data: conversation } = await supabase
         .from('conversations')
@@ -154,11 +149,10 @@ export async function POST(req: Request) {
       if (conversation) {
         await supabase.from('messages').insert({
           conversation_id: conversation.id,
-          tenant_id: record.tenant_id,
-          sender_type: 'agent',
-          message_type: 'text',
+          sender_type: 'bot',
           content: messageText,
-          external_message_id: responseData.messages?.[0]?.id || `sys_${Date.now()}`
+          external_message_id: responseData.messages?.[0]?.id || `sys_${Date.now()}`,
+          is_read: true
         });
       }
 
