@@ -20,7 +20,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
 
-    // 3. Prevent duplicate notifications
+    // 3. Prevent duplicate notifications atomically
     const newStatus = tableName === 'leads' ? record.stage : record.status;
     const oldStatus = tableName === 'leads' ? old_record?.stage : old_record?.status;
 
@@ -28,12 +28,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'Status unchanged' }, { status: 200 });
     }
 
-    if (record.whatsapp_notified_status === newStatus) {
-      return NextResponse.json({ message: 'Already notified for this status' }, { status: 200 });
-    }
-
-    // 4. Fetch Tenant Meta API Credentials
     const supabase = createServiceClient();
+
+    // Atomic claim: only one concurrent webhook can update this row successfully
+    const { data: claimedRecord, error: claimError } = await supabase
+      .from(tableName)
+      .update({ whatsapp_notified_status: newStatus })
+      .eq('id', record.id)
+      .neq('whatsapp_notified_status', newStatus) // ensures we only update if not already set
+      .select()
+      .maybeSingle();
+
+    if (claimError || !claimedRecord) {
+      console.log(`[Webhook] Duplicate or already processed event skipped for ${tableName} ID: ${record.id}`);
+      return NextResponse.json({ message: 'Already notified or claimed by another worker' }, { status: 200 });
+    }
     
     let waPhoneNumberId = '';
     let waAccessToken = '';
@@ -132,12 +141,7 @@ export async function POST(req: Request) {
         throw new Error(responseData.error?.message || 'Meta API failed');
       }
 
-      // 7. Update the whatsapp_notified_status in Supabase to prevent duplicate sends
-      const { error: updateError } = await supabase
-        .from(tableName)
-        .update({ whatsapp_notified_status: newStatus })
-        .eq('id', record.id);
-
+      // (Status is already updated at the top of the file atomically)
       // 8. Save the outbound message to the conversations table so it shows up in the Inbox UI
       const { data: conversation } = await supabase
         .from('conversations')

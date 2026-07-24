@@ -231,7 +231,7 @@ export async function processAIAgent(ctx) {
     const msg = ctx.normalized_message || '';
     const msgLower = msg.toLowerCase();
     let previousInfo = existingOrder || {};
-    const previousOrderFinished = previousInfo.status && ['confirmed', 'cancelled', 'completed'].includes(previousInfo.status);
+    const previousOrderFinished = previousInfo.status && ['confirmed', 'cancelled', 'completed', 'dispatched', 'delivered'].includes(previousInfo.status);
     
     let createRecord = false;
     let recordType = null;
@@ -242,7 +242,7 @@ export async function processAIAgent(ctx) {
     const niche = ctx.niche || 'general';
 
     if (['ecommerce', 'restaurant', 'food_delivery'].includes(niche)) {
-      const orderTriggerIntents = ['product_inquiry', 'order_placed', 'address_provided', 'order_confirmed', 'checkout_intent'];
+      const orderTriggerIntents = ['order_placed', 'address_provided', 'order_confirmed', 'checkout_intent'];
       const hasActiveOrder = Object.keys(recordData).length > 0;
       const isOrderIntent = orderTriggerIntents.includes(ai_intent);
       
@@ -371,7 +371,7 @@ export async function processAIAgent(ctx) {
                 ...item,
                 name: match.name, // Use the canonical product name
                 external_product_id: match.external_product_id || null,
-                price: item.price > 0 ? item.price : (parseFloat(match.price) || 0)
+                price: (parseFloat(match.price) > 0) ? parseFloat(match.price) : (item.price > 0 ? item.price : 0)
               };
             }
             return item;
@@ -433,8 +433,10 @@ export async function processAIAgent(ctx) {
           }
         }
 
-        const calculatedTotal = orderTotal > 0 ? orderTotal : currentItems.reduce((s, i) => s + ((i.price || 0) * (i.qty || 1)), 0);
-
+        let calculatedTotal = currentItems.reduce((s, i) => s + ((i.price || 0) * (i.qty || 1)), 0);
+        if (calculatedTotal === 0 && orderTotal > 0) {
+          calculatedTotal = orderTotal;
+        }
         const customerConfirmed = /^\s*(confirm(ed)?|order\s*karain|haan\s*confirm|yes,?\s*confirm|yes\s*proceed|yes|yeah|yep|sure|y)\s*[.!]?\s*$/i.test(msg.trim());
         const aiConfirmed = /confirm ho gaya|order confirm|order placed|confirmed your order|order ki tayari|order accept|finalize your order|Your order is confirmed/i.test(ai_reply);
 
