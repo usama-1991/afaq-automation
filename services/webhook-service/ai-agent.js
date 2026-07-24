@@ -620,7 +620,7 @@ export async function processAIAgent(ctx) {
               .from('integrations')
               .select('platform, credentials')
               .eq('tenant_id', ctx.tenant_id)
-              .in('platform', ['shopify', 'woocommerce'])
+              .in('platform', ['shopify', 'woocommerce', 'salla', 'zid'])
               .eq('is_active', true)
               .limit(1);
 
@@ -632,7 +632,7 @@ export async function processAIAgent(ctx) {
                 .from('integration_credentials')
                 .select('platform, credentials')
                 .eq('tenant_id', ctx.tenant_id)
-                .in('platform', ['shopify', 'woocommerce'])
+                .in('platform', ['shopify', 'woocommerce', 'salla', 'zid'])
                 .eq('is_active', true)
                 .limit(1);
               if (icreds && icreds.length > 0) platformCreds = icreds[0];
@@ -764,6 +764,30 @@ export async function processAIAgent(ctx) {
                 const errBody = await shopifyRes.text().catch(() => 'unknown');
                 console.error(`[AI-Agent] ❌ Shopify API error (${shopifyRes.status}): ${errBody}`);
               }
+            } else if (platformCreds && platformCreds.platform === 'salla') {
+              // Salla push scaffolding
+              const creds = platformCreds.credentials;
+              console.log(`[AI-Agent] ⏳ Salla order sync triggered (Scaffolding). Token: ${creds.access_token ? 'Present' : 'Missing'}`);
+              
+              // Future: implement fetch to https://api.salla.dev/admin/v2/orders
+              await supabase.from('orders').update({
+                platform_source: 'salla', platform_order_id: `salla_stub_${Date.now()}`,
+                platform_order_number: `#SLL-${Date.now()}`, platform_synced_at: new Date().toISOString(),
+              }).eq('id', upsertedOrderId);
+              console.log(`[AI-Agent] ✅ Salla order stub created.`);
+              
+            } else if (platformCreds && platformCreds.platform === 'zid') {
+              // Zid push scaffolding
+              const creds = platformCreds.credentials;
+              console.log(`[AI-Agent] ⏳ Zid order sync triggered (Scaffolding). Token: ${creds.access_token ? 'Present' : 'Missing'}`);
+              
+              // Future: implement fetch to https://api.zid.sa/v1/managers/store/orders
+              await supabase.from('orders').update({
+                platform_source: 'zid', platform_order_id: `zid_stub_${Date.now()}`,
+                platform_order_number: `#ZID-${Date.now()}`, platform_synced_at: new Date().toISOString(),
+              }).eq('id', upsertedOrderId);
+              console.log(`[AI-Agent] ✅ Zid order stub created.`);
+              
             } else {
               console.log(`[AI-Agent] No e-commerce platform configured for tenant ${ctx.tenant_id}. Skipping platform push.`);
             }

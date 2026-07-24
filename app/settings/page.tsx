@@ -125,12 +125,15 @@ function SettingsInner() {
   const [tenantIdState, setTenantIdState] = useState<string | null>(null);
 
   // eCommerce Platform state
-  const [ecomPlatform, setEcomPlatform] = useState<'Shopify' | 'WooCommerce' | 'None'>('None');
+  const [ecomPlatform, setEcomPlatform] = useState<'Shopify' | 'WooCommerce' | 'Salla' | 'Zid' | 'None'>('None');
   const [shopifyUrl, setShopifyUrl] = useState('');
   const [shopifyToken, setShopifyToken] = useState('');
   const [wcUrl, setWcUrl] = useState('');
   const [wcKey, setWcKey] = useState('');
   const [wcSecret, setWcSecret] = useState('');
+  const [sallaMerchantToken, setSallaMerchantToken] = useState('');
+  const [zidStoreId, setZidStoreId] = useState('');
+  const [zidApiToken, setZidApiToken] = useState('');
   const [ecomSaving, setEcomSaving] = useState(false);
   const [ecomConnected, setEcomConnected] = useState(false);
 
@@ -409,7 +412,7 @@ function SettingsInner() {
         .from('integration_credentials')
         .select('*')
         .eq('tenant_id', tid)
-        .in('platform', ['shopify', 'woocommerce'])
+        .in('platform', ['shopify', 'woocommerce', 'salla', 'zid'])
         .limit(1)
         .maybeSingle();
       if (data) {
@@ -423,6 +426,13 @@ function SettingsInner() {
           setWcUrl(data.credentials?.site_url || '');
           setWcKey(data.credentials?.consumer_key ? '••••••••••••' : '');
           setWcSecret(data.credentials?.consumer_secret ? '••••••••••••' : '');
+        } else if (data.platform === 'salla') {
+          setEcomPlatform('Salla');
+          setSallaMerchantToken(data.credentials?.access_token ? '••••••••••••' : '');
+        } else if (data.platform === 'zid') {
+          setEcomPlatform('Zid');
+          setZidStoreId(data.credentials?.store_id || '');
+          setZidApiToken(data.credentials?.access_token ? '••••••••••••' : '');
         }
       }
     } catch (e) { console.error(e); }
@@ -436,7 +446,13 @@ function SettingsInner() {
       const platform = ecomPlatform.toLowerCase();
       const credentials = ecomPlatform === 'Shopify'
         ? { store_url: shopifyUrl, access_token: shopifyToken }
-        : { site_url: wcUrl, consumer_key: wcKey, consumer_secret: wcSecret };
+        : ecomPlatform === 'WooCommerce'
+        ? { site_url: wcUrl, consumer_key: wcKey, consumer_secret: wcSecret }
+        : ecomPlatform === 'Salla'
+        ? { access_token: sallaMerchantToken }
+        : ecomPlatform === 'Zid'
+        ? { store_id: zidStoreId, access_token: zidApiToken }
+        : {};
 
       await supabase.from('integration_credentials').upsert({
         tenant_id: tenantIdState,
@@ -1387,8 +1403,8 @@ function SettingsInner() {
                 </div>
               )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
-                {(['Shopify', 'WooCommerce', 'None'] as const).map(p => {
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 20 }}>
+                {(['Shopify', 'WooCommerce', 'Salla', 'Zid', 'None'] as const).map(p => {
                   const active = ecomPlatform === p;
                   return (
                     <div
@@ -1407,7 +1423,7 @@ function SettingsInner() {
                           <Check size={9} color="#fff" strokeWidth={3} />
                         </div>
                       )}
-                      <span style={{ fontSize: 22 }}>{p === 'Shopify' ? '🛍️' : p === 'WooCommerce' ? '🛒' : '⏸️'}</span>
+                      <span style={{ fontSize: 22 }}>{p === 'Shopify' ? '🛍️' : p === 'WooCommerce' ? '🛒' : p === 'Salla' ? '🌴' : p === 'Zid' ? '📦' : '⏸️'}</span>
                       <div style={{ fontSize: 12, fontWeight: 700, color: active ? '#991b1b' : '#374151', marginTop: 4 }}>{p === 'None' ? 'Not Connected' : p}</div>
                     </div>
                   );
@@ -1433,6 +1449,27 @@ function SettingsInner() {
                   <Field label="Consumer Secret" value={wcSecret} onChange={setWcSecret} type="password" />
                   <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '12px 14px', fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>
                     <strong>How to get your keys:</strong> WordPress Admin → WooCommerce → Settings → Advanced → REST API → Add Key → Description: &quot;Ittisalo&quot;, Permissions: Read/Write → Generate API Key.
+                  </div>
+                </div>
+              )}
+
+              {/* Salla Fields */}
+              {ecomPlatform === 'Salla' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <Field label="Salla Merchant Token" value={sallaMerchantToken} onChange={setSallaMerchantToken} type="password" hint="Your Salla API Access Token" />
+                  <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '12px 14px', fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>
+                    <strong>How to get your token:</strong> Register as a developer on Salla Partners, create a custom app for your store, and generate an access token with Orders/Products scopes.
+                  </div>
+                </div>
+              )}
+
+              {/* Zid Fields */}
+              {ecomPlatform === 'Zid' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <Field label="Zid Store ID" value={zidStoreId} onChange={setZidStoreId} hint="Your Zid Store ID" />
+                  <Field label="Zid Manager Token" value={zidApiToken} onChange={setZidApiToken} type="password" hint="Your Zid API Access Token" />
+                  <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '12px 14px', fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>
+                    <strong>How to get your token:</strong> Login to Zid Developer portal, create a new private application for your store, and generate your Manager Access Token.
                   </div>
                 </div>
               )}
