@@ -180,12 +180,39 @@ async function dispatchOutboundMessage(message) {
           : mediaInfo.caption;
       }
     } else {
-      payload = {
-        messaging_product: 'whatsapp',
-        to: customerPhone,
-        type: 'text',
-        text: { body: message.content }
-      };
+      let isInteractive = false;
+      let bodyText = message.content;
+      const btnRegex = /\[Buttons:\s*([^\]]+)\]/i;
+      const btnMatch = message.content.match(btnRegex);
+
+      if (btnMatch) {
+        isInteractive = true;
+        const buttonsRaw = btnMatch[1].split('|').map(b => b.trim()).filter(b => b.length > 0).slice(0, 3);
+        bodyText = message.content.replace(btnRegex, '').trim();
+
+        payload = {
+          messaging_product: 'whatsapp',
+          to: customerPhone,
+          type: 'interactive',
+          interactive: {
+            type: 'button',
+            body: { text: bodyText.substring(0, 1024) || 'Please select an option:' },
+            action: {
+              buttons: buttonsRaw.map((btn, idx) => ({
+                type: 'reply',
+                reply: { id: `btn_${idx}`, title: btn.substring(0, 20) }
+              }))
+            }
+          }
+        };
+      } else {
+        payload = {
+          messaging_product: 'whatsapp',
+          to: customerPhone,
+          type: 'text',
+          text: { body: message.content }
+        };
+      }
     }
 
     const url = `https://graph.facebook.com/v19.0/${externalPhoneId}/messages`;

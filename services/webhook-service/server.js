@@ -4,6 +4,13 @@ import ws from 'ws';
 import { processAIAgent } from './ai-agent.js';
 import { startCronJobs } from './cron.js';
 import { processCampaign } from './campaign.js';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
 
 const fastify = Fastify({ logger: true });
 
@@ -78,7 +85,7 @@ async function logAudit(tenantId, action, details) {
   }
 }
 
-async function processIncomingMessage(platform, externalAccountId, customerId, customerName, messageText, messageId) {
+async function processIncomingMessage(platform, externalAccountId, customerId, customerName, messageText, messageId, rawMessageObj = null) {
   fastify.log.info(`[${platform}] Processing message ${messageId} from ${customerId}`);
 
   // 0. Deduplication: skip if we've already stored this exact message
@@ -162,6 +169,62 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
   // Final env-var fallback
   waPhoneNumberId = waPhoneNumberId || process.env.META_PHONE_NUMBER_ID || '';
   waAccessToken   = waAccessToken   || process.env.META_ACCESS_TOKEN    || '';
+
+  // 1c. Handle Audio / Voice Notes (WhatsApp)
+  if (platform === 'whatsapp' && rawMessageObj?.type === 'audio' && rawMessageObj.audio?.id) {
+    if (!waAccessToken) {
+      fastify.log.warn(`[whatsapp] Cannot process audio message ${messageId} because waAccessToken is missing.`);
+    } else {
+      try {
+        fastify.log.info(`[whatsapp] Downloading audio media ${rawMessageObj.audio.id}`);
+        // Get Media URL
+        const mediaRes = await fetch(`https://graph.facebook.com/v19.0/${rawMessageObj.audio.id}`, {
+          headers: { 'Authorization': `Bearer ${waAccessToken}` }
+        });
+        const mediaData = await mediaRes.json();
+        if (mediaData.url) {
+          // Download Media
+          const downloadRes = await fetch(mediaData.url, {
+            headers: { 'Authorization': `Bearer ${waAccessToken}` }
+          });
+          const arrayBuffer = await downloadRes.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          
+          // Save temporarily
+          const tmpFilePath = path.join(os.tmpdir(), `${rawMessageObj.audio.id}.ogg`);
+          fs.writeFileSync(tmpFilePath, buffer);
+          
+          // Transcribe using Whisper
+          fastify.log.info(`[whatsapp] Transcribing audio with Whisper...`);
+          const transcription = await openai.audio.transcriptions.create({
+            file: fs.createReadStream(tmpFilePath),
+            model: 'whisper-1'
+          });
+          
+          fs.unlinkSync(tmpFilePath); // cleanup
+          
+          if (transcription.text) {
+            fastify.log.info(`[whatsapp] Audio transcribed: ${transcription.text}`);
+            messageText = `🎤 [Voice Note]: "${transcription.text}"`;
+          }
+        } else {
+          fastify.log.warn(`[whatsapp] Failed to get media URL: ${JSON.stringify(mediaData)}`);
+        }
+      } catch (audioErr) {
+        fastify.log.error(`[whatsapp] Audio processing failed: ${audioErr.message}`);
+      }
+    }
+  }
+
+  // 1d. Handle Interactive Responses
+  if (platform === 'whatsapp' && rawMessageObj?.type === 'interactive') {
+    if (rawMessageObj.interactive.type === 'button_reply') {
+      messageText = rawMessageObj.interactive.button_reply.title;
+    } else if (rawMessageObj.interactive.type === 'list_reply') {
+      messageText = rawMessageObj.interactive.list_reply.title;
+    }
+    fastify.log.info(`[whatsapp] Interactive reply processed: "${messageText}"`);
+  }
 
   // 2. Find or Create Conversation — scoped to this tenant + customer phone
   let { data: conversation } = await supabase
@@ -507,7 +570,7 @@ fastify.post('/webhook', async (request, reply) => {
                 continue;
               }
 
-              await processIncomingMessage('whatsapp', phoneNumberId, customerPhone, customerName, messageText, messageId);
+              await processIncomingMessage('whatsapp', phoneNumberId, customerPhone, customerName, messageText, messageId, message);
             }
           }
         }
