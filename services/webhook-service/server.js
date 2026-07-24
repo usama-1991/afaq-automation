@@ -4,6 +4,7 @@ import ws from 'ws';
 import { processAIAgent } from './ai-agent.js';
 import { startCronJobs } from './cron.js';
 import { processCampaign } from './campaign.js';
+import { sendTenantNotification } from './fcm.js';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -316,6 +317,16 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
   // 3b. Human handoff gate: if conversation is 'pending' or assigned to a human, skip AI
   if (conversation?.status === 'pending' || conversation?.assigned_to) {
     fastify.log.info(`[${platform}] Conversation ${conversation.id} is in human handoff (pending or assigned). Skipping n8n AI.`);
+    
+    // Notify human agent of new message
+    sendTenantNotification(
+      supabase,
+      tenantId,
+      'New Customer Message',
+      `${customerName || customerId}: ${messageText.substring(0, 50)}...`,
+      { conversationId: conversation.id, phone: customerId }
+    ).catch(err => fastify.log.error(`[FCM] Error sending new message push: ${err.message}`));
+    
     return;
   }
 

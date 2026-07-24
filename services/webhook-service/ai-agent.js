@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
+import { sendTenantNotification } from './fcm.js';
 import ws from 'ws';
 
 const supabaseUrl = process.env.SUPABASE_URL || 'https://placeholder.supabase.co';
@@ -859,6 +860,15 @@ export async function processAIAgent(ctx) {
     if (needs_human_handoff) {
        console.log(`[AI-Agent] Human handoff requested. Handing off...`);
        await supabase.from('conversations').update({ status: 'pending', bot_enabled: false }).eq('id', ctx.conversation_id);
+       
+       // Send Push Notification
+       sendTenantNotification(
+         supabase, 
+         ctx.tenant_id, 
+         'Human Handoff Requested', 
+         `${ctx.customer_name || ctx.customer_phone} needs assistance.`,
+         { conversationId: ctx.conversation_id, phone: ctx.customer_phone }
+       ).catch(err => console.error('[FCM] Error sending handoff push:', err));
     }
 
     // Insert bot message into DB

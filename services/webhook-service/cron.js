@@ -152,4 +152,50 @@ export function startCronJobs(supabase) {
       }
     }
   });
+
+  // =========================================================================
+  // Phase 5: Automated Cart Abandonment (Runs every 30 mins)
+  // =========================================================================
+  cron.schedule('*/30 * * * *', async () => {
+    console.log('[cron] Running Cart Abandonment Check...');
+    
+    // Find pending orders older than 2 hours where abandonment msg hasn't been sent
+    const twoHoursAgo = new Date();
+    twoHoursAgo.setHours(twoHoursAgo.getHours() - 2);
+    const cutoffDate = twoHoursAgo.toISOString();
+
+    const { data: abandonedOrders, error } = await supabase
+      .from('orders')
+      .select('id, tenant_id, customer_name, customer_phone')
+      .eq('status', 'pending')
+      .eq('cart_abandonment_sent', false)
+      .lt('updated_at', cutoffDate);
+
+    if (error) {
+      console.error('[cron] Error fetching abandoned orders:', error.message);
+      return;
+    }
+
+    for (const order of abandonedOrders) {
+      try {
+        const { waPhoneNumberId, waAccessToken } = await getMetaCredentials(supabase, order.tenant_id);
+        if (!waPhoneNumberId || !waAccessToken) continue;
+
+        const customerName = order.customer_name ? order.customer_name.split(' ')[0] : 'there';
+        const msg = `Hi ${customerName}, we noticed you left some items in your cart! 🛒 Do you need any help completing your order? Reply to chat with our team.`;
+
+        await sendWhatsAppMessage(order.customer_phone, msg, waPhoneNumberId, waAccessToken);
+
+        // Mark as sent
+        await supabase
+          .from('orders')
+          .update({ cart_abandonment_sent: true, updated_at: new Date().toISOString() })
+          .eq('id', order.id);
+
+        console.log(`[cron] Cart abandonment sent for order ${order.id}`);
+      } catch (err) {
+        console.error(`[cron] Failed to send cart abandonment for order ${order.id}:`, err.message);
+      }
+    }
+  });
 }
