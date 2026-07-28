@@ -96,11 +96,23 @@ function renderMarkdown(content: string) {
   // Parse Links: [text](url)
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">$1</a>');
   
-  // Parse Bold: **text**
+  // Parse Raw Image URLs (e.g. 🖼️ *Image:* https://...)
+  html = html.replace(/(https?:\/\/[^\s]+(?:\.jpg|\.jpeg|\.png|\.gif|\.webp)[^\s]*)/gi, '<div style="margin: 8px 0;"><img src="$1" alt="Image" style="max-width: 100%; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1);" /></div>');
+
+  // Convert URLs that weren't caught by the image regex into clickable links
+  // We use a negative lookbehind to avoid matching inside the src attribute we just created, but since JS lookbehinds can be tricky,
+  // it's easier to just parse the plain URLs if they don't contain <img
+  html = html.replace(/(?<!src=")(https?:\/\/[^\s]+(?!\.jpg|\.jpeg|\.png|\.gif|\.webp)(?:[^\s<]*))/gi, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">$1</a>');
+
+  // Parse Bold: **text** or *text* (WhatsApp uses *text* for bold)
   html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*([^*]+)\*/g, '<strong>$1</strong>');
   
-  // Parse Italic: *text*
-  html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  // Parse Italic: _text_ (WhatsApp)
+  html = html.replace(/_([^_]+)_/g, '<em>$1</em>');
+  
+  // Parse Strikethrough: ~text~ (WhatsApp)
+  html = html.replace(/~([^~]+)~/g, '<del>$1</del>');
   
   return <div dangerouslySetInnerHTML={{ __html: html }} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }} />;
 }
