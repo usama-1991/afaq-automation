@@ -300,6 +300,26 @@ function ActionCenterDashboard({ userName }: { userName: string }) {
   );
 }
 
+// ── In-Memory Cache for SPA Transitions ───────────────────────
+const dashboardCache: Record<string, any> = {};
+
+function useMemoryState<T>(key: string, initialValue: T): [T, (val: T | ((prev: T) => T)) => void] {
+  const [state, setState] = useState<T>(() => {
+    if (dashboardCache[key] !== undefined) return dashboardCache[key];
+    return initialValue;
+  });
+  
+  const setMemoryState = (val: T | ((prev: T) => T)) => {
+    setState((prev) => {
+      const next = typeof val === 'function' ? (val as any)(prev) : val;
+      dashboardCache[key] = next;
+      return next;
+    });
+  };
+  
+  return [state, setMemoryState];
+}
+
 export default function DashboardPage() {
   const { nicheId, niche } = useNiche();
   const { tenantInfo, planLoaded } = usePlan();
@@ -307,24 +327,24 @@ export default function DashboardPage() {
   const [refreshing, setRefreshing] = useState(false);
 
   // ── Database Aggregations ────────────────────────────────────
-  const [stats, setStats] = useState({ conversations: 0, messages: 0, agentMessages: 0, customers: 0 });
-  const [channels, setChannels] = useState<{ name: string; value: number; color: string }[]>([]);
-  const [volumeData, setVolumeData] = useState<any[]>([]);
+  const [stats, setStats] = useMemoryState('stats', { conversations: 0, messages: 0, agentMessages: 0, customers: 0 });
+  const [channels, setChannels] = useMemoryState<{ name: string; value: number; color: string }[]>('channels', []);
+  const [volumeData, setVolumeData] = useMemoryState<any[]>('volumeData', []);
 
   // ── Interactive State (Live Data Only) ────────────────────────
 
   // Restaurant Niche
-  const [restaurantOrders, setRestaurantOrders] = useState<any[]>([]);
-  const [restaurantIssues, setRestaurantIssues] = useState<{ type: string; count: number }[]>([]);
+  const [restaurantOrders, setRestaurantOrders] = useMemoryState<any[]>('restaurantOrders', []);
+  const [restaurantIssues, setRestaurantIssues] = useMemoryState<{ type: string; count: number }[]>('restaurantIssues', []);
 
   // eCommerce Niche
-  const [ecoPipeline, setEcoPipeline] = useState<any[]>([]);
+  const [ecoPipeline, setEcoPipeline] = useMemoryState<any[]>('ecoPipeline', []);
 
   // WooCommerce live orders state
-  const [wcOrders, setWcOrders] = useState<any[]>([]);
-  const [wcConnected, setWcConnected] = useState(false);
+  const [wcOrders, setWcOrders] = useMemoryState<any[]>('wcOrders', []);
+  const [wcConnected, setWcConnected] = useMemoryState('wcConnected', false);
   const [wcLoading, setWcLoading] = useState(false);
-  const [wcStoreName, setWcStoreName] = useState('');
+  const [wcStoreName, setWcStoreName] = useMemoryState('wcStoreName', '');
 
   const fetchWooCommerceOrders = async () => {
     setWcLoading(true);
@@ -366,25 +386,25 @@ export default function DashboardPage() {
       setWcLoading(false);
     }
   };
-  const [exchanges, setExchanges] = useState<any[]>([]);
+  const [exchanges, setExchanges] = useMemoryState<any[]>('exchanges', []);
 
   // Dental Niche
-  const [dentalSchedule, setDentalSchedule] = useState<any[]>([]);
-  const [dentalClinicalQueries, setDentalClinicalQueries] = useState<any[]>([]);
+  const [dentalSchedule, setDentalSchedule] = useMemoryState<any[]>('dentalSchedule', []);
+  const [dentalClinicalQueries, setDentalClinicalQueries] = useMemoryState<any[]>('dentalClinicalQueries', []);
 
   // Real Estate Niche
-  const [rePipeline, setRePipeline] = useState<any[]>([]);
+  const [rePipeline, setRePipeline] = useMemoryState<any[]>('rePipeline', []);
 
   // Salon Niche
-  const [salonSchedule, setSalonSchedule] = useState<Record<string, Record<string, { client: string; service: string }>>>({});
-  const [upcomingReminders, setUpcomingReminders] = useState<any[]>([]);
+  const [salonSchedule, setSalonSchedule] = useMemoryState<Record<string, Record<string, { client: string; service: string }>>>('salonSchedule', {});
+  const [upcomingReminders, setUpcomingReminders] = useMemoryState<any[]>('upcomingReminders', []);
 
   // Medical Clinic Niche
-  const [medicalDoctors, setMedicalDoctors] = useState<Record<string, { time: string; patient: string; status: string }[]>>({});
+  const [medicalDoctors, setMedicalDoctors] = useMemoryState<Record<string, { time: string; patient: string; status: string }[]>>('medicalDoctors', {});
 
   // ── Computed AI Stats (from real DB data) ─────────────────────
-  const [aiStats, setAiStats] = useState({ resolvedPct: 0, escalatedPct: 0, avgResponseSec: 0, aiMsgsToday: 0 });
-  const [userDisplayName, setUserDisplayName] = useState('');
+  const [aiStats, setAiStats] = useMemoryState('aiStats', { resolvedPct: 0, escalatedPct: 0, avgResponseSec: 0, aiMsgsToday: 0 });
+  const [userDisplayName, setUserDisplayName] = useMemoryState('userDisplayName', '');
 
   // ── Real-Time DB Subscriptions ───────────────────────────────
   const fetchAll = async () => {

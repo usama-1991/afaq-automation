@@ -152,14 +152,34 @@ function ChannelFilter({ value, onChange }: { value: string; onChange: (v: strin
   );
 }
 
+// ── In-Memory Cache for SPA Transitions ───────────────────────
+const conversationsCache: Record<string, any> = {};
+
+function useMemoryState<T>(key: string, initialValue: T): [T, (val: T | ((prev: T) => T)) => void] {
+  const [state, setState] = useState<T>(() => {
+    if (conversationsCache[key] !== undefined) return conversationsCache[key];
+    return initialValue;
+  });
+  
+  const setMemoryState = (val: T | ((prev: T) => T)) => {
+    setState((prev) => {
+      const next = typeof val === 'function' ? (val as any)(prev) : val;
+      conversationsCache[key] = next;
+      return next;
+    });
+  };
+  
+  return [state, setMemoryState];
+}
+
 // ── Main Page ──────────────────────────────────────────────────────
 function ConversationsInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [convos, setConversations] = useState<any[]>([]);
+  const [convos, setConversations] = useMemoryState<any[]>('convos', []);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
-  const [selected, setSelectedState] = useState<any>(null);
+  const [selected, setSelectedState] = useMemoryState<any>('selected', null);
   const setSelected = async (c: any) => {
     setSelectedState(c);
     if (isMobile) setMobileView('chat');
@@ -176,13 +196,13 @@ function ConversationsInner() {
       ));
     }
   };
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useMemoryState<any[]>('messages', []);
   const [reply, setReply] = useState('');
   const [search, setSearch] = useState('');
   const [channelFilter, setChannelFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sending, setSending] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useMemoryState('loading', true);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [activeQuickCategory, setActiveQuickCategory] = useState(0);
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
