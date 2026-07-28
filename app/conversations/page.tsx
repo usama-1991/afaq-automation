@@ -82,6 +82,29 @@ function formatTime(iso: string) {
     : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
+function renderMarkdown(content: string) {
+  if (!content) return null;
+  // Escape HTML to prevent XSS
+  let html = content
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+    
+  // Parse Images: ![alt](url)
+  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<div style="margin: 8px 0;"><img src="$2" alt="$1" style="max-width: 100%; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1);" /></div>');
+  
+  // Parse Links: [text](url)
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">$1</a>');
+  
+  // Parse Bold: **text**
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  
+  // Parse Italic: *text*
+  html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  
+  return <div dangerouslySetInnerHTML={{ __html: html }} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }} />;
+}
+
 // ── Channel Filter Dropdown ─────────────────────────────────────────
 function ChannelFilter({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [open, setOpen] = useState(false);
@@ -865,7 +888,7 @@ function ConversationsInner() {
                           fontSize: 13.5, lineHeight: 1.55,
                           boxShadow: 'var(--shadow-sm)',
                         }}>
-                          {m.content}
+                          {renderMarkdown(m.content)}
                         </div>
                       )}
                       <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6, justifyContent: isAgent ? 'flex-end' : 'flex-start', paddingLeft: isAgent ? 0 : 4, paddingRight: isAgent ? 4 : 0 }}>
