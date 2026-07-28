@@ -2,27 +2,36 @@
 @source "../";
 
 :root {
-  --bg: #faf9f9;
+  --bg: #F6F5F2;
   --surface: #ffffff;
-  --surface2: #fef8f8;
-  --border: rgba(220, 38, 38, 0.08);
-  --border-strong: rgba(220, 38, 38, 0.18);
-  --primary: #dc2626;
-  --primary-dark: #b91c1c;
-  --primary-mid: #ef4444;
-  --primary-light: #fef2f2;
-  --primary-glow: rgba(220, 38, 38, 0.12);
-  --text-primary: #111827;
-  --text-secondary: #6b7280;
+  --surface2: #fafaf8;
+  --border: #E7E5E0;
+  --border-strong: #D1CEC6;
+  --primary: #A8253F;
+  --primary-dark: #7E1C30;
+  --primary-mid: #C42B33;
+  --primary-light: #FBEAEA;
+  --primary-glow: rgba(168, 37, 63, 0.15);
+  --text-primary: #14161A;
+  --text-secondary: #6B6F76;
   --text-tertiary: #9ca3af;
   --sidebar-w: 64px;
   --bottom-nav-h: 60px;
-  --green: #10b981;
-  --amber: #f59e0b;
-  --blue: #3b82f6;
+  --green: #157F3D;
+  --amber: #B4740E;
+  --blue: #2B5FA8;
   --purple: #8b5cf6;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --success: #157F3D;
+  --success-bg: #E7F5EC;
+  --warn: #B4740E;
+  --warn-bg: #FBF0DC;
+  --danger: #C23B3B;
+  --danger-bg: #FBEAEA;
+  --info: #2B5FA8;
+  --info-bg: #EAF0F9;
+  --niche-accent: #C1440E;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
+  --shadow-md: 0 4px 14px rgba(0,0,0,0.06);
   --radius: 14px;
   --radius-sm: 8px;
 }
@@ -30,12 +39,22 @@
 html, body {
   background: var(--bg);
   color: var(--text-primary);
+  font-family: var(--font-inter), 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, .display, .font-heading {
+  font-family: var(--font-jakarta), 'Plus Jakarta Sans', sans-serif;
+}
+
+.num, .tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
 }
 
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(220,38,38,0.15); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: rgba(168,37,63,0.15); border-radius: 4px; }
 
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(10px); }

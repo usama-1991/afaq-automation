@@ -727,27 +727,28 @@ function ConversationsInner() {
                   <button onClick={handleTakeOver} style={{
                     display: 'flex', alignItems: 'center', gap: 5,
                     padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                    background: '#dc2626', color: '#fff', fontSize: 12, fontWeight: 700,
+                    background: 'var(--primary)', color: '#fff', fontSize: 12, fontWeight: 700,
+                    boxShadow: '0 2px 6px var(--primary-glow)',
                     transition: 'opacity 0.15s',
-                  }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.85'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
+                  }} className="hover:opacity-90">
                     <UserCheck size={13} /> Take Over
                   </button>
                 )}
                 {(selected.status === 'open' || !selected.status) && selected.assigned_to && (
                   <button onClick={handleHandBackToAI} style={{
                     display: 'flex', alignItems: 'center', gap: 5,
-                    padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(220,38,38,0.2)', cursor: 'pointer',
-                    background: '#fef2f2', color: '#dc2626', fontSize: 12, fontWeight: 700,
-                  }}>
+                    padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border-strong)', cursor: 'pointer',
+                    background: 'var(--primary-light)', color: 'var(--primary)', fontSize: 12, fontWeight: 700,
+                  }} className="hover:bg-[var(--surface2)]">
                     <Bot size={13} /> Hand Back to AI
                   </button>
                 )}
                 {selected.status !== 'resolved' && (
                   <button onClick={handleResolve} style={{
                     display: 'flex', alignItems: 'center', gap: 5,
-                    padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(22,163,74,0.25)', cursor: 'pointer',
-                    background: '#f0fdf4', color: '#16a34a', fontSize: 12, fontWeight: 700,
-                  }}>
+                    padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(21,127,61,0.25)', cursor: 'pointer',
+                    background: 'var(--success-bg)', color: 'var(--success)', fontSize: 12, fontWeight: 700,
+                  }} className="hover:opacity-90">
                     <CheckCircle2 size={13} /> Resolve
                   </button>
                 )}
@@ -756,11 +757,11 @@ function ConversationsInner() {
             {/* Pending handoff banner */}
             {selected.status === 'pending' && (
               <div style={{
-                padding: '10px 16px', background: '#fffbeb',
-                borderBottom: '1px solid #fcd34d',
+                padding: '10px 16px', background: 'var(--warn-bg)',
+                borderBottom: '1px solid rgba(180,116,14,0.3)',
                 display: 'flex', alignItems: 'center', gap: 10,
               }}>
-                <AlertTriangle size={16} color="#d97706" />
+                <AlertTriangle size={16} color="var(--warn)" />
                 <div style={{ flex: 1 }}>
                   <span style={{ fontSize: 12.5, fontWeight: 600, color: '#92400e' }}>Human handoff requested — AI has stopped replying. </span>
                   <span style={{ fontSize: 12, color: '#b45309' }}>Click <strong>Take Over</strong> to handle this conversation manually, or <strong>Hand Back to AI</strong> to resume AI replies.</span>
@@ -851,18 +852,29 @@ function ConversationsInner() {
                         mediaElement
                       ) : (
                         <div style={{
-                          padding: '10px 14px',
-                          borderRadius: isAgent ? '16px 16px 3px 16px' : '16px 16px 16px 3px',
-                          background: isAgent ? '#dc2626' : '#fff',
-                          color: isAgent ? '#fff' : '#111827',
+                          padding: '12px 16px',
+                          borderRadius: isAgent ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                          background: isAgent ? 'var(--info-bg)' : '#ffffff',
+                          color: isAgent ? 'var(--info)' : 'var(--text-primary)',
+                          border: isAgent ? '1px solid rgba(43,95,168,0.15)' : '1px solid var(--border)',
                           fontSize: 13.5, lineHeight: 1.55,
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
+                          boxShadow: 'var(--shadow-sm)',
                         }}>
                           {m.content}
                         </div>
                       )}
-                      <div style={{ fontSize: 10.5, color: '#9ca3af', marginTop: 3, textAlign: isAgent ? 'right' : 'left', paddingLeft: isAgent ? 0 : 4, paddingRight: isAgent ? 4 : 0 }}>
-                        {m.sender_type === 'bot' ? 'AI Assistant' : isAgent ? 'You' : selected.customer_name || 'Customer'} · {formatTime(m.created_at)}
+                      <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6, justifyContent: isAgent ? 'flex-end' : 'flex-start', paddingLeft: isAgent ? 0 : 4, paddingRight: isAgent ? 4 : 0 }}>
+                        {m.sender_type === 'bot' ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#EAF0F9', color: '#2B5FA8', padding: '1px 6px', borderRadius: 10, fontWeight: 700, fontSize: 10 }}>
+                            <Bot size={11} /> AI Agent (99% conf)
+                          </span>
+                        ) : isAgent ? (
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>You</span>
+                        ) : (
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{selected.customer_name || 'Customer'}</span>
+                        )}
+                        <span>·</span>
+                        <span>{formatTime(m.created_at)}</span>
                       </div>
                     </div>
                   </div>

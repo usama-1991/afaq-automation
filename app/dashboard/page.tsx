@@ -20,16 +20,16 @@ import { usePlan } from '@/context/PlanContext';
 import { useRouter } from 'next/navigation';
 
 // ── Design Tokens ─────────────────────────────────────────────
-const RED = '#dc2626';
-const RED_LIGHT = '#fef2f2';
-const GREEN = '#10b981';
-const BLUE = '#3b82f6';
-const BLUE_LIGHT = '#eff6ff';
-const AMBER = '#f59e0b';
-const AMBER_LIGHT = '#fffbeb';
+const RED = '#A8253F';
+const RED_LIGHT = '#FBEAEA';
+const GREEN = '#157F3D';
+const BLUE = '#2B5FA8';
+const BLUE_LIGHT = '#EAF0F9';
+const AMBER = '#B4740E';
+const AMBER_LIGHT = '#FBF0DC';
 const PURPLE = '#8b5cf6';
 const PURPLE_LIGHT = '#f5f3ff';
-const DARK = '#111827';
+const DARK = '#14161A';
 
 const CHANNEL_COLORS: Record<string, string> = {
   whatsapp: '#25D366',
@@ -52,45 +52,58 @@ interface StatCardProps {
 function StatCard({
   label, value, sub, icon: Icon, color, bg, trend, trendUp,
 }: StatCardProps) {
+  const isEmpty = value === '—' || value === undefined || value === null || value === 'No orders';
+  
   return (
     <div style={{
-      background: 'white', borderRadius: 18, padding: '24px 26px',
-      border: '1px solid rgba(220,38,38,0.06)',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
-      display: 'flex', flexDirection: 'column', gap: 12,
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      background: 'white', borderRadius: 16, padding: '22px 24px',
+      border: '1px solid var(--border)',
+      borderTop: `4px solid ${color || 'var(--primary)'}`,
+      boxShadow: 'var(--shadow-sm)',
+      display: 'flex', flexDirection: 'column', gap: 10,
+      transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
       cursor: 'default', position: 'relative', overflow: 'hidden'
     }}
-    className="niche-stat-card"
+    className="niche-stat-card hover:shadow-md hover:-translate-y-0.5"
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{
-          width: 46, height: 46, borderRadius: 12, background: bg,
+          width: 44, height: 44, borderRadius: 12, background: bg,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: `1px solid ${color}20`
         }}>
-          <Icon size={21} color={color} strokeWidth={2.5} />
+          <Icon size={20} color={color} strokeWidth={2.2} />
         </div>
         {trend && (
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 3,
+            display: 'flex', alignItems: 'center', gap: 4,
             fontSize: 12, fontWeight: 700,
-            color: trendUp ? GREEN : '#ef4444',
-            background: trendUp ? '#ecfdf5' : '#fef2f2',
-            padding: '4px 10px', borderRadius: 20,
+            color: trendUp ? GREEN : '#C23B3B',
+            background: trendUp ? '#E7F5EC' : '#FBEAEA',
+            padding: '4px 10px', borderRadius: 100,
+            border: `1px solid ${trendUp ? GREEN : '#C23B3B'}30`
           }}>
-            {trendUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+            {trendUp ? <ArrowUpRight size={13} strokeWidth={2.5} /> : <ArrowDownRight size={13} strokeWidth={2.5} />}
             {trend}
           </div>
         )}
       </div>
-      <div style={{ marginTop: 8 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: 6 }}>
+      <div style={{ marginTop: 6 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
           {label}
         </div>
-        <div style={{ fontSize: 28, fontWeight: 900, color: '#111827', letterSpacing: '-0.5px', lineHeight: 1.1 }}>
-          {value}
+        <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.5px', lineHeight: 1.15 }} className="tabular-nums num">
+          {isEmpty ? (
+            <span style={{ fontSize: 18, fontWeight: 500, color: '#9ca3af', fontStyle: 'italic', fontVariantNumeric: 'normal' }}>
+              No activity yet
+            </span>
+          ) : (
+            value
+          )}
         </div>
-        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 6, fontWeight: 500 }}>{sub}</div>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
+          {sub}
+        </div>
       </div>
     </div>
   );
@@ -101,14 +114,14 @@ function SectionCard({ title, subtitle, children, action, fullHeight }: {
 }) {
   return (
     <div style={{
-      background: 'white', borderRadius: 20, padding: '22px 24px',
-      border: '1px solid rgba(220,38,38,0.06)',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
-    }}>
+      background: 'white', borderRadius: 18, padding: '24px',
+      border: '1px solid var(--border)',
+      boxShadow: 'var(--shadow-sm)',
+    }} className="hover:shadow-md transition-shadow duration-200">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
         <div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#111827', letterSpacing: '-0.3px' }}>{title}</div>
-          {subtitle && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 3, fontWeight: 500 }}>{subtitle}</div>}
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.3px', fontFamily: 'var(--font-jakarta)' }}>{title}</div>
+          {subtitle && <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 3, fontWeight: 500 }}>{subtitle}</div>}
         </div>
         {action && <div style={{ flexShrink: 0 }}>{action}</div>}
       </div>

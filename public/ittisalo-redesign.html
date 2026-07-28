@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ittisalo — Redesign Concept</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root{
+    --brand: #A8253F;
+    --brand-dark: #7E1C30;
+    --bg: #F6F5F2;
+    --card: #FFFFFF;
+    --text: #14161A;
+    --text-2: #6B6F76;
+    --border: #E7E5E0;
+    --success: #157F3D;
+    --success-bg: #E7F5EC;
+    --warn: #B4740E;
+    --warn-bg: #FBF0DC;
+    --danger: #C23B3B;
+    --danger-bg: #FBEAEA;
+    --info: #2B5FA8;
+    --info-bg: #EAF0F9;
+    --niche-accent: #C1440E; /* restaurant data accent, swappable per niche */
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{font-family:'Plus Jakarta Sans',sans-serif;}
+  .num{font-variant-numeric:tabular-nums; font-feature-settings:"tnum";}
+
+  .shell{display:flex; min-height:100vh;}
+
+  /* ---- Sidebar ---- */
+  .sidebar{
+    width:64px; background:#14161A; display:flex; flex-direction:column;
+    align-items:center; padding:16px 0; gap:4px; flex-shrink:0;
+  }
+  .side-logo{
+    width:34px;height:34px;border-radius:9px;background:var(--brand);
+    display:flex;align-items:center;justify-content:center;color:#fff;
+    font-family:'Plus Jakarta Sans';font-weight:800;font-size:15px;margin-bottom:18px;
+  }
+  .side-group{display:flex;flex-direction:column;gap:2px;width:100%;align-items:center;padding:6px 0;}
+  .side-divider{width:32px;height:1px;background:#2A2D33;margin:6px 0;}
+  .side-icon{
+    width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    color:#9A9DA4; cursor:pointer; position:relative;
+  }
+  .side-icon svg{width:18px;height:18px;}
+  .side-icon.active{background:rgba(168,37,63,0.18); color:#fff;}
+  .side-icon.active::before{
+    content:''; position:absolute; left:-14px; top:8px; bottom:8px; width:3px;
+    background:var(--brand); border-radius:2px;
+  }
+  .side-bottom{margin-top:auto; display:flex; flex-direction:column; align-items:center; gap:10px;}
+  .side-avatar{width:30px;height:30px;border-radius:8px;background:var(--brand);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;}
+
+  /* ---- Main ---- */
+  .main{flex:1; display:flex; flex-direction:column; min-width:0;}
+  .topbar{
+    height:60px; background:var(--card); border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; padding:0 24px; flex-shrink:0;
+  }
+  .topbar-left{display:flex; align-items:center; gap:12px;}
+  .niche-pill{
+    font-size:12px; font-weight:600; padding:5px 10px; border-radius:6px;
+    background:var(--niche-accent); color:#fff; letter-spacing:.2px;
+  }
+  .brand-name{font-weight:700; font-size:14px; color:var(--text);}
+  .brand-name span{color:var(--text-2); font-weight:500;}
+  .topbar-right{display:flex; align-items:center; gap:10px;}
+  .user-block{text-align:right;}
+  .user-name{font-size:13px;font-weight:600;}
+  .user-email{font-size:11px;color:var(--text-2);}
+  .avatar-sm{width:32px;height:32px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;}
+
+  .content{padding:28px 32px; overflow:auto;}
+  .eyebrow{font-size:11px;letter-spacing:.08em;color:var(--text-2);font-weight:600;text-transform:uppercase;}
+  .greeting{font-size:26px;font-weight:800;margin:4px 0 4px;}
+  .sub{color:var(--text-2); font-size:14px; margin-bottom:22px;}
+  .sub b{color:var(--niche-accent);}
+
+  .btn{
+    border:1px solid var(--border); background:var(--card); padding:9px 14px; border-radius:8px;
+    font-size:13px; font-weight:600; color:var(--text); cursor:pointer; display:flex; align-items:center; gap:6px;
+  }
+  .btn-primary{background:var(--brand); color:#fff; border-color:var(--brand);}
+
+  /* Metric grid: 2 primary large + 2 secondary small, per the redesign plan */
+  .metrics{display:grid; grid-template-columns:1.4fr 1.4fr 1fr 1fr; gap:16px; margin-bottom:24px;}
+  .metric-card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px;}
+  .metric-card.primary .metric-value{font-size:32px;}
+  .metric-card.secondary .metric-value{font-size:20px;}
+  .metric-card.secondary{padding:16px 18px;}
+  .metric-top{display:flex; justify-content:space-between; align-items:flex-start;}
+  .metric-label{font-size:11px; color:var(--text-2); font-weight:600; letter-spacing:.04em; text-transform:uppercase; margin-top:12px;}
+  .metric-value{font-weight:800; margin-top:4px;}
+  .metric-delta{font-size:12px; font-weight:700; padding:3px 7px; border-radius:6px;}
+  .delta-up{color:var(--success); background:var(--success-bg);}
+  .metric-foot{font-size:12px; color:var(--text-2); margin-top:6px;}
+  .metric-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--bg);}
+  .metric-icon svg{width:15px;height:15px; color:var(--niche-accent);}
+
+  .grid-2{display:grid; grid-template-columns:1.6fr 1fr; gap:16px;}
+  .panel{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px;}
+  .panel-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;}
+  .panel-title{font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px;}
+  .panel-sub{font-size:12.5px; color:var(--text-2); margin-bottom:14px;}
+
+  .order-row{display:flex; justify-content:space-between; align-items:center; padding:13px 0; border-bottom:1px solid var(--border);}
+  .order-row:last-child{border-bottom:none;}
+  .order-name{font-weight:600; font-size:13.5px;}
+  .order-item{font-size:12.5px; color:var(--text-2); margin-top:1px;}
+  .status-tag{font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:5px; text-transform:uppercase; letter-spacing:.03em; margin-top:5px; display:inline-block;}
+  .status-pending{background:var(--warn-bg); color:var(--warn);}
+  .status-processing{background:var(--info-bg); color:var(--info);}
+  .status-confirmed{background:var(--success-bg); color:var(--success);}
+  .order-amount{font-weight:700; font-size:14px;}
+
+  .ai-row{display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--border);}
+  .ai-row:last-child{border-bottom:none;}
+  .ai-label{font-size:13px; font-weight:600; color:var(--text-2);}
+  .ai-value{font-weight:700; font-size:14px;}
+  .ai-value.hi{color:var(--niche-accent);}
+  .bar-wrap{height:6px; background:var(--bg); border-radius:3px; margin-top:8px; overflow:hidden;}
+  .bar-fill{height:100%; background:var(--niche-accent); border-radius:3px;}
+
+  /* ---- Conversations screen ---- */
+  .conv-shell{display:flex; height:calc(100vh - 60px);}
+  .conv-list{width:300px; border-right:1px solid var(--border); background:var(--card); flex-shrink:0; display:flex; flex-direction:column;}
+  .conv-search{padding:16px; border-bottom:1px solid var(--border);}
+  .conv-search input{width:100%; border:1px solid var(--border); border-radius:8px; padding:9px 12px; font-size:13px; font-family:inherit;}
+  .conv-tabs{display:flex; gap:6px; padding:0 16px 14px;}
+  .conv-tab{font-size:12px; font-weight:600; padding:5px 10px; border-radius:6px; color:var(--text-2); cursor:pointer;}
+  .conv-tab.active{background:var(--brand); color:#fff;}
+  .conv-item{display:flex; gap:10px; padding:13px 16px; cursor:pointer; border-bottom:1px solid var(--border); align-items:center;}
+  .conv-item.selected{background:var(--info-bg);}
+  .conv-avatar{width:36px;height:36px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;}
+  .conv-name{font-weight:600;font-size:13.5px;}
+  .conv-channel{font-size:11.5px; color:var(--text-2); display:flex; align-items:center; gap:4px; margin-top:2px;}
+  .conv-dot{width:6px;height:6px;border-radius:50%;background:var(--success);}
+
+  .conv-main{flex:1; display:flex; flex-direction:column; min-width:0;}
+  .conv-header{display:flex; justify-content:space-between; align-items:center; padding:16px 24px; border-bottom:1px solid var(--border); background:var(--card);}
+  .conv-header-user{display:flex; align-items:center; gap:12px;}
+  .conv-thread{flex:1; overflow:auto; padding:24px; display:flex; flex-direction:column; gap:14px; background:var(--bg);}
+
+  .msg-row{display:flex; flex-direction:column; max-width:62%;}
+  .msg-row.in{align-self:flex-start;}
+  .msg-row.out{align-self:flex-end; align-items:flex-end;}
+  .bubble{padding:11px 14px; border-radius:12px; font-size:13.5px; line-height:1.5;}
+  .bubble.in{background:var(--card); border:1px solid var(--border); border-bottom-left-radius:3px;}
+  .bubble.out{background:var(--info-bg); color:#173355; border-bottom-right-radius:3px;}
+  .bubble.voice{background:var(--card); border:1px solid var(--border); display:flex; align-items:center; gap:8px; font-style:italic; color:var(--text-2);}
+  .msg-meta{font-size:11px; color:var(--text-2); margin-top:4px; display:flex; align-items:center; gap:5px;}
+  .ai-badge{background:var(--niche-accent); color:#fff; font-size:9.5px; font-weight:700; padding:1px 5px; border-radius:4px; text-transform:uppercase; letter-spacing:.03em;}
+
+  .conv-input{padding:16px 24px; border-top:1px solid var(--border); background:var(--card);}
+  .conv-input-row{display:flex; align-items:center; gap:10px; border:1px solid var(--border); border-radius:10px; padding:10px 14px;}
+  .conv-input-row input{border:none; outline:none; flex:1; font-size:13.5px; font-family:inherit;}
+  .send-btn{width:34px;height:34px;border-radius:8px;background:var(--brand);display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;}
+
+  .toggle-bar{display:flex; gap:8px; padding:14px 32px 0;}
+  .toggle-btn{padding:8px 16px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; border:1px solid var(--border); background:var(--card); color:var(--text-2);}
+  .toggle-btn.active{background:var(--text); color:#fff; border-color:var(--text);}
+  .view{display:none;}
+  .view.active{display:block;}
+</style>
+</head>
+<body>
+
+<div class="toggle-bar">
+  <div class="toggle-btn active" onclick="showView('dashboard', this)">Dashboard</div>
+  <div class="toggle-btn" onclick="showView('conversations', this)">Conversations</div>
+</div>
+
+<!-- ============ DASHBOARD VIEW ============ -->
+<div class="view active" id="dashboard">
+<div class="shell">
+  <div class="sidebar">
+    <div class="side-logo">i</div>
+    <div class="side-group">
+      <div class="side-icon active" title="Dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></div>
+      <div class="side-icon" title="Conversations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.5 8.5 0 01-8.5 8.5c-1.5 0-2.9-.35-4.1-1L3 20l1.1-5.2A8.5 8.5 0 1121 11.5z"/></svg></div>
+      <div class="side-icon" title="Contacts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17.5" cy="8.5" r="2.7"/><path d="M15.5 14.2c2.7.3 5 2.5 5 5.8"/></svg></div>
+    </div>
+    <div class="side-divider"></div>
+    <div class="side-group">
+      <div class="side-icon" title="Orders"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8l1.2-3.5A2 2 0 017.1 3h9.8a2 2 0 011.9 1.5L20 8"/><rect x="3" y="8" width="18" height="12" rx="1.5"/></svg></div>
+      <div class="side-icon" title="Favorites"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2.6 6 6.4.5-4.9 4.2 1.6 6.3L12 16.8 6.3 20l1.6-6.3L3 9.5l6.4-.5z"/></svg></div>
+      <div class="side-icon" title="Broadcasts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11v2a2 2 0 002 2h1l4 4V5L6 9H5a2 2 0 00-2 2z"/><path d="M15 8a4 4 0 010 8"/><path d="M18 5a8 8 0 010 14"/></svg></div>
+    </div>
+    <div class="side-divider"></div>
+    <div class="side-group">
+      <div class="side-icon" title="Team"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M2.5 20c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5"/><path d="M13.5 14.5c3 0 5.5 2.5 5.5 5.5"/></svg></div>
+      <div class="side-icon" title="Reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M12 20V4M20 20v-7"/></svg></div>
+      <div class="side-icon" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.2a1.7 1.7 0 00-1-1.5 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.2a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.2a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1h.2a2 2 0 110 4h-.2a1.7 1.7 0 00-1.5 1z"/></svg></div>
+    </div>
+    <div class="side-bottom">
+      <div class="side-avatar">EC</div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="niche-pill">Restaurant / Food</div>
+        <div class="brand-name">Ittisalo Studio <span>(Admin)</span></div>
+      </div>
+      <div class="topbar-right">
+        <div class="user-block">
+          <div class="user-name">usamahabib191</div>
+          <div class="user-email">usamahabib191@gma...</div>
+        </div>
+        <div class="avatar-sm">U</div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="eyebrow">Thursday, June 4, 2026</div>
+      <div class="greeting">Good evening, Usama 👋</div>
+      <div class="sub">Live metrics for <b>Restaurant / Food</b></div>
+
+      <div class="metrics">
+        <div class="metric-card primary">
+          <div class="metric-top">
+            <div class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18M5 7l1 12a2 2 0 002 2h8a2 2 0 002-2l1-12M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2"/></svg></div>
+            <div class="metric-delta delta-up">↑ 12%</div>
+          </div>
+          <div class="metric-label">Today's orders</div>
+          <div class="metric-value num">47</div>
+          <div class="metric-foot">12% more than yesterday</div>
+        </div>
+        <div class="metric-card primary">
+          <div class="metric-top">
+            <div class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5.5c0-1.9-2.2-3.5-5-3.5S7 3.6 7 5.5 9.2 9 12 9s5 1.6 5 3.5-2.2 3.5-5 3.5-5-1.6-5-3.5"/></svg></div>
+            <div class="metric-delta delta-up">↑ 8%</div>
+          </div>
+          <div class="metric-label">Today's revenue</div>
+          <div class="metric-value num">PKR 68,450</div>
+          <div class="metric-foot">From delivery and takeaway</div>
+        </div>
+        <div class="metric-card secondary">
+          <div class="metric-label" style="margin-top:0">Repeat customers</div>
+          <div class="metric-value num">62%</div>
+        </div>
+        <div class="metric-card secondary">
+          <div class="metric-label" style="margin-top:0">Avg. order time</div>
+          <div class="metric-value num">18 min</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Live order queue</div>
+            <div class="btn" style="padding:6px 10px;">Refresh</div>
+          </div>
+          <div class="panel-sub">Orders placed on WhatsApp, updated in real time</div>
+
+          <div class="order-row">
+            <div>
+              <div class="order-name">Sara Ahmed</div>
+              <div class="order-item">Chicken karahi ×2, naan ×4</div>
+              <div class="status-tag status-pending">Pending</div>
+            </div>
+            <div class="btn btn-primary" style="padding:7px 14px;">Confirm</div>
+          </div>
+          <div class="order-row">
+            <div>
+              <div class="order-name">Bilal Khan</div>
+              <div class="order-item">Family kebab deal</div>
+              <div class="status-tag status-confirmed">Confirmed</div>
+            </div>
+            <div class="btn" style="padding:7px 14px;">Deliver</div>
+          </div>
+          <div class="order-row">
+            <div>
+              <div class="order-name">Ayesha Malik</div>
+              <div class="order-item">BBQ platter, 2× soft drinks</div>
+              <div class="status-tag status-processing">Processing</div>
+            </div>
+            <div class="order-amount num">PKR 2,150</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">🤖 AI agent performance</div>
+          <div class="panel-sub">Calculated from live conversation data</div>
+
+          <div class="ai-row">
+            <div class="ai-label">Resolved by AI</div>
+            <div class="ai-value hi">94%</div>
+          </div>
+          <div class="bar-wrap"><div class="bar-fill" style="width:94%"></div></div>
+
+          <div class="ai-row" style="margin-top:14px;">
+            <div class="ai-label">Escalated to human</div>
+            <div class="ai-value">6%</div>
+          </div>
+          <div class="ai-row">
+            <div class="ai-label">Avg. response speed</div>
+            <div class="ai-value" style="color:var(--success)">8 sec</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ============ CONVERSATIONS VIEW ============ -->
+<div class="view" id="conversations">
+<div class="shell" style="height:100vh;">
+  <div class="sidebar">
+    <div class="side-logo">i</div>
+    <div class="side-group">
+      <div class="side-icon" title="Dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></div>
+      <div class="side-icon active" title="Conversations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.5 8.5 0 01-8.5 8.5c-1.5 0-2.9-.35-4.1-1L3 20l1.1-5.2A8.5 8.5 0 1121 11.5z"/></svg></div>
+      <div class="side-icon" title="Contacts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17.5" cy="8.5" r="2.7"/><path d="M15.5 14.2c2.7.3 5 2.5 5 5.8"/></svg></div>
+    </div>
+    <div class="side-bottom"><div class="side-avatar">EC</div></div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="niche-pill" style="background:#B45309;">eCommerce / Fashion</div>
+        <div class="brand-name">Ittisalo Studio <span>(Admin)</span></div>
+      </div>
+      <div class="topbar-right">
+        <div class="user-block">
+          <div class="user-name">usamahabib191</div>
+          <div class="user-email">usamahabib191@gma...</div>
+        </div>
+        <div class="avatar-sm">U</div>
+      </div>
+    </div>
+
+    <div class="conv-shell">
+      <div class="conv-list">
+        <div class="conv-search"><input placeholder="Search conversations..."/></div>
+        <div class="conv-tabs">
+          <div class="conv-tab active">All 2</div>
+          <div class="conv-tab">Open 2</div>
+          <div class="conv-tab">Resolved</div>
+        </div>
+        <div class="conv-item selected">
+          <div class="conv-avatar">U</div>
+          <div>
+            <div class="conv-name">Usama</div>
+            <div class="conv-channel"><span class="conv-dot"></span>WhatsApp</div>
+          </div>
+        </div>
+        <div class="conv-item">
+          <div class="conv-avatar" style="background:#B45309;">I</div>
+          <div>
+            <div class="conv-name">Ittisalo</div>
+            <div class="conv-channel"><span class="conv-dot"></span>WhatsApp</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="conv-main">
+        <div class="conv-header">
+          <div class="conv-header-user">
+            <div class="conv-avatar">U</div>
+            <div>
+              <div class="conv-name">Usama</div>
+              <div class="conv-channel"><span class="conv-dot"></span>WhatsApp</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <div class="btn">Assign</div>
+            <div class="btn btn-primary">Resolve</div>
+          </div>
+        </div>
+
+        <div class="conv-thread">
+          <div class="msg-row in">
+            <div class="bubble in">yes</div>
+            <div class="msg-meta">Usama · 24 Jul</div>
+          </div>
+          <div class="msg-row out">
+            <div class="bubble out">Thanks for confirming! Here's your order: 5× Dome lid for quarter-size sheet pan @ USD 27.50. Total USD 137.50, cash on delivery. Delivery in 1–3 business days.</div>
+            <div class="msg-meta"><span class="ai-badge">AI</span>24 Jul</div>
+          </div>
+          <div class="msg-row in">
+            <div class="bubble voice">🎤 "Can you remind me what I ordered earlier?"</div>
+            <div class="msg-meta">Usama · 26 Jul</div>
+          </div>
+          <div class="msg-row out">
+            <div class="bubble out">Sure — here's a summary: 5× Dome lid for quarter-size sheet pan @ USD 27.50 each. Total USD 137.50, cash on delivery, arriving in 1–3 business days.</div>
+            <div class="msg-meta"><span class="ai-badge">AI</span>26 Jul</div>
+          </div>
+        </div>
+
+        <div class="conv-input">
+          <div class="conv-input-row">
+            <input placeholder="Reply via WhatsApp..."/>
+            <div class="send-btn">→</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+function showView(id, btn){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

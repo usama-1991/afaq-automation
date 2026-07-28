@@ -7,7 +7,7 @@ import { useNiche } from '@/context/NicheContext';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 
-// Desktop icon-only nav item
+// Desktop icon-only nav item with CSS tokens
 function NavItem({ href, icon: Icon, label, active }: { href: string; icon: any; label: string; active: boolean }) {
   const [hovered, setHovered] = useState(false);
   return (
@@ -16,8 +16,8 @@ function NavItem({ href, icon: Icon, label, active }: { href: string; icon: any;
         style={{
           width: 40, height: 40, borderRadius: 11,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: active ? '#fef2f2' : hovered ? '#fff5f5' : 'transparent',
-          color: active || hovered ? '#dc2626' : '#9ca3af',
+          background: active ? 'var(--primary-light)' : hovered ? 'rgba(168, 37, 63, 0.06)' : 'transparent',
+          color: active || hovered ? 'var(--primary)' : '#9ca3af',
           transition: 'all 0.15s ease', cursor: 'pointer', position: 'relative',
         }}
         onMouseEnter={() => setHovered(true)}
@@ -26,7 +26,7 @@ function NavItem({ href, icon: Icon, label, active }: { href: string; icon: any;
         {active && (
           <div style={{
             position: 'absolute', left: -12, top: '50%', transform: 'translateY(-50%)',
-            width: 3, height: 20, borderRadius: 2, background: '#dc2626',
+            width: 3, height: 20, borderRadius: 2, background: 'var(--primary)',
           }} />
         )}
         <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
@@ -61,22 +61,36 @@ export default function Sidebar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
 
-  const nav = [
+  // Cluster 1: Core
+  const clusterCore = [
     { href: '/dashboard',     icon: LayoutDashboard, label: 'Overview' },
     { href: '/conversations', icon: MessageSquare,   label: 'Chats' },
     { href: '/contacts',      icon: Users,           label: 'Contacts' },
+  ];
+
+  // Cluster 2: Commerce & Ops
+  const clusterCommerce = [
     { href: '/orders',        icon: ShoppingBag,     label: 'Orders' },
     ...(nicheId === 'ecommerce' ? [{ href: '/reviews', icon: Star, label: 'Reviews' }] : []),
     { href: '/campaigns',     icon: Megaphone,       label: 'Campaigns' },
-    { href: '/agents',        icon: Bot,             label: 'AI Agents' },
-    { href: '/team',          icon: Users,           label: 'Team' },
     { href: '/templates',     icon: FileText,        label: 'Templates' },
     { href: '/media',         icon: Folder,          label: 'Media' },
+  ];
+
+  // Cluster 3: Intelligence
+  const clusterIntelligence = [
+    { href: '/agents',        icon: Bot,             label: 'AI Agents' },
     { href: '/reports',       icon: BarChart3,       label: 'Reports' },
+  ];
+
+  // Cluster 4: Team & Settings
+  const clusterSettings = [
+    { href: '/team',          icon: Users,           label: 'Team' },
     { href: '/settings',      icon: Settings,        label: 'Settings' },
   ];
 
-  const MOBILE_NAV = nav.slice(0, 5);
+  const allNav = [...clusterCore, ...clusterCommerce, ...clusterIntelligence, ...clusterSettings];
+  const MOBILE_NAV = allNav.slice(0, 5);
 
   useEffect(() => {
     const fetchRole = async () => {
@@ -103,24 +117,52 @@ export default function Sidebar() {
           width: 64, background: '#fff', height: '100vh',
           position: 'fixed', left: 0, top: 0,
           flexDirection: 'column', alignItems: 'center',
-          borderRight: '1px solid rgba(220,38,38,0.08)', zIndex: 50,
+          borderRight: '1px solid var(--border)', zIndex: 50,
         }}
       >
         {/* Logo */}
         <div style={{
-          width: 64, height: 98, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          borderBottom: '1px solid rgba(220,38,38,0.07)', flexShrink: 0,
+          width: 64, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          borderBottom: '1px solid var(--border)', flexShrink: 0,
         }}>
           <img src="/ittisalo-logo.png" alt="Ittisalo" style={{
             width: 34, height: 34, borderRadius: 10, mixBlendMode: 'multiply',
-            boxShadow: '0 4px 12px rgba(220,38,38,0.35)',
+            boxShadow: '0 4px 12px var(--primary-glow)',
           }} />
         </div>
 
-        {/* Nav */}
-        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '14px 0' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
-            {nav.map(item => (
+        {/* Nav with Semantic Clusters & Dividers */}
+        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 0', overflowY: 'auto' }}>
+          {/* Cluster 1: Core */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+            {clusterCore.map(item => (
+              <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
+            ))}
+          </div>
+
+          <div style={{ width: 28, height: 1, background: 'var(--border)', margin: '2px 0' }} />
+
+          {/* Cluster 2: Commerce & Ops */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+            {clusterCommerce.map(item => (
+              <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
+            ))}
+          </div>
+
+          <div style={{ width: 28, height: 1, background: 'var(--border)', margin: '2px 0' }} />
+
+          {/* Cluster 3: Intelligence */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+            {clusterIntelligence.map(item => (
+              <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
+            ))}
+          </div>
+
+          <div style={{ width: 28, height: 1, background: 'var(--border)', margin: '2px 0' }} />
+
+          {/* Cluster 4: Team & Settings */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+            {clusterSettings.map(item => (
               <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
             ))}
             {userRole === 'super_admin' && (
@@ -130,13 +172,13 @@ export default function Sidebar() {
         </nav>
 
         {/* Avatar & Logout */}
-        <div style={{ padding: '14px 0', borderTop: '1px solid rgba(220,38,38,0.07)', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
+        <div style={{ padding: '12px 0', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
           <div style={{
             width: 32, height: 32, borderRadius: '50%',
-            background: 'linear-gradient(135deg, #dc2626, #f59e0b)',
+            background: 'linear-gradient(135deg, var(--primary), var(--niche-accent))',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 11, fontWeight: 700, color: '#fff', cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(220,38,38,0.3)',
+            boxShadow: '0 2px 8px var(--primary-glow)',
           }}>
             {niche.label.slice(0, 2).toUpperCase()}
           </div>
@@ -149,7 +191,7 @@ export default function Sidebar() {
               color: '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: 8, borderRadius: 8, transition: 'all 0.15s ease'
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = '#dc2626'; e.currentTarget.style.background = '#fff5f5'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--primary)'; e.currentTarget.style.background = 'var(--primary-light)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.background = 'transparent'; }}
           >
             <LogOut size={18} strokeWidth={1.8} />
@@ -158,7 +200,7 @@ export default function Sidebar() {
       </aside>
 
       {/* ── Mobile Bottom Nav ──────────────────────────────── */}
-      <nav className="mobile-bottom-nav" style={{ alignItems: 'stretch', justifyContent: 'space-around' }}>
+      <nav className="mobile-bottom-nav" style={{ alignItems: 'stretch', justifyContent: 'space-around', borderTop: '1px solid var(--border)' }}>
         {MOBILE_NAV.map(({ href, icon: Icon, label }) => {
           const active = pathname === href || pathname.startsWith(href + '/');
           return (
@@ -170,7 +212,7 @@ export default function Sidebar() {
               <div style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center',
                 justifyContent: 'center', height: '100%', gap: 3,
-                color: active ? '#dc2626' : '#9ca3af',
+                color: active ? 'var(--primary)' : '#9ca3af',
                 transition: 'color 0.15s',
               }}>
                 <Icon size={20} strokeWidth={active ? 2.2 : 1.7} />
@@ -179,7 +221,7 @@ export default function Sidebar() {
                   <div style={{
                     position: 'absolute', top: 0,
                     width: 28, height: 2.5, borderRadius: 2,
-                    background: '#dc2626',
+                    background: 'var(--primary)',
                   }} />
                 )}
               </div>
@@ -226,7 +268,7 @@ export default function Sidebar() {
                 <img src="/ittisalo-logo.png" alt="Ittisalo" style={{
                   width: 34, height: 34, borderRadius: 10, mixBlendMode: 'multiply',
                 }} />
-                <span style={{ fontWeight: 700, fontSize: 16, color: '#111827' }}>Ittisalo</span>
+                <span style={{ fontWeight: 700, fontSize: 16, color: '#111827', fontFamily: 'var(--font-jakarta)' }}>Ittisalo</span>
               </div>
               <button
                 onClick={() => setMobileMenuOpen(false)}
@@ -238,7 +280,7 @@ export default function Sidebar() {
 
             {/* All nav items in a grid */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
-              {nav.map(({ href, icon: Icon, label }) => {
+              {allNav.map(({ href, icon: Icon, label }) => {
                 const active = pathname === href || pathname.startsWith(href + '/');
                 return (
                   <Link
@@ -250,11 +292,11 @@ export default function Sidebar() {
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: 10,
                       padding: '12px 14px', borderRadius: 12,
-                      background: active ? '#fef2f2' : '#fafafa',
-                      border: `1px solid ${active ? 'rgba(220,38,38,0.2)' : 'rgba(0,0,0,0.05)'}`,
+                      background: active ? 'var(--primary-light)' : '#fafafa',
+                      border: `1px solid ${active ? 'var(--primary-glow)' : 'rgba(0,0,0,0.05)'}`,
                     }}>
-                      <Icon size={18} color={active ? '#dc2626' : '#6b7280'} strokeWidth={active ? 2.2 : 1.8} />
-                      <span style={{ fontSize: 13, fontWeight: active ? 700 : 500, color: active ? '#dc2626' : '#374151' }}>
+                      <Icon size={18} color={active ? 'var(--primary)' : '#6b7280'} strokeWidth={active ? 2.2 : 1.8} />
+                      <span style={{ fontSize: 13, fontWeight: active ? 700 : 500, color: active ? 'var(--primary)' : '#374151' }}>
                         {label}
                       </span>
                     </div>
@@ -271,9 +313,9 @@ export default function Sidebar() {
                   style={{
                     display: 'flex', alignItems: 'center', gap: 12, padding: '14px', borderRadius: 12,
                     textDecoration: 'none', fontWeight: 600, fontSize: 14,
-                    background: pathname.startsWith('/admin') ? '#fef2f2' : '#111827',
-                    color: pathname.startsWith('/admin') ? '#dc2626' : '#fff',
-                    transition: 'background 0.2s', border: pathname.startsWith('/admin') ? '1px solid #fecaca' : 'none'
+                    background: pathname.startsWith('/admin') ? 'var(--primary-light)' : '#111827',
+                    color: pathname.startsWith('/admin') ? 'var(--primary)' : '#fff',
+                    transition: 'background 0.2s', border: pathname.startsWith('/admin') ? '1px solid var(--border)' : 'none'
                   }}
                 >
                   <Crown size={18} />
@@ -287,8 +329,8 @@ export default function Sidebar() {
               onClick={handleLogout}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                padding: '13px', borderRadius: 12, border: '1px solid rgba(220,38,38,0.2)',
-                background: '#fef2f2', color: '#dc2626', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                padding: '13px', borderRadius: 12, border: '1px solid var(--border)',
+                background: 'var(--primary-light)', color: 'var(--primary)', fontWeight: 700, fontSize: 14, cursor: 'pointer',
               }}
             >
               <LogOut size={16} />
