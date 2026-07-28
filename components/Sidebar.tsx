@@ -14,10 +14,10 @@ function NavItem({ href, icon: Icon, label, active }: { href: string; icon: any;
     <Link href={href} title={label} style={{ textDecoration: 'none', position: 'relative' }}>
       <div
         style={{
-          width: 40, height: 40, borderRadius: 11,
+          width: 44, height: 44, borderRadius: 12,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: active ? 'var(--primary-light)' : hovered ? 'rgba(168, 37, 63, 0.06)' : 'transparent',
-          color: active || hovered ? 'var(--primary)' : '#9ca3af',
+          background: active ? 'rgba(255, 255, 255, 0.08)' : hovered ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
+          color: active ? '#fff' : '#9ca3af',
           transition: 'all 0.15s ease', cursor: 'pointer', position: 'relative',
         }}
         onMouseEnter={() => setHovered(true)}
@@ -25,27 +25,28 @@ function NavItem({ href, icon: Icon, label, active }: { href: string; icon: any;
       >
         {active && (
           <div style={{
-            position: 'absolute', left: -12, top: '50%', transform: 'translateY(-50%)',
-            width: 3, height: 20, borderRadius: 2, background: 'var(--primary)',
+            position: 'absolute', left: -10, top: '50%', transform: 'translateY(-50%)',
+            width: 3, height: 20, borderRadius: '0 4px 4px 0', background: '#fff',
           }} />
         )}
-        <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
+        <Icon size={20} strokeWidth={active ? 2.2 : 1.8} />
 
         {/* Tooltip */}
         {hovered && (
           <div style={{
             position: 'fixed', left: 72, zIndex: 9999,
-            background: '#111827', color: '#fff',
-            fontSize: 12, fontWeight: 500,
-            padding: '5px 10px', borderRadius: 7,
+            background: '#1f2937', color: '#fff',
+            fontSize: 12, fontWeight: 600,
+            padding: '6px 12px', borderRadius: 6,
             whiteSpace: 'nowrap', pointerEvents: 'none',
             boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+            border: '1px solid rgba(255,255,255,0.1)',
             animation: 'fadeUp 0.12s ease',
           }}>
             {label}
             <div style={{
               position: 'absolute', left: -4, top: '50%', transform: 'translateY(-50%)',
-              width: 8, height: 8, background: '#111827', rotate: '45deg',
+              width: 8, height: 8, background: '#1f2937', rotate: '45deg', borderBottom: '1px solid rgba(255,255,255,0.1)', borderLeft: '1px solid rgba(255,255,255,0.1)'
             }} />
           </div>
         )}
@@ -114,54 +115,58 @@ export default function Sidebar() {
       <aside
         className="desktop-sidebar"
         style={{
-          width: 64, background: '#fff', height: '100vh',
+          width: 72, background: '#111827', height: '100vh',
           position: 'fixed', left: 0, top: 0,
           flexDirection: 'column', alignItems: 'center',
-          borderRight: '1px solid var(--border)', zIndex: 50,
+          borderRight: '1px solid #1f2937', zIndex: 50,
         }}
       >
         {/* Logo */}
         <div style={{
-          width: 64, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          borderBottom: '1px solid var(--border)', flexShrink: 0,
+          width: 72, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          borderBottom: '1px solid #1f2937', flexShrink: 0,
         }}>
-          <img src="/ittisalo-logo.png" alt="Ittisalo" style={{
-            width: 34, height: 34, borderRadius: 10, mixBlendMode: 'multiply',
-            boxShadow: '0 4px 12px var(--primary-glow)',
-          }} />
+          <div style={{
+            width: 40, height: 40, borderRadius: 10, background: '#A8253F',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(168,37,63,0.3)',
+            color: '#fff', fontWeight: 900, fontSize: 22, fontFamily: 'var(--font-jakarta)', fontStyle: 'italic'
+          }}>
+            i
+          </div>
         </div>
 
         {/* Nav with Semantic Clusters & Dividers */}
-        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 0', overflowY: 'auto' }}>
+        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '16px 0', overflowY: 'auto' }}>
           {/* Cluster 1: Core */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
             {clusterCore.map(item => (
               <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
             ))}
           </div>
 
-          <div style={{ width: 28, height: 1, background: 'var(--border)', margin: '2px 0' }} />
+          <div style={{ width: 32, height: 1, background: 'rgba(255,255,255,0.06)', margin: '4px 0' }} />
 
           {/* Cluster 2: Commerce & Ops */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
             {clusterCommerce.map(item => (
               <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
             ))}
           </div>
 
-          <div style={{ width: 28, height: 1, background: 'var(--border)', margin: '2px 0' }} />
+          <div style={{ width: 32, height: 1, background: 'rgba(255,255,255,0.06)', margin: '4px 0' }} />
 
           {/* Cluster 3: Intelligence */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
             {clusterIntelligence.map(item => (
               <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
             ))}
           </div>
 
-          <div style={{ width: 28, height: 1, background: 'var(--border)', margin: '2px 0' }} />
+          <div style={{ width: 32, height: 1, background: 'rgba(255,255,255,0.06)', margin: '4px 0' }} />
 
           {/* Cluster 4: Team & Settings */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
             {clusterSettings.map(item => (
               <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
             ))}
@@ -172,12 +177,12 @@ export default function Sidebar() {
         </nav>
 
         {/* Avatar & Logout */}
-        <div style={{ padding: '12px 0', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+        <div style={{ padding: '16px 0', borderTop: '1px solid #1f2937', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', width: '100%' }}>
           <div style={{
-            width: 32, height: 32, borderRadius: '50%',
+            width: 36, height: 36, borderRadius: '50%',
             background: 'linear-gradient(135deg, var(--primary), var(--niche-accent))',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 11, fontWeight: 700, color: '#fff', cursor: 'pointer',
+            fontSize: 12, fontWeight: 700, color: '#fff', cursor: 'pointer',
             boxShadow: '0 2px 8px var(--primary-glow)',
           }}>
             {niche.label.slice(0, 2).toUpperCase()}
@@ -188,13 +193,13 @@ export default function Sidebar() {
             title="Logout"
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
-              color: '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: 8, borderRadius: 8, transition: 'all 0.15s ease'
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--primary)'; e.currentTarget.style.background = 'var(--primary-light)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.background = 'transparent'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.background = 'transparent'; }}
           >
-            <LogOut size={18} strokeWidth={1.8} />
+            <LogOut size={20} strokeWidth={1.8} />
           </button>
         </div>
       </aside>
