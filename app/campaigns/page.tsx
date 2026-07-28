@@ -21,10 +21,14 @@ interface Campaign {
 
 const defaultCampaigns: Campaign[] = [];
 
+import { createMemoryState } from '@/lib/useMemoryState';
+
+const useMemoryState = createMemoryState();
+
 export default function CampaignsPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [showCreate, setShowCreate] = useState(false);
-  const [tplList, setTplList] = useState<any[]>([]);
+  const [campaigns, setCampaigns] = useMemoryState<Campaign[]>('campaigns', []);
+  const [showCreate, setShowCreate] = useMemoryState('showCreate', false);
+  const [tplList, setTplList] = useMemoryState<any[]>('tplList', []);
   
   // Create Campaign Form state
   const [campName, setCampName] = useState('');

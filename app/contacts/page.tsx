@@ -29,25 +29,29 @@ interface Contact {
   optedOut?: boolean;
 }
 
+import { createMemoryState } from '@/lib/useMemoryState';
+
+const useMemoryState = createMemoryState();
+
 export default function ContactsPage() {
   const router = useRouter();
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState<Contact | null>(null);
+  const [contacts, setContacts] = useMemoryState<Contact[]>('contacts', []);
+  const [loading, setLoading] = useMemoryState('loading', true);
+  const [search, setSearch] = useMemoryState('search', '');
+  const [selected, setSelected] = useMemoryState<Contact | null>('selected', null);
   
   // Segmentation and list selection state
-  const [selectedSegment, setSelectedSegment] = useState<'all' | 'VIP' | 'New' | 'Hot Lead' | 'opted-out'>('all');
+  const [selectedSegment, setSelectedSegment] = useMemoryState<'all' | 'VIP' | 'New' | 'Hot Lead' | 'opted-out'>('selectedSegment', 'all');
 
   // Tenant ID from database
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const [tenantId, setTenantId] = useMemoryState<string | null>('tenantId', null);
 
   // Add Contact Form State
-  const [showAdd, setShowAdd] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newPhone, setNewPhone] = useState('');
-  const [newEmail, setNewEmail] = useState('');
-  const [newTags, setNewTags] = useState<string[]>(['New']);
+  const [showAdd, setShowAdd] = useMemoryState('showAdd', false);
+  const [newName, setNewName] = useMemoryState('newName', '');
+  const [newPhone, setNewPhone] = useMemoryState('newPhone', '');
+  const [newEmail, setNewEmail] = useMemoryState('newEmail', '');
+  const [newTags, setNewTags] = useMemoryState<string[]>('newTags', ['New']);
 
   // CSV Importer Form State
   const [showCSV, setShowCSV] = useState(false);

@@ -9,20 +9,24 @@ import { supabase } from '@/lib/supabase/client';
 
 interface AgentPerf { name: string; role: string; chatsResolved: number; avgResponseTime: string; csat: string; load: number; }
 
+import { createMemoryState } from '@/lib/useMemoryState';
+
+const useMemoryState = createMemoryState();
+
 export default function ReportsPage() {
-  const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d'>('7d');
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [activeConvosCount, setActiveConvosCount] = useState(0);
-  const [aiResolutionRate, setAiResolutionRate] = useState('—');
-  const [avgResponseTime, setAvgResponseTime] = useState('—');
-  const [csat, setCsat] = useState('—');
-  const [channelBreakdown, setChannelBreakdown] = useState([
+  const [timeRange, setTimeRange] = useMemoryState<'24h' | '7d' | '30d'>('timeRange', '7d');
+  const [isRefreshing, setIsRefreshing] = useMemoryState('isRefreshing', false);
+  const [activeConvosCount, setActiveConvosCount] = useMemoryState('activeConvosCount', 0);
+  const [aiResolutionRate, setAiResolutionRate] = useMemoryState('aiResolutionRate', '—');
+  const [avgResponseTime, setAvgResponseTime] = useMemoryState('avgResponseTime', '—');
+  const [csat, setCsat] = useMemoryState('csat', '—');
+  const [channelBreakdown, setChannelBreakdown] = useMemoryState('channelBreakdown', [
     { id: 'wa', label: 'WhatsApp', count: 0, percent: 0, color: '#25D366' },
     { id: 'ig', label: 'Instagram', count: 0, percent: 0, color: '#E1306C' },
     { id: 'fb', label: 'Messenger', count: 0, percent: 0, color: '#1877F2' },
   ]);
-  const [agentsList, setAgentsList] = useState<AgentPerf[]>([]);
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const [agentsList, setAgentsList] = useMemoryState<AgentPerf[]>('agentsList', []);
+  const [tenantId, setTenantId] = useMemoryState<string | null>('tenantId', null);
 
   const fetchStats = useCallback(async () => {
     try {

@@ -26,17 +26,21 @@ const PERMISSION_CATEGORIES = [
 import { supabase } from '@/lib/supabase/client';
 import { useEffect } from 'react';
 
+import { createMemoryState } from '@/lib/useMemoryState';
+
+const useMemoryState = createMemoryState();
+
 export default function TeamPage() {
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [view, setView] = useState<'list' | 'edit'>('list');
-  const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
-  const [tenantId, setTenantId] = useState<string>('');
+  const [agents, setAgents] = useMemoryState<Agent[]>('agents', []);
+  const [view, setView] = useMemoryState<'list' | 'edit'>('view', 'list');
+  const [editingAgent, setEditingAgent] = useMemoryState<Agent | null>('editingAgent', null);
+  const [tenantId, setTenantId] = useMemoryState<string>('tenantId', '');
   
   // Create state
-  const [newName, setNewName] = useState('');
-  const [newEmail, setNewEmail] = useState('');
-  const [isTeamLead, setIsTeamLead] = useState(false);
-  const [tempPermissions, setTempPermissions] = useState<Record<string, number>>({});
+  const [newName, setNewName] = useMemoryState('newName', '');
+  const [newEmail, setNewEmail] = useMemoryState('newEmail', '');
+  const [isTeamLead, setIsTeamLead] = useMemoryState('isTeamLead', false);
+  const [tempPermissions, setTempPermissions] = useMemoryState<Record<string, number>>('tempPermissions', {});
 
   // Modal State
   const [showSuccessModal, setShowSuccessModal] = useState(false);

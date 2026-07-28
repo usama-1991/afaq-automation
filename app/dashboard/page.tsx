@@ -293,32 +293,16 @@ function ActionCenterDashboard({ userName }: { userName: string }) {
               <div style={{ fontSize: 11.5, color: igConnected ? '#10b981' : '#ef4444', fontWeight: 500 }}>{igConnected ? 'Connected' : 'Not Connected'}</div>
             </div>
           </div>
-
         </div>
       </div>
     </div>
   );
 }
 
-// ── In-Memory Cache for SPA Transitions ───────────────────────
-const dashboardCache: Record<string, any> = {};
+import { createMemoryState } from '@/lib/useMemoryState';
 
-function useMemoryState<T>(key: string, initialValue: T): [T, (val: T | ((prev: T) => T)) => void] {
-  const [state, setState] = useState<T>(() => {
-    if (dashboardCache[key] !== undefined) return dashboardCache[key];
-    return initialValue;
-  });
-  
-  const setMemoryState = (val: T | ((prev: T) => T)) => {
-    setState((prev) => {
-      const next = typeof val === 'function' ? (val as any)(prev) : val;
-      dashboardCache[key] = next;
-      return next;
-    });
-  };
-  
-  return [state, setMemoryState];
-}
+// ── In-Memory Cache for SPA Transitions ───────────────────────
+const useMemoryState = createMemoryState();
 
 export default function DashboardPage() {
   const { nicheId, niche } = useNiche();

@@ -56,35 +56,39 @@ function SectionHeader({ icon, label }: { icon: string; label: string }) {
   );
 }
 
+import { createMemoryState } from '@/lib/useMemoryState';
+
+const useMemoryState = createMemoryState();
+
 export default function AgentsPage() {
   const { niche } = useNiche();
   
   // Tab controller: 'ai' or 'team'
-  const [activeTab, setActiveTab] = useState<'ai' | 'team'>('ai');
+  const [activeTab, setActiveTab] = useMemoryState<'ai' | 'team'>('activeTab', 'ai');
 
   // AI Agent States
-  const [agentName, setAgentName] = useState(niche.agentName);
-  const [greeting, setGreeting] = useState(niche.greeting);
-  const [systemRole, setSystemRole] = useState(niche.systemRole);
-  const [channels, setChannels] = useState({ whatsapp: true, instagram: false, facebook: false });
-  const [tone, setTone] = useState('Professional');
-  const [dos, setDos] = useState<string[]>(niche.dos || []);
-  const [donts, setDonts] = useState<string[]>(niche.donts || []);
-  const [newDo, setNewDo] = useState('');
-  const [newDont, setNewDont] = useState('');
-  const [selectedLangs, setSelectedLangs] = useState<Record<string, boolean>>({ 'English (US)': true });
-  const [selectedVoice, setSelectedVoice] = useState(voices[0]);
-  const [humanHandoff, setHumanHandoff] = useState(false);
-  const [galleryCards, setGalleryCards] = useState(true);
-  const [maxCards, setMaxCards] = useState(5);
-  const [published, setPublished] = useState(false);
-  const [paused, setPaused] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [agentName, setAgentName] = useMemoryState('agentName', niche.agentName);
+  const [greeting, setGreeting] = useMemoryState('greeting', niche.greeting);
+  const [systemRole, setSystemRole] = useMemoryState('systemRole', niche.systemRole);
+  const [channels, setChannels] = useMemoryState('channels', { whatsapp: true, instagram: false, facebook: false });
+  const [tone, setTone] = useMemoryState('tone', 'Professional');
+  const [dos, setDos] = useMemoryState<string[]>('dos', niche.dos || []);
+  const [donts, setDonts] = useMemoryState<string[]>('donts', niche.donts || []);
+  const [newDo, setNewDo] = useMemoryState('newDo', '');
+  const [newDont, setNewDont] = useMemoryState('newDont', '');
+  const [selectedLangs, setSelectedLangs] = useMemoryState<Record<string, boolean>>('selectedLangs', { 'English (US)': true });
+  const [selectedVoice, setSelectedVoice] = useMemoryState('selectedVoice', voices[0]);
+  const [humanHandoff, setHumanHandoff] = useMemoryState('humanHandoff', false);
+  const [galleryCards, setGalleryCards] = useMemoryState('galleryCards', true);
+  const [maxCards, setMaxCards] = useMemoryState('maxCards', 5);
+  const [published, setPublished] = useMemoryState('published', false);
+  const [paused, setPaused] = useMemoryState('paused', false);
+  const [showAdvanced, setShowAdvanced] = useMemoryState('showAdvanced', false);
+  const [saved, setSaved] = useMemoryState('saved', false);
 
   // Human Team states
-  const [teamList, setTeamList] = useState<TeamMember[]>([]);
-  const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMember | null>(null);
+  const [teamList, setTeamList] = useMemoryState<TeamMember[]>('teamList', []);
+  const [selectedTeamMember, setSelectedTeamMember] = useMemoryState<TeamMember | null>('selectedTeamMember', null);
   
   // Form to add human team member
   const [showAddTeam, setShowAddTeam] = useState(false);

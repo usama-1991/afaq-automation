@@ -41,13 +41,17 @@ const mapDbToTemplate = (dbTpl: any): Template => {
   };
 };
 
+import { createMemoryState } from '@/lib/useMemoryState';
+
+const useMemoryState = createMemoryState();
+
 export default function TemplatesPage() {
   const router = useRouter();
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [selectedStatus, setSelectedStatus] = useState<string>('All');
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [templates, setTemplates] = useMemoryState<Template[]>('templates', []);
+  const [searchQuery, setSearchQuery] = useMemoryState('searchQuery', '');
+  const [selectedCategory, setSelectedCategory] = useMemoryState<string>('selectedCategory', 'All');
+  const [selectedStatus, setSelectedStatus] = useMemoryState<string>('selectedStatus', 'All');
+  const [selectedTemplate, setSelectedTemplate] = useMemoryState<Template | null>('selectedTemplate', null);
   const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {

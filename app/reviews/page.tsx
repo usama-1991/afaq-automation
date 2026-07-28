@@ -6,10 +6,14 @@ import { Star, MessageSquareQuote, Calendar } from 'lucide-react';
 import { useNiche } from '@/context/NicheContext';
 import { useRouter } from 'next/navigation';
 
+import { createMemoryState } from '@/lib/useMemoryState';
+
+const useMemoryState = createMemoryState();
+
 export default function ReviewsPage() {
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const [reviews, setReviews] = useMemoryState<any[]>('reviews', []);
+  const [loading, setLoading] = useMemoryState('loading', true);
+  const [tenantId, setTenantId] = useMemoryState<string | null>('tenantId', null);
   const { nicheId } = useNiche();
   const router = useRouter();
 
