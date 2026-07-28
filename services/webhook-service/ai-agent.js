@@ -233,7 +233,14 @@ export async function processAIAgent(ctx) {
     if (intentMatch) {
       ai_intent = intentMatch[1].toLowerCase();
     }
-    const ai_reply = raw_reply.replace(/Intent:.*$/im, '').trim();
+    let ai_reply = raw_reply.replace(/Intent:.*$/im, '').trim();
+    
+    // Forcibly clean up any stubborn Markdown the AI might have still generated
+    ai_reply = ai_reply
+      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '🖼️ $2') // Convert markdown images to raw URLs
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1: $2') // Convert markdown links to plain text links
+      .replace(/\*\*([^*]+)\*\*/g, '*$1*');          // Convert double asterisks to single asterisks
+
     
     console.log(`[AI-Agent] AI Intent: ${ai_intent}`);
 
