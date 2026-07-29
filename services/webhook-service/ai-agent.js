@@ -177,14 +177,37 @@ export async function processAIAgent(ctx) {
       '',
       kbSection,
       '',
-      '--- MANDATORY ORDER SUMMARY ---',
-      'If you are actively handling an order, you MUST summarize the details at the end of your reply (especially when asking for an email, address, payment method, or confirming).',
-      'Always include the Unit Price if known. Use this exact format:',
-      `*Product(s)*: [Qty]x [Item Name] @ ${ctx.currency || 'USD'} [Unit Price]`,
-      `*Total Amount*: ${ctx.currency || 'USD'} [Total Amount]`,
-      '*Delivery Address*: [Address or Pending]',
-      '*Email*: [Email Address or Pending]',
-      '*Payment Method*: [Method or Pending]',
+      (ctx.niche === 'ecommerce' ? [
+        '--- MANDATORY ORDER SUMMARY ---',
+        'If you are actively handling an order, you MUST summarize the details at the end of your reply (especially when asking for an email, address, payment method, or confirming).',
+        'Use EXACTLY this layout for the order summary (including emojis and formatting):',
+        '',
+        '✨ *Almost there! Please review your order details below:*',
+        '',
+        '🛒 *YOUR CART*',
+        `• [Qty]x [Item Name] (${ctx.currency || 'USD'} [Unit Price] each)`,
+        '',
+        '💰 *PAYMENT SUMMARY*',
+        `• Subtotal: ${ctx.currency || 'USD'} [Subtotal]`,
+        `• Delivery: ${ctx.currency || 'USD'} [Delivery]`,
+        `• *Total Due: ${ctx.currency || 'USD'} [Total Amount]*`,
+        '',
+        '📬 *DELIVERY DETAILS*',
+        '• Address: [Address or Pending]',
+        '• Email: [Email Address or Pending]',
+        '• Method: [Method or Pending]',
+        '',
+        'Does everything look correct? 👇'
+      ].join('\\n') : [
+        '--- MANDATORY ORDER SUMMARY ---',
+        'If you are actively handling an order, you MUST summarize the details at the end of your reply (especially when asking for an email, address, payment method, or confirming).',
+        'Always include the Unit Price if known. Use this exact format:',
+        `*Product(s)*: [Qty]x [Item Name] @ ${ctx.currency || 'USD'} [Unit Price]`,
+        `*Total Amount*: ${ctx.currency || 'USD'} [Total Amount]`,
+        '*Delivery Address*: [Address or Pending]',
+        '*Email*: [Email Address or Pending]',
+        '*Payment Method*: [Method or Pending]'
+      ].join('\\n')),
       '',
       '--- MANDATORY INTENT TAG ---',
       'At the VERY END of your message, on a new line, you MUST append exactly ONE of these tags:',
@@ -270,7 +293,7 @@ export async function processAIAgent(ctx) {
         let extractedItems = [];
         const cleanName = s => s.trim().replace(/\s+/g, ' ').replace(/^(i want|mujhe|muje|mjhe|chahiye|chahie|chaie|order|to order|buy|to buy|please|kindly|for|packs of|pack of|pieces of|piece of)\s+/gi, '').trim();
 
-        const aiProductMatch = ai_reply.match(/\*[Pp]roduct(?:s|\(s\))?\*\s*[:\-]\s*([^\n]+)/);
+        const aiProductMatch = ai_reply.match(/(?:\*[Pp]roduct(?:s|\(s\))?\*\s*[:\-]\s*|🛒\s*\*YOUR\s*CART\*\s*\n\s*•\s*)([^\n]+)/i);
         const aiQtyMatch = ai_reply.match(/\*[Qq]uantity\*\s*[:\-]\s*(\d+)/);
         
         const combinedForPrice = ai_reply + ' ' + msg;
@@ -280,7 +303,7 @@ export async function processAIAgent(ctx) {
            unitPrice = parseFloat((unitPriceMatches[0][1] || unitPriceMatches[0][2]).replace(/,/g, ''));
         }
 
-        const totalMatches = [...ai_reply.matchAll(/(?:total(?:\s+amount)?|amount|bill)[\s\w]*?(?:USD|\\$|PKR|Rs\\.?|pkr|AED|SAR|[A-Z]{3})\s*([\d,.]+)/gi)];
+        const totalMatches = [...ai_reply.matchAll(/(?:total(?:[_\s]*amount)?|amount|bill|total\s*due)\s*[:\-]?\s*(?:USD|\\$|PKR|Rs\\.?|pkr|AED|SAR|[A-Z]{3})\s*([\d,.]+)/gi)];
         let orderTotal = 0;
         if (totalMatches.length > 0) {
           orderTotal = parseFloat(totalMatches[totalMatches.length - 1][1].replace(/,/g, ''));
@@ -292,10 +315,10 @@ export async function processAIAgent(ctx) {
           let rawName = aiProductMatch[1];
           let parsedQty = 1;
           
-          const inlinePriceMatch = rawName.match(/@\s*(?:USD|\\$|PKR|Rs\\.?|pkr|AED|SAR|[A-Z]{3})\s*([\d,.]+)/i);
+          const inlinePriceMatch = rawName.match(/(?:@|\()\s*(?:USD|\\$|PKR|Rs\\.?|pkr|AED|SAR|[A-Z]{3})\s*([\d,.]+)/i);
           if (inlinePriceMatch) {
             unitPrice = parseFloat(inlinePriceMatch[1].replace(/,/g, ''));
-            rawName = rawName.replace(/@\s*(?:USD|\\$|PKR|Rs\\.?|pkr|AED|SAR|[A-Z]{3})\s*([\d,.]+)/i, '').trim();
+            rawName = rawName.replace(/(?:@|\()\s*(?:USD|\\$|PKR|Rs\\.?|pkr|AED|SAR|[A-Z]{3})\s*([\d,.]+)[^)]*\)?/i, '').trim();
           }
 
           const inlineQtyMatch = rawName.match(/^(\d+)\s*[xX]\s*(.*)/);
@@ -411,7 +434,7 @@ export async function processAIAgent(ctx) {
         if (newAddress) {
           deliveryAddress = newAddress;
         } else if (!deliveryAddress || deliveryAddress.length < 10) {
-          const botAddressMatch = ai_reply.match(/\*?Delivery\s+Address\*?\s*[:\-]\s*([^(\n]+)/i);
+          const botAddressMatch = ai_reply.match(/\*?(?:Delivery\s+Address|Address)\*?\s*[:\-]\s*([^(\n]+)/i);
           if (botAddressMatch && !botAddressMatch[1].toLowerCase().includes('pending') && !botAddressMatch[1].toLowerCase().includes('not yet')) {
             deliveryAddress = botAddressMatch[1].replace(/[.!]+$/, '').trim();
           }
@@ -437,7 +460,7 @@ export async function processAIAgent(ctx) {
           
           // Fallback: check AI reply ONLY IF it explicitly states "*Payment Method*: COD" in the summary
           if (!paymentMethod) {
-            const aiSummaryMatch = ai_reply.match(/\*?[Pp]ayment\s+Method\*?\s*[:\-]\s*([^\n]+)/i);
+            const aiSummaryMatch = ai_reply.match(/\*?(?:Payment\s+Method|Method)\*?\s*[:\-]\s*([^\n]+)/i);
             if (aiSummaryMatch) {
               const pm = aiSummaryMatch[1].toLowerCase();
               if (!pm.includes('pending') && !pm.includes('not yet provided')) {
