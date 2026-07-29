@@ -282,22 +282,24 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
   fastify.log.info(`[${platform}] Inserting message and incrementing unread_count`);
   const { data: savedMessage, error: msgError } = await supabase
     .from('messages')
-    .insert({
+    .upsert({
+      tenant_id: tenantId,
       conversation_id: conversation.id,
       sender_type: 'customer',
       content: messageText,
       external_message_id: messageId
-    })
+    }, { onConflict: 'tenant_id,external_message_id', ignoreDuplicates: true })
     .select('id')
-    .single();
+    .maybeSingle();
 
   if (msgError) {
-    if (msgError.code === '23505') {
-      fastify.log.info(`[${platform}] Duplicate message caught by DB unique constraint: ${messageId}. Skipping.`);
-      return;
-    }
-    fastify.log.error(`[${platform}] Failed to insert message: ${msgError.message}`);
+    fastify.log.error(`[${platform}] Failed to upsert message: ${msgError.message}`);
     throw msgError;
+  }
+  
+  if (!savedMessage) {
+    fastify.log.info(`[${platform}] Duplicate message caught by atomic upsert constraint: ${messageId}. Skipping.`);
+    return;
   }
 
   await logAudit(tenantId, 'message_received', { platform, external_message_id: messageId, conversation_id: conversation.id });

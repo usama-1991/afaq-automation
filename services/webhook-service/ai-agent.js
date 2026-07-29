@@ -236,15 +236,34 @@ export async function processAIAgent(ctx) {
     // Add current message
     messages.push({ role: 'user', content: ctx.normalized_message });
 
-    // 4. Call GPT-4o-mini
+    // 4. Call GPT-4o-mini with 8-second Circuit Breaker
     console.log(`[AI-Agent] Calling OpenAI for conv_id: ${ctx.conversation_id}`);
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: messages,
-      temperature: 0.7,
-      max_tokens: 500,
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
+    let completion;
+    try {
+      completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 500,
+      }, { signal: controller.signal });
+    } catch (err) {
+      console.error(`[AI-Agent] OpenAI request failed or timed out: ${err.message}`);
+      return {
+        reply: "Our team has received your message and will reply shortly.",
+        intent: "human_handoff",
+        prompt_tokens: 0,
+        completion_tokens: 0,
+        createRecord: false,
+        recordType: null,
+        recordData: null
+      };
+    } finally {
+      clearTimeout(timeout);
+    }
 
     const raw_reply = completion.choices[0].message.content;
     const prompt_tokens = completion.usage?.prompt_tokens || 0;
