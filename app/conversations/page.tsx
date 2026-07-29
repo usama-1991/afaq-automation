@@ -84,35 +84,53 @@ function formatTime(iso: string) {
 
 function renderMarkdown(content: string) {
   if (!content) return null;
-  // Escape HTML to prevent XSS
+  // 1. Escape HTML to prevent XSS
   let html = content
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
     
-  // Parse Images: ![alt](url)
-  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<div style="margin: 8px 0;"><img src="$2" alt="$1" style="max-width: 100%; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1);" /></div>');
-  
-  // Parse Links: [text](url)
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">$1</a>');
-  
-  // Parse Raw Image URLs (e.g. 🖼️ *Image:* https://...)
-  html = html.replace(/(https?:\/\/[^\s]+(?:\.jpg|\.jpeg|\.png|\.gif|\.webp)[^\s]*)/gi, '<div style="margin: 8px 0;"><img src="$1" alt="Image" style="max-width: 100%; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1);" /></div>');
+  // 2. Parse Explicit Markdown Media & Links FIRST
+  html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, '<div style="margin: 8px 0;"><img src="$2" alt="$1" style="max-width: 100%; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1);" /></div>');
+  html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">$1</a>');
 
-  // Convert URLs that weren't caught by the image regex into clickable links
-  // We use a negative lookbehind to avoid matching inside the src attribute we just created, but since JS lookbehinds can be tricky,
-  // it's easier to just parse the plain URLs if they don't contain <img
-  html = html.replace(/(?<!src=")(https?:\/\/[^\s]+(?!\.jpg|\.jpeg|\.png|\.gif|\.webp)(?:[^\s<]*))/gi, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">$1</a>');
+  // 3. Auto-link raw URLs safely without matching inside already created HTML tags
+  let parts = html.split(/(<[^>]+>)/g);
+  for (let i = 0; i < parts.length; i++) {
+    if (parts[i].startsWith('<') && parts[i].endsWith('>')) continue;
+    
+    parts[i] = parts[i].replace(/(https?:\/\/[^\s"'<>]+)/gi, (url) => {
+      const trailingPunc = url.match(/[.,;!?)]+$/);
+      let cleanUrl = url;
+      let suffix = '';
+      if (trailingPunc) {
+        cleanUrl = url.slice(0, -trailingPunc[0].length);
+        suffix = trailingPunc[0];
+      }
+      
+      const isImage = /\.(jpeg|jpg|gif|png|webp|bmp)(?:\?.*)?$/i.test(cleanUrl);
+      if (isImage) {
+        return `<div style="margin: 8px 0;"><img src="${cleanUrl}" alt="Attached Image" style="max-width: 100%; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1);" /></div>` + suffix;
+      } else {
+        return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">${cleanUrl}</a>` + suffix;
+      }
+    });
+  }
+  html = parts.join('');
 
-  // Parse Bold: **text** or *text* (WhatsApp uses *text* for bold)
-  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\*([^*]+)\*/g, '<strong>$1</strong>');
-  
-  // Parse Italic: _text_ (WhatsApp)
-  html = html.replace(/_([^_]+)_/g, '<em>$1</em>');
-  
-  // Parse Strikethrough: ~text~ (WhatsApp)
-  html = html.replace(/~([^~]+)~/g, '<del>$1</del>');
+  // 4. Parse text formatting (*bold*, _italic_, ~strike~) ONLY outside of HTML tags to prevent URL mangling
+  parts = html.split(/(<[^>]+>)/g);
+  for (let i = 0; i < parts.length; i++) {
+    if (parts[i].startsWith('<') && parts[i].endsWith('>')) continue;
+    
+    let text = parts[i];
+    text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/\*([^*]+)\*/g, '<strong>$1</strong>');
+    text = text.replace(/_([^_]+)_/g, '<em>$1</em>');
+    text = text.replace(/~([^~]+)~/g, '<del>$1</del>');
+    parts[i] = text;
+  }
+  html = parts.join('');
   
   return <div dangerouslySetInnerHTML={{ __html: html }} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }} />;
 }
