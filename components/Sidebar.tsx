@@ -136,7 +136,7 @@ export default function Sidebar() {
         // Orders count
         const { data: orders } = await supabase.from(tableName).select('status, stage').eq('tenant_id', tenantId);
         if (orders) {
-          const pending = orders.filter(o => ['pending', 'pending_address', 'new_inquiry'].includes((o.status || o.stage || '').toLowerCase())).length;
+          const pending = orders.filter((o: any) => ['pending', 'pending_address', 'new_inquiry'].includes((o.status || o.stage || '').toLowerCase())).length;
           setPendingOrders(pending);
         }
       }
@@ -144,7 +144,7 @@ export default function Sidebar() {
       // Chats count
       const { data: convos } = await supabase.from('conversations').select('unread_count');
       if (convos) {
-        const unread = convos.filter(c => c.unread_count > 0).length;
+        const unread = convos.filter((c: any) => c.unread_count > 0).length;
         setUnreadChats(unread);
       }
     };
