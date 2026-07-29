@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 
 // Desktop icon-only nav item with CSS tokens
-function NavItem({ href, icon: Icon, label, active }: { href: string; icon: any; label: string; active: boolean }) {
+function NavItem({ href, icon: Icon, label, active, count }: { href: string; icon: any; label: string; active: boolean; count?: number }) {
   const [hovered, setHovered] = useState(false);
   return (
     <Link href={href} title={label} style={{ textDecoration: 'none', position: 'relative' }}>
@@ -30,6 +30,20 @@ function NavItem({ href, icon: Icon, label, active }: { href: string; icon: any;
           }} />
         )}
         <Icon size={20} strokeWidth={active ? 2.2 : 1.8} />
+
+        {/* Badge */}
+        {count !== undefined && count > 0 && (
+          <div style={{
+            position: 'absolute', top: -2, right: -2,
+            background: '#ef4444', color: '#fff',
+            fontSize: 10, fontWeight: 700,
+            width: 16, height: 16, borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 0 0 2px #111827'
+          }}>
+            {count > 9 ? '9+' : count}
+          </div>
+        )}
 
         {/* Tooltip */}
         {hovered && (
@@ -61,17 +75,19 @@ export default function Sidebar() {
   const { niche, nicheId } = useNiche();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [unreadChats, setUnreadChats] = useState(0);
+  const [pendingOrders, setPendingOrders] = useState(0);
 
   // Cluster 1: Core
   const clusterCore = [
     { href: '/dashboard',     icon: LayoutDashboard, label: 'Overview' },
-    { href: '/conversations', icon: MessageSquare,   label: 'Chats' },
+    { href: '/conversations', icon: MessageSquare,   label: 'Chats', count: unreadChats },
     { href: '/contacts',      icon: Users,           label: 'Contacts' },
   ];
 
   // Cluster 2: Commerce & Ops
   const clusterCommerce = [
-    { href: '/orders',        icon: ShoppingBag,     label: 'Orders' },
+    { href: '/orders',        icon: ShoppingBag,     label: 'Orders', count: pendingOrders },
     ...(nicheId === 'ecommerce' ? [{ href: '/reviews', icon: Star, label: 'Reviews' }] : []),
     { href: '/campaigns',     icon: Megaphone,       label: 'Campaigns' },
     { href: '/templates',     icon: FileText,        label: 'Templates' },
@@ -103,6 +119,52 @@ export default function Sidebar() {
     };
     fetchRole();
   }, []);
+
+  useEffect(() => {
+    let tableName = 'orders';
+    if (['dental', 'salon', 'clinic'].includes(nicheId)) tableName = 'appointments';
+    else if (nicheId === 'realestate') tableName = 'leads';
+
+    const fetchCounts = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { data: profile } = await supabase.from('users').select('tenant_id').eq('id', user.id).single();
+      const tenantId = profile?.tenant_id;
+
+      if (tenantId) {
+        // Orders count
+        const { data: orders } = await supabase.from(tableName).select('status, stage').eq('tenant_id', tenantId);
+        if (orders) {
+          const pending = orders.filter(o => ['pending', 'pending_address', 'new_inquiry'].includes((o.status || o.stage || '').toLowerCase())).length;
+          setPendingOrders(pending);
+        }
+      }
+
+      // Chats count
+      const { data: convos } = await supabase.from('conversations').select('unread_count');
+      if (convos) {
+        const unread = convos.filter(c => c.unread_count > 0).length;
+        setUnreadChats(unread);
+      }
+    };
+
+    fetchCounts();
+
+    // subscriptions
+    const convSub = supabase.channel('sidebar_convos')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, fetchCounts)
+      .subscribe();
+      
+    const ordersSub = supabase.channel(`sidebar_${tableName}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: tableName }, fetchCounts)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(convSub);
+      supabase.removeChannel(ordersSub);
+    };
+  }, [nicheId]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -141,7 +203,7 @@ export default function Sidebar() {
           {/* Cluster 1: Core */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
             {clusterCore.map(item => (
-              <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
+              <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} count={(item as any).count} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
             ))}
           </div>
 
@@ -150,7 +212,7 @@ export default function Sidebar() {
           {/* Cluster 2: Commerce & Ops */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
             {clusterCommerce.map(item => (
-              <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
+              <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} count={(item as any).count} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
             ))}
           </div>
 
@@ -159,7 +221,7 @@ export default function Sidebar() {
           {/* Cluster 3: Intelligence */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
             {clusterIntelligence.map(item => (
-              <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
+              <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} count={(item as any).count} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
             ))}
           </div>
 
@@ -168,7 +230,7 @@ export default function Sidebar() {
           {/* Cluster 4: Team & Settings */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
             {clusterSettings.map(item => (
-              <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
+              <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} count={(item as any).count} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
             ))}
             {userRole === 'super_admin' && (
               <NavItem href="/admin" icon={Crown} label="Super Admin" active={pathname.startsWith('/admin')} />
@@ -206,7 +268,9 @@ export default function Sidebar() {
 
       {/* ── Mobile Bottom Nav ──────────────────────────────── */}
       <nav className="mobile-bottom-nav" style={{ alignItems: 'stretch', justifyContent: 'space-around', borderTop: '1px solid var(--border)' }}>
-        {MOBILE_NAV.map(({ href, icon: Icon, label }) => {
+        {MOBILE_NAV.map((navItem) => {
+          const { href, icon: Icon, label } = navItem;
+          const count = (navItem as any).count;
           const active = pathname === href || pathname.startsWith(href + '/');
           return (
             <Link
@@ -219,8 +283,23 @@ export default function Sidebar() {
                 justifyContent: 'center', height: '100%', gap: 3,
                 color: active ? 'var(--primary)' : '#9ca3af',
                 transition: 'color 0.15s',
+                position: 'relative',
               }}>
-                <Icon size={20} strokeWidth={active ? 2.2 : 1.7} />
+                <div style={{ position: 'relative' }}>
+                  <Icon size={20} strokeWidth={active ? 2.2 : 1.7} />
+                  {count !== undefined && count > 0 && (
+                    <div style={{
+                      position: 'absolute', top: -4, right: -6,
+                      background: '#ef4444', color: '#fff',
+                      fontSize: 9, fontWeight: 700,
+                      width: 14, height: 14, borderRadius: '50%',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: '0 0 0 2px #fff'
+                    }}>
+                      {count > 9 ? '9+' : count}
+                    </div>
+                  )}
+                </div>
                 <span style={{ fontSize: 10, fontWeight: active ? 700 : 500, lineHeight: 1 }}>{label}</span>
                 {active && (
                   <div style={{
@@ -285,7 +364,9 @@ export default function Sidebar() {
 
             {/* All nav items in a grid */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
-              {allNav.map(({ href, icon: Icon, label }) => {
+              {allNav.map((navItem) => {
+                const { href, icon: Icon, label } = navItem;
+                const count = (navItem as any).count;
                 const active = pathname === href || pathname.startsWith(href + '/');
                 return (
                   <Link
@@ -300,7 +381,21 @@ export default function Sidebar() {
                       background: active ? 'var(--primary-light)' : '#fafafa',
                       border: `1px solid ${active ? 'var(--primary-glow)' : 'rgba(0,0,0,0.05)'}`,
                     }}>
-                      <Icon size={18} color={active ? 'var(--primary)' : '#6b7280'} strokeWidth={active ? 2.2 : 1.8} />
+                      <div style={{ position: 'relative' }}>
+                        <Icon size={18} color={active ? 'var(--primary)' : '#6b7280'} strokeWidth={active ? 2.2 : 1.8} />
+                        {count !== undefined && count > 0 && (
+                          <div style={{
+                            position: 'absolute', top: -4, right: -6,
+                            background: '#ef4444', color: '#fff',
+                            fontSize: 9, fontWeight: 700,
+                            width: 14, height: 14, borderRadius: '50%',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: `0 0 0 2px ${active ? 'var(--primary-light)' : '#fafafa'}`
+                          }}>
+                            {count > 9 ? '9+' : count}
+                          </div>
+                        )}
+                      </div>
                       <span style={{ fontSize: 13, fontWeight: active ? 700 : 500, color: active ? 'var(--primary)' : '#374151' }}>
                         {label}
                       </span>
