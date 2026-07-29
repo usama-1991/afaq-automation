@@ -73,18 +73,6 @@ function StatCard({
         }}>
           <Icon size={18} color={color} strokeWidth={2.2} />
         </div>
-        {trend && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 4,
-            fontSize: 12, fontWeight: 700,
-            color: trendUp ? GREEN : '#C23B3B',
-            background: trendUp ? '#E7F5EC' : '#FBEAEA',
-            padding: '4px 10px', borderRadius: 100,
-          }}>
-            {trendUp ? <ArrowUp size={13} strokeWidth={2.5} /> : <ArrowDown size={13} strokeWidth={2.5} />}
-            {trend}
-          </div>
-        )}
       </div>
       <div>
         <div style={{ fontSize: 11.5, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
@@ -99,9 +87,28 @@ function StatCard({
             value
           )}
         </div>
-        <div style={{ fontSize: 13, color: '#6b7280', marginTop: 8, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
-          {sub}
-        </div>
+        
+        {trend && !isEmpty && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
+            <span style={{
+              display: 'flex', alignItems: 'center', gap: 3,
+              fontSize: 12, fontWeight: 700,
+              color: trendUp ? GREEN : '#C23B3B',
+            }}>
+              {trendUp ? <ArrowUpRight size={14} strokeWidth={2.5} /> : <ArrowDownRight size={14} strokeWidth={2.5} />}
+              {trendUp ? '+' : '-'}{trend}
+            </span>
+            <span style={{ fontSize: 12, color: '#9ca3af', fontWeight: 500 }}>
+              vs last period
+            </span>
+          </div>
+        )}
+        
+        {sub && (
+          <div style={{ fontSize: 12, color: '#6b7280', marginTop: trend && !isEmpty ? 4 : 10, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
+            {sub}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -323,6 +330,7 @@ export default function DashboardPage() {
 
   // eCommerce Niche
   const [ecoPipeline, setEcoPipeline] = useMemoryState<any[]>('ecoPipeline', []);
+  const [dbCodOrders, setDbCodOrders] = useMemoryState<any[]>('dbCodOrders', []);
 
   // WooCommerce live orders state
   const [wcOrders, setWcOrders] = useMemoryState<any[]>('wcOrders', []);
@@ -414,6 +422,13 @@ export default function DashboardPage() {
           item: Array.isArray(o.items) ? o.items.map((i:any) => i.name).join(', ') : 'Order items',
           status: o.status
         })));
+        
+        // COD Orders (pending/dispatched/confirmed, NOT delivered or cancelled)
+        const codOrders = ecoOrders.filter((o: any) => 
+          (o.payment_method || '').toUpperCase() === 'COD' && 
+          !['delivered', 'cancelled', 'refunded', 'completed'].includes((o.status || '').toLowerCase())
+        );
+        setDbCodOrders(codOrders);
 
         // Exchanges (where issue_type === 'exchange')
         const exchangeReqs = dbOrders.filter((o: any) => o.issue_type === 'exchange');
@@ -528,9 +543,8 @@ export default function DashboardPage() {
   // Derived live stat values
   const todayWcRevenue = wcOrders.filter((o: any) => o.status === 'processing' || o.status === 'completed').reduce((sum: number, o: any) => sum + parseFloat(o.total || 0), 0);
   const todayWcOrdersConfirmed = wcOrders.filter((o: any) => o.status === 'processing' || o.status === 'completed').length;
-  const todayWcOnHold = wcOrders.filter((o: any) => o.status === 'on-hold').length;
-  const todayWcCodPending = wcOrders.filter((o: any) => o.status === 'pending').reduce((sum: number, o: any) => sum + parseFloat(o.total || 0), 0);
-  const wcCurrency = wcOrders[0]?.currency || 'USD';
+  const dbCodPendingAmount = dbCodOrders.reduce((sum: number, o: any) => sum + parseFloat(o.order_amount || 0), 0);
+  const currencySymbol = wcConnected ? (wcOrders[0]?.currency || 'USD') : (dbCodOrders[0]?.currency || 'USD');
 
   // Dynamic trend calculation connected to live activity
   const getTrend = (val: number | string | boolean) => {
@@ -584,10 +598,10 @@ export default function DashboardPage() {
           </>
         ) : nicheId === 'ecommerce' ? (
           <>
-            <StatCard label="WC Revenue" value={wcConnected && todayWcRevenue > 0 ? `${wcCurrency} ${todayWcRevenue.toLocaleString()}` : wcLoading ? 'Loading…' : '—'} sub={wcConnected ? 'From delivery and takeaway' : 'Connect WooCommerce in Settings'} icon={DollarSign} color={GREEN} bg="#ecfdf5" {...getTrend(todayWcRevenue)} />
+            <StatCard label="WC Revenue" value={wcConnected && todayWcRevenue > 0 ? `${currencySymbol} ${todayWcRevenue.toLocaleString()}` : wcLoading ? 'Loading…' : '—'} sub={wcConnected ? 'From delivery and takeaway' : 'Connect WooCommerce in Settings'} icon={DollarSign} color={GREEN} bg="#ecfdf5" {...getTrend(todayWcRevenue)} />
             <StatCard label="Orders Today" value={wcConnected ? (todayWcOrdersConfirmed > 0 ? todayWcOrdersConfirmed : 'No orders') : '—'} sub={wcConnected ? 'Processing & completed' : 'WooCommerce not connected'} icon={ShoppingBag} color={RED} bg={RED_LIGHT} {...getTrend(todayWcOrdersConfirmed)} />
             <StatCard label="Exchange Req" value={exchanges.length > 0 ? exchanges.length : '—'} sub={exchanges.length > 0 ? `${exchanges.filter((e:any) => e.status === 'Resolved').length} resolved` : 'No exchanges logged'} icon={RefreshCw} color={BLUE} bg={BLUE_LIGHT} {...getTrend(exchanges.length)} />
-            <StatCard label="COD Pending" value={wcConnected && todayWcCodPending > 0 ? `${wcCurrency} ${todayWcCodPending.toLocaleString()}` : '—'} sub={wcConnected ? `${todayWcOnHold} orders on-hold/COD` : 'Connect WooCommerce in Settings'} icon={Truck} color={AMBER} bg={AMBER_LIGHT} {...getTrend(todayWcCodPending)} />
+            <StatCard label="COD Pending" value={dbCodPendingAmount > 0 ? `${currencySymbol} ${dbCodPendingAmount.toLocaleString()}` : '—'} sub={dbCodOrders.length > 0 ? `${dbCodOrders.length} orders pending delivery` : 'No pending COD orders'} icon={Truck} color={AMBER} bg={AMBER_LIGHT} {...getTrend(dbCodPendingAmount)} />
           </>
         ) : nicheId === 'dental' ? (
           <>
