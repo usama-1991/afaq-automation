@@ -240,7 +240,7 @@ export async function processAIAgent(ctx) {
     console.log(`[AI-Agent] Calling OpenAI for conv_id: ${ctx.conversation_id}`);
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
+    const timeout = setTimeout(() => controller.abort(), 25000); // Increased timeout to 25s
 
     let completion;
     try {
@@ -252,14 +252,9 @@ export async function processAIAgent(ctx) {
       }, { signal: controller.signal });
     } catch (err) {
       console.error(`[AI-Agent] OpenAI request failed or timed out: ${err.message}`);
-      return {
-        reply: "Our team has received your message and will reply shortly.",
-        intent: "human_handoff",
-        prompt_tokens: 0,
-        completion_tokens: 0,
-        createRecord: false,
-        recordType: null,
-        recordData: null
+      completion = {
+        choices: [{ message: { content: "Our team has received your message and will reply shortly.\n\nIntent: human_handoff" } }],
+        usage: { prompt_tokens: 0, completion_tokens: 0 }
       };
     } finally {
       clearTimeout(timeout);
