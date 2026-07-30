@@ -534,6 +534,18 @@ async function processMessageStatus(statusObj) {
 }
 
 // Meta Webhook Event Receiver
+// ── In-memory dedup guard ──────────────────────────────────────────────────
+// Prevents processing the same message twice even when Meta retries webhooks
+// before the DB upsert has completed. Entries auto-expire after 5 minutes.
+const _processedMessageIds = new Set();
+function markMessageProcessed(messageId) {
+  if (!messageId) return false;
+  if (_processedMessageIds.has(messageId)) return true; // already seen
+  _processedMessageIds.add(messageId);
+  setTimeout(() => _processedMessageIds.delete(messageId), 5 * 60 * 1000);
+  return false; // first time seeing this ID
+}
+
 fastify.post('/webhook', async (request, reply) => {
   const body = request.body;
   fastify.log.info('--- NEW WEBHOOK EVENT ---');
@@ -541,201 +553,226 @@ fastify.post('/webhook', async (request, reply) => {
 
   const supportedObjects = ['whatsapp_business_account', 'page', 'instagram'];
 
-  if (supportedObjects.includes(body.object)) {
-    try {
-      for (const entry of body.entry) {
+  // ── CRITICAL: Respond to Meta IMMEDIATELY to prevent retries ─────────────
+  // Meta will retry the webhook if it doesn't receive a 200 within ~15 seconds.
+  // All message processing happens asynchronously AFTER this response.
+  if (!supportedObjects.includes(body.object)) {
+    return reply.code(404).send();
+  }
 
-        // ── WhatsApp ──────────────────────────────────────────────────────────
-        if (body.object === 'whatsapp_business_account') {
-          for (const change of entry.changes) {
+  // Send 200 right away — Meta is now satisfied and will NOT retry
+  reply.code(200).send('EVENT_RECEIVED');
 
-            // 1. Handle Template Status Updates
-            if (change.field === 'message_template_status_update') {
-              const { message_template_id, event } = change.value;
-              fastify.log.info(`[whatsapp] Template status update: ${message_template_id} -> ${event}`);
-              await supabase
-                .from('templates')
-                .update({ status: event })
-                .eq('meta_template_id', message_template_id);
+  // ── Process webhook asynchronously (after 200 has been sent) ─────────────
+  try {
+    for (const entry of body.entry) {
+
+      // ── WhatsApp ──────────────────────────────────────────────────────────
+      if (body.object === 'whatsapp_business_account') {
+        for (const change of entry.changes) {
+
+          // 1. Handle Template Status Updates
+          if (change.field === 'message_template_status_update') {
+            const { message_template_id, event } = change.value;
+            fastify.log.info(`[whatsapp] Template status update: ${message_template_id} -> ${event}`);
+            await supabase
+              .from('templates')
+              .update({ status: event })
+              .eq('meta_template_id', message_template_id);
+            continue;
+          }
+
+          // 2. Handle Message Delivery Statuses
+          if (change.value && change.value.statuses) {
+            for (const statusObj of change.value.statuses) {
+              await processMessageStatus(statusObj);
+            }
+          }
+
+          // 3. Handle Incoming Messages
+          if (change.value && change.value.messages) {
+            const phoneNumberId = change.value.metadata.phone_number_id;
+            const message       = change.value.messages[0];
+            const contact       = change.value.contacts[0];
+            const customerPhone = message.from;
+            const customerName  = contact.profile.name;
+            const messageText   = message.text ? message.text.body : '';
+            const messageId     = message.id;
+
+            // Skip if this is an echo (message sent by the business)
+            if (message.from === phoneNumberId || message.from === change.value.metadata.display_phone_number) {
+              fastify.log.info('[whatsapp] Skipping echo message');
               continue;
             }
 
-            // 2. Handle Message Delivery Statuses
-            if (change.value && change.value.statuses) {
-              for (const statusObj of change.value.statuses) {
-                await processMessageStatus(statusObj);
-              }
+            // In-memory dedup: skip if we're already processing this message ID
+            if (markMessageProcessed(messageId)) {
+              fastify.log.info(`[whatsapp] In-memory dedup: message ${messageId} already being processed. Skipping.`);
+              continue;
             }
 
-            // 3. Handle Incoming Messages
-            if (change.value && change.value.messages) {
-              const phoneNumberId = change.value.metadata.phone_number_id;
-              const message       = change.value.messages[0];
-              const contact       = change.value.contacts[0];
-              const customerPhone = message.from;
-              const customerName  = contact.profile.name;
-              const messageText   = message.text ? message.text.body : '';
-              const messageId     = message.id;
+            await processIncomingMessage('whatsapp', phoneNumberId, customerPhone, customerName, messageText, messageId, message);
+          }
+        }
+      }
 
-              // Skip if this is an echo (message sent by the business)
-              if (message.from === phoneNumberId || message.from === change.value.metadata.display_phone_number) {
-                fastify.log.info('[whatsapp] Skipping echo message');
+      // ── Messenger ─────────────────────────────────────────────────────────
+      else if (body.object === 'page') {
+        if (entry.messaging) {
+          for (const event of entry.messaging) {
+            if (event.message && !event.message.is_echo) {
+              const pageId       = entry.id;
+              const customerPsid = event.sender.id;
+              const messageText  = event.message.text || '';
+              const messageId    = event.message.mid;
+
+              // In-memory dedup
+              if (markMessageProcessed(messageId)) {
+                fastify.log.info(`[messenger] In-memory dedup: message ${messageId} already being processed. Skipping.`);
                 continue;
               }
 
-              await processIncomingMessage('whatsapp', phoneNumberId, customerPhone, customerName, messageText, messageId, message);
-            }
-          }
-        }
+              // ── Resolve real Messenger name (multi-strategy) ──────────────
+              let customerName = 'Messenger User';
+              try {
+                const token = process.env.MESSENGER_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN;
 
-        // ── Messenger ─────────────────────────────────────────────────────────
-        else if (body.object === 'page') {
-          if (entry.messaging) {
-            for (const event of entry.messaging) {
-              if (event.message && !event.message.is_echo) {
-                const pageId       = entry.id;
-                const customerPsid = event.sender.id;
-                const messageText  = event.message.text || '';
-                const messageId    = event.message.mid;
+                // Strategy 1: Name in webhook payload (rare but possible)
+                if (event.sender?.name) {
+                  customerName = event.sender.name;
+                  fastify.log.info(`[messenger] Name from payload: ${customerName}`);
+                }
 
-                // ── Resolve real Messenger name (multi-strategy) ──────────────
-                let customerName = 'Messenger User';
-                try {
-                  const token = process.env.MESSENGER_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN;
-
-                  // Strategy 1: Name in webhook payload (rare but possible)
-                  if (event.sender?.name) {
-                    customerName = event.sender.name;
-                    fastify.log.info(`[messenger] Name from payload: ${customerName}`);
+                // Strategy 2: Use the User Profile API with PSID
+                // This requires pages_messaging permission (Advanced Access)
+                else if (token) {
+                  try {
+                    const profileRes = await fetch(
+                      `https://graph.facebook.com/v21.0/${customerPsid}?fields=name,first_name,last_name&access_token=${token}`
+                    );
+                    const profileData = await profileRes.json();
+                    fastify.log.info(`[messenger] Profile API response: ${JSON.stringify(profileData)}`);
+                    if (profileData.name) {
+                      customerName = profileData.name;
+                      fastify.log.info(`[messenger] Name from Profile API: ${customerName}`);
+                    } else if (profileData.first_name) {
+                      customerName = `${profileData.first_name} ${profileData.last_name || ''}`.trim();
+                      fastify.log.info(`[messenger] Name from Profile API (first+last): ${customerName}`);
+                    } else if (profileData.error) {
+                      fastify.log.warn(`[messenger] Profile API error: ${profileData.error.message}. ` +
+                        `Ensure your app has pages_messaging permission with Advanced Access.`);
+                    }
+                  } catch (profileErr) {
+                    fastify.log.warn(`[messenger] Profile API request failed: ${profileErr.message}`);
                   }
 
-                  // Strategy 2: Use the User Profile API with PSID
-                  // This requires pages_messaging permission (Advanced Access)
-                  else if (token) {
+                  // Strategy 3: Conversations API as fallback
+                  if (customerName === 'Messenger User') {
                     try {
-                      const profileRes = await fetch(
-                        `https://graph.facebook.com/v21.0/${customerPsid}?fields=name,first_name,last_name&access_token=${token}`
+                      const convRes = await fetch(
+                        `https://graph.facebook.com/v21.0/${pageId}/conversations?user_id=${customerPsid}&fields=participants&access_token=${token}`
                       );
-                      const profileData = await profileRes.json();
-                      fastify.log.info(`[messenger] Profile API response: ${JSON.stringify(profileData)}`);
-                      if (profileData.name) {
-                        customerName = profileData.name;
-                        fastify.log.info(`[messenger] Name from Profile API: ${customerName}`);
-                      } else if (profileData.first_name) {
-                        customerName = `${profileData.first_name} ${profileData.last_name || ''}`.trim();
-                        fastify.log.info(`[messenger] Name from Profile API (first+last): ${customerName}`);
-                      } else if (profileData.error) {
-                        fastify.log.warn(`[messenger] Profile API error: ${profileData.error.message}. ` +
-                          `Ensure your app has pages_messaging permission with Advanced Access.`);
+                      const convData = await convRes.json();
+                      const participants = convData?.data?.[0]?.participants?.data || [];
+                      fastify.log.info(`[messenger] Conversations API participants: ${JSON.stringify(participants)}`);
+                      const user = participants.find(p => p.id !== pageId);
+                      if (user?.name && user.name !== 'Facebook User') {
+                        customerName = user.name;
+                        fastify.log.info(`[messenger] Name from Conversations API: ${customerName}`);
                       }
-                    } catch (profileErr) {
-                      fastify.log.warn(`[messenger] Profile API request failed: ${profileErr.message}`);
-                    }
-
-                    // Strategy 3: Conversations API as fallback
-                    if (customerName === 'Messenger User') {
-                      try {
-                        const convRes = await fetch(
-                          `https://graph.facebook.com/v21.0/${pageId}/conversations?user_id=${customerPsid}&fields=participants&access_token=${token}`
-                        );
-                        const convData = await convRes.json();
-                        const participants = convData?.data?.[0]?.participants?.data || [];
-                        fastify.log.info(`[messenger] Conversations API participants: ${JSON.stringify(participants)}`);
-                        const user = participants.find(p => p.id !== pageId);
-                        if (user?.name && user.name !== 'Facebook User') {
-                          customerName = user.name;
-                          fastify.log.info(`[messenger] Name from Conversations API: ${customerName}`);
-                        }
-                      } catch (convErr) {
-                        fastify.log.warn(`[messenger] Conversations API failed: ${convErr.message}`);
-                      }
+                    } catch (convErr) {
+                      fastify.log.warn(`[messenger] Conversations API failed: ${convErr.message}`);
                     }
                   }
-                } catch (e) {
-                  fastify.log.warn(`[messenger] Name fetch failed: ${e.message}`);
                 }
-
-                fastify.log.info(`[messenger] Resolved customer name: "${customerName}" for PSID ${customerPsid}`);
-                await processIncomingMessage('messenger', pageId, customerPsid, customerName, messageText, messageId);
+              } catch (e) {
+                fastify.log.warn(`[messenger] Name fetch failed: ${e.message}`);
               }
+
+              fastify.log.info(`[messenger] Resolved customer name: "${customerName}" for PSID ${customerPsid}`);
+              await processIncomingMessage('messenger', pageId, customerPsid, customerName, messageText, messageId);
             }
           }
         }
-
-        // ── Instagram ─────────────────────────────────────────────────────────
-        else if (body.object === 'instagram') {
-          if (entry.messaging) {
-            for (const event of entry.messaging) {
-              // Skip echoes (messages sent by the page itself)
-              if (event.message && !event.message.is_echo) {
-                const igAccountId = entry.id;        // Instagram Business Account ID
-                const senderIgsid = event.sender.id; // Sender's Instagram-Scoped ID
-                const messageText = event.message.text || '';
-                const messageId   = event.message.mid;
-
-                let customerName = 'Instagram User';
-                try {
-                  if (event.sender?.name) {
-                    customerName = event.sender.name;
-                  } else {
-                    const token = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.MESSENGER_ACCESS_TOKEN;
-                    if (token) {
-                      // Strategy 1: Try IG Conversations API to get participant name
-                      try {
-                        const convRes = await fetch(
-                          `https://graph.facebook.com/v21.0/${igAccountId}/conversations?user_id=${senderIgsid}&fields=participants&platform=instagram&access_token=${token}`
-                        );
-                        const convData = await convRes.json();
-                        fastify.log.info(`[instagram] Conversations API response for ${senderIgsid}: ${JSON.stringify(convData)}`);
-                        const participants = convData?.data?.[0]?.participants?.data || [];
-                        const user = participants.find(p => p.id !== igAccountId);
-                        if (user?.name && user.name !== 'Instagram User') {
-                          customerName = user.name;
-                          fastify.log.info(`[instagram] Name from Conversations API: ${customerName}`);
-                        } else if (user?.username) {
-                          customerName = `@${user.username}`;
-                          fastify.log.info(`[instagram] Username from Conversations API: ${customerName}`);
-                        }
-                      } catch (convErr) {
-                        fastify.log.warn(`[instagram] Conversations API failed: ${convErr.message}`);
-                      }
-
-                      // Strategy 2: Try direct IGSID lookup (may work with instagram_manage_messages)
-                      if (customerName === 'Instagram User') {
-                        try {
-                          const nameRes = await fetch(`https://graph.facebook.com/v21.0/${senderIgsid}?fields=name,username&access_token=${token}`);
-                          const nameData = await nameRes.json();
-                          fastify.log.info(`[instagram] Direct IGSID API response for ${senderIgsid}: ${JSON.stringify(nameData)}`);
-                          if (nameData.name) customerName = nameData.name;
-                          else if (nameData.username) customerName = `@${nameData.username}`;
-                          else if (nameData.error) {
-                            fastify.log.warn(`[instagram] IGSID API error: ${nameData.error.message}. ` +
-                              `Ensure your app has instagram_manage_messages permission.`);
-                          }
-                        } catch (nameErr) {
-                          fastify.log.warn(`[instagram] Direct IGSID lookup failed: ${nameErr.message}`);
-                        }
-                      }
-                    }
-                  }
-                } catch (e) {
-                  fastify.log.warn(`[instagram] Name fetch failed: ${e.message}`);
-                }
-
-                await processIncomingMessage('instagram', igAccountId, senderIgsid, customerName, messageText, messageId);
-              }
-            }
-          }
-        }
-
       }
-      return reply.code(200).send('EVENT_RECEIVED');
-    } catch (err) {
-      fastify.log.error(err);
-      return reply.code(500).send('Internal Server Error');
+
+      // ── Instagram ─────────────────────────────────────────────────────────
+      else if (body.object === 'instagram') {
+        if (entry.messaging) {
+          for (const event of entry.messaging) {
+            // Skip echoes (messages sent by the page itself)
+            if (event.message && !event.message.is_echo) {
+              const igAccountId = entry.id;        // Instagram Business Account ID
+              const senderIgsid = event.sender.id; // Sender's Instagram-Scoped ID
+              const messageText = event.message.text || '';
+              const messageId   = event.message.mid;
+
+              // In-memory dedup
+              if (markMessageProcessed(messageId)) {
+                fastify.log.info(`[instagram] In-memory dedup: message ${messageId} already being processed. Skipping.`);
+                continue;
+              }
+
+              let customerName = 'Instagram User';
+              try {
+                if (event.sender?.name) {
+                  customerName = event.sender.name;
+                } else {
+                  const token = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.MESSENGER_ACCESS_TOKEN;
+                  if (token) {
+                    // Strategy 1: Try IG Conversations API to get participant name
+                    try {
+                      const convRes = await fetch(
+                        `https://graph.facebook.com/v21.0/${igAccountId}/conversations?user_id=${senderIgsid}&fields=participants&platform=instagram&access_token=${token}`
+                      );
+                      const convData = await convRes.json();
+                      fastify.log.info(`[instagram] Conversations API response for ${senderIgsid}: ${JSON.stringify(convData)}`);
+                      const participants = convData?.data?.[0]?.participants?.data || [];
+                      const user = participants.find(p => p.id !== igAccountId);
+                      if (user?.name && user.name !== 'Instagram User') {
+                        customerName = user.name;
+                        fastify.log.info(`[instagram] Name from Conversations API: ${customerName}`);
+                      } else if (user?.username) {
+                        customerName = `@${user.username}`;
+                        fastify.log.info(`[instagram] Username from Conversations API: ${customerName}`);
+                      }
+                    } catch (convErr) {
+                      fastify.log.warn(`[instagram] Conversations API failed: ${convErr.message}`);
+                    }
+
+                    // Strategy 2: Try direct IGSID lookup (may work with instagram_manage_messages)
+                    if (customerName === 'Instagram User') {
+                      try {
+                        const nameRes = await fetch(`https://graph.facebook.com/v21.0/${senderIgsid}?fields=name,username&access_token=${token}`);
+                        const nameData = await nameRes.json();
+                        fastify.log.info(`[instagram] Direct IGSID API response for ${senderIgsid}: ${JSON.stringify(nameData)}`);
+                        if (nameData.name) customerName = nameData.name;
+                        else if (nameData.username) customerName = `@${nameData.username}`;
+                        else if (nameData.error) {
+                          fastify.log.warn(`[instagram] IGSID API error: ${nameData.error.message}. ` +
+                            `Ensure your app has instagram_manage_messages permission.`);
+                        }
+                      } catch (nameErr) {
+                        fastify.log.warn(`[instagram] Direct IGSID lookup failed: ${nameErr.message}`);
+                      }
+                    }
+                  }
+                }
+              } catch (e) {
+                fastify.log.warn(`[instagram] Name fetch failed: ${e.message}`);
+              }
+
+              await processIncomingMessage('instagram', igAccountId, senderIgsid, customerName, messageText, messageId);
+            }
+          }
+        }
+      }
+
     }
-  } else {
-    reply.code(404).send();
+  } catch (err) {
+    // Processing errors are logged but don't affect the already-sent 200 response
+    fastify.log.error(`[webhook] Async processing error: ${err.message}`);
+    fastify.log.error(err);
   }
 });
 
