@@ -1015,7 +1015,8 @@ export async function processAIAgent(ctx) {
     }
 
     // Insert bot message into DB
-    await supabase.from('messages').insert({
+    const { error: insertError } = await supabase.from('messages').insert({
+      tenant_id: ctx.tenant_id,
       conversation_id: ctx.conversation_id,
       sender_type: 'bot',
       content: ai_reply,
@@ -1025,6 +1026,9 @@ export async function processAIAgent(ctx) {
       kb_chunks_used: kbDocs.length,
       is_read: true
     });
+    if (insertError) {
+      console.error(`[AI-Agent] Failed to insert bot message:`, insertError);
+    }
     
     // Update conversation
     await supabase.from('conversations').update({
