@@ -326,15 +326,20 @@ async function dispatchOutboundMessage(message) {
           })
         });
       }
-    } else {
       // Regular text
-      fastify.log.info(`[${conv.platform}] Sending text reply to ${customerPhone}: "${message.content.substring(0, 80)}..."`);
+      let bodyText = message.content;
+      const btnRegex = /\[Buttons:\s*([^\]]+)\]/i;
+      if (btnRegex.test(bodyText)) {
+        bodyText = bodyText.replace(btnRegex, '').trim();
+      }
+
+      fastify.log.info(`[${conv.platform}] Sending text reply to ${customerPhone}: "${bodyText.substring(0, 80)}..."`);
       metaResponse = await fetch(sendUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           recipient: { id: customerPhone },
-          message: { text: message.content }
+          message: { text: bodyText }
         })
       });
     }
