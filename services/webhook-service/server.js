@@ -453,6 +453,7 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
     };
 
     // 5. Fire internal AI Agent instead of n8n
+    fastify.log.info(`[${platform}] ⚡ FIRING processAIAgent for conv_id=${conversation.id}, msgId=${messageId}`);
     processAIAgent(n8nPayload).catch(err => fastify.log.error(`Failed to process AI agent: ${err.message}`));
 
   } catch (enrichErr) {

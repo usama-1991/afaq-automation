@@ -14,8 +14,9 @@ const openai = new OpenAI({
 });
 
 export async function processAIAgent(ctx) {
+  const _reqId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   try {
-    console.log(`[AI-Agent] Processing message for conv_id: ${ctx.conversation_id}`);
+    console.log(`[AI-Agent][${_reqId}] ▶ START processing for conv_id: ${ctx.conversation_id}, msg: "${(ctx.normalized_message || '').slice(0, 50)}"`);
 
     // 1. Generate Embedding for the message
     let embedding = [];
@@ -964,7 +965,7 @@ export async function processAIAgent(ctx) {
           }
 
           const sendUrl = `https://graph.facebook.com/v21.0/${waPhoneId}/messages`;
-          console.log(`[AI-Agent] Sending WA reply to ${ctx.customer_phone} via ${waPhoneId}`);
+          console.log(`[AI-Agent][${_reqId}] 📤 SENDING WA reply to ${ctx.customer_phone} via ${waPhoneId}`);
           
           const sendRes = await fetch(sendUrl, {
             method: 'POST',
@@ -979,7 +980,7 @@ export async function processAIAgent(ctx) {
             const errBody = await sendRes.text().catch(() => '');
             console.error(`[AI-Agent] WA Send Error (${sendRes.status}): ${errBody}`);
           } else {
-            console.log(`[AI-Agent] WA reply sent successfully.`);
+            console.log(`[AI-Agent][${_reqId}] ✅ WA reply sent successfully.`);
           }
         } else if (ctx.platform === 'messenger' || ctx.platform === 'instagram') {
           // For Messenger/IG, the send endpoint is me/messages
@@ -993,7 +994,7 @@ export async function processAIAgent(ctx) {
             message: { text: ai_reply }
           };
 
-          console.log(`[AI-Agent] Sending ${ctx.platform} reply to ${ctx.customer_phone}`);
+          console.log(`[AI-Agent][${_reqId}] 📤 SENDING ${ctx.platform} reply to ${ctx.customer_phone}`);
           const sendRes = await fetch(sendUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1037,7 +1038,7 @@ export async function processAIAgent(ctx) {
       updated_at: new Date().toISOString()
     }).eq('id', ctx.conversation_id);
 
-    console.log(`[AI-Agent] Processing complete for conv_id: ${ctx.conversation_id}`);
+    console.log(`[AI-Agent][${_reqId}] ◀ END processing for conv_id: ${ctx.conversation_id}`);
     return { success: true, reply: ai_reply, intent: ai_intent };
 
   } catch (error) {
