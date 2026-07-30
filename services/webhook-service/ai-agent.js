@@ -924,6 +924,101 @@ export async function processAIAgent(ctx) {
        ).catch(err => console.error('[FCM] Error sending handoff push:', err));
     }
 
+    // 6. Send Reply to Customer via Meta API
+    try {
+      const accessToken = ctx.wa_access_token;
+      
+      if (accessToken) {
+        if (ctx.platform === 'whatsapp') {
+          const waPhoneId = ctx.wa_phone_number_id;
+          let payload = {};
+          
+          // Check for buttons
+          const buttonMatch = ai_reply.match(/^\[Buttons:\s*(.+?)\]\s*/i);
+          if (buttonMatch) {
+            const btnString = buttonMatch[1];
+            const btnTitles = btnString.split('|').map(s => s.trim()).slice(0, 3);
+            const textBody = ai_reply.replace(/^\[Buttons:\s*.+?\]\s*/i, '').trim();
+            
+            payload = {
+              messaging_product: 'whatsapp',
+              recipient_type: 'individual',
+              to: ctx.customer_phone,
+              type: 'interactive',
+              interactive: {
+                type: 'button',
+                body: { text: textBody },
+                action: {
+                  buttons: btnTitles.map((title, idx) => ({
+                    type: 'reply',
+                    reply: { id: `btn_${idx}`, title: title.substring(0, 20) }
+                  }))
+                }
+              }
+            };
+            // Clean ai_reply so it doesn't store [Buttons: ...] in the DB
+            ai_reply = textBody; 
+          } else {
+            payload = {
+              messaging_product: 'whatsapp',
+              recipient_type: 'individual',
+              to: ctx.customer_phone,
+              type: 'text',
+              text: { preview_url: true, body: ai_reply }
+            };
+          }
+
+          const sendUrl = `https://graph.facebook.com/v21.0/${waPhoneId}/messages`;
+          console.log(`[AI-Agent] Sending WA reply to ${ctx.customer_phone} via ${waPhoneId}`);
+          
+          const sendRes = await fetch(sendUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+          
+          if (!sendRes.ok) {
+            const errBody = await sendRes.text().catch(() => '');
+            console.error(`[AI-Agent] WA Send Error (${sendRes.status}): ${errBody}`);
+          } else {
+            console.log(`[AI-Agent] WA reply sent successfully.`);
+          }
+        } else if (ctx.platform === 'messenger' || ctx.platform === 'instagram') {
+          // For Messenger/IG, the send endpoint is me/messages
+          const sendUrl = `https://graph.facebook.com/v21.0/me/messages?access_token=${accessToken}`;
+          
+          // Clean up any button syntax since Messenger doesn't support WA interactive exactly the same way without templates
+          ai_reply = ai_reply.replace(/^\[Buttons:\s*.+?\]\s*/i, '').trim();
+          
+          const payload = {
+            recipient: { id: ctx.customer_phone },
+            message: { text: ai_reply }
+          };
+
+          console.log(`[AI-Agent] Sending ${ctx.platform} reply to ${ctx.customer_phone}`);
+          const sendRes = await fetch(sendUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          
+          if (!sendRes.ok) {
+            const errBody = await sendRes.text().catch(() => '');
+            console.error(`[AI-Agent] ${ctx.platform} Send Error (${sendRes.status}): ${errBody}`);
+          } else {
+            console.log(`[AI-Agent] ${ctx.platform} reply sent successfully.`);
+          }
+        }
+      } else {
+         console.warn(`[AI-Agent] No access token provided. Cannot send reply to ${ctx.platform}.`);
+      }
+    } catch (sendErr) {
+      console.error(`[AI-Agent] Error sending reply to Meta API: ${sendErr.message}`);
+    }
+
     // Insert bot message into DB
     await supabase.from('messages').insert({
       conversation_id: ctx.conversation_id,
