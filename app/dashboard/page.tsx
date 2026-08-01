@@ -382,7 +382,10 @@ export default function DashboardPage() {
 
   // Dental Niche
   const [dentalSchedule, setDentalSchedule] = useMemoryState<any[]>('dentalSchedule', []);
-  const [dentalClinicalQueries, setDentalClinicalQueries] = useMemoryState<any[]>('dentalClinicalQueries', []);
+  const [dentalClinicalQueries, setDentalClinicalQueries] = useMemoryState<any[]>('dentalClinicalQueries', [
+    { id: '1', patient: 'Ahmed Raza', type: 'Severe Pain', issue: 'Patient reports throbbing pain in lower left molar after cold drink.' },
+    { id: '2', patient: 'Mehak Iqbal', type: 'Bleeding', issue: 'Gums bleeding continuously for 20 mins after brushing this morning.' }
+  ]);
 
   // Real Estate Niche
   const [rePipeline, setRePipeline] = useMemoryState<any[]>('rePipeline', []);
@@ -935,8 +938,23 @@ export default function DashboardPage() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <SectionCard title="Weekly Treatment Breakdown">
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <div style={{ color: '#9ca3af', fontSize: 13, textAlign: 'center', padding: '12px 0' }}>Treatment breakdown data will populate as appointments are confirmed via WhatsApp.</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '4px 0' }}>
+                    {[
+                      { name: 'Scaling & Polishing', count: 12, max: 20, color: BLUE },
+                      { name: 'Root Canal', count: 5, max: 20, color: RED },
+                      { name: 'Zoom Whitening', count: 8, max: 20, color: GREEN },
+                      { name: 'Braces / Orthodontics', count: 3, max: 20, color: AMBER }
+                    ].map(t => (
+                      <div key={t.name}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, fontWeight: 700, marginBottom: 5, color: '#4b5563' }}>
+                          <span>{t.name}</span>
+                          <span>{t.count}</span>
+                        </div>
+                        <div style={{ width: '100%', height: 6, background: '#f3f4f6', borderRadius: 3, overflow: 'hidden' }}>
+                          <div style={{ width: `${(t.count / t.max) * 100}%`, height: '100%', background: t.color, borderRadius: 3 }} />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </SectionCard>
 
