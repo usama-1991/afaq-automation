@@ -413,6 +413,27 @@ export default function DashboardPage() {
       const { data: msgs } = await supabase.from('messages').select('id, sender_type, created_at, conversation_id');
       const { data: dbOrders } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
 
+      const { data: dbAppts } = await supabase.from('appointments').select('*').order('appointment_time', { ascending: true });
+      if (dbAppts) {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todayAppts = dbAppts.filter((a: any) => a.appointment_date === todayStr);
+        const mappedAppts = todayAppts.map((a: any) => ({
+          name: a.patient_name,
+          treatment: a.treatment_type,
+          doctor: a.doctor_name,
+          status: a.status,
+          time: (a.appointment_time || '').slice(0, 5),
+          isNew: a.is_new_patient,
+          id: a.id
+        }));
+        
+        // Add mock available slots for the demo
+        mappedAppts.push({ name: '-', treatment: 'Open Slot', doctor: 'Dr. Hassan Ahmed', status: 'available', time: '14:00', isNew: false });
+        mappedAppts.push({ name: '-', treatment: 'Open Slot', doctor: 'Dr. Fatima Zahra', status: 'available', time: '16:30', isNew: false });
+        
+        setDentalSchedule(mappedAppts);
+      }
+
       if (dbOrders) {
         // Ecommerce Kanban Pipeline
         const ecoOrders = dbOrders.filter((o: any) => o.niche === 'ecommerce');
