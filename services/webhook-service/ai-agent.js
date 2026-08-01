@@ -39,9 +39,14 @@ export async function processAIAgent(ctx) {
         match_threshold: 0.10,
         match_count: 5
       });
-      if (!kbErr && kbRes) {
+      if (!kbErr && kbRes && kbRes.length > 0) {
         kbDocs = kbRes;
       }
+    }
+
+    // Fallback: Use all active KB entries passed from the server if vector search yielded nothing
+    if (kbDocs.length === 0 && ctx.knowledge_base && ctx.knowledge_base.length > 0) {
+      kbDocs = ctx.knowledge_base;
     }
 
     // 2b. Search Products (if ecommerce)
