@@ -55,7 +55,8 @@ INSERT INTO public.conversations (id, tenant_id, platform, external_conversation
 ('c0000000-0000-0000-0000-000000000032', '00000000-0000-0000-0000-111111111111', 'whatsapp', '923547890832', 'Naveed Ashraf',   'open',     now() - interval '2 hours', now() - interval '1 hour'),
 ('c0000000-0000-0000-0000-000000000033', '00000000-0000-0000-0000-111111111111', 'whatsapp', '923107890833', 'Sobia Parveen',   'resolved', now() - interval '5 hours', now() - interval '4 hours'),
 ('c0000000-0000-0000-0000-000000000034', '00000000-0000-0000-0000-111111111111', 'whatsapp', '923657890834', 'Asad Mehmood',    'resolved', now() - interval '6 hours', now() - interval '5 hours'),
-('c0000000-0000-0000-0000-000000000035', '00000000-0000-0000-0000-111111111111', 'whatsapp', '923457890835', 'Rubina Kanwal',   'resolved', now() - interval '8 hours', now() - interval '7 hours')
+('c0000000-0000-0000-0000-000000000035', '00000000-0000-0000-0000-111111111111', 'whatsapp', '923457890835', 'Rubina Kanwal',   'resolved', now() - interval '8 hours', now() - interval '7 hours'),
+('c0000000-0000-0000-0000-000000000036', '00000000-0000-0000-0000-111111111111', 'whatsapp', '923111222333', 'Tariq Jameel',    'resolved', now() - interval '2 hours', now() - interval '1 hour')
 ON CONFLICT (tenant_id, external_conversation_id) DO NOTHING;
 
 
@@ -231,7 +232,20 @@ INSERT INTO public.messages (tenant_id, conversation_id, sender_type, content, c
 ('00000000-0000-0000-0000-111111111111', 'c0000000-0000-0000-0000-000000000035', 'customer', 'Booking for dental checkup, first time patient', now() - interval '8 hours'),
 ('00000000-0000-0000-0000-111111111111', 'c0000000-0000-0000-0000-000000000035', 'bot', 'Welcome to SmileCare, Rubina! First-time checkup includes full oral exam, digital X-rays, cleaning if needed, and treatment plan. First visit PKR 2,500 (includes everything!). Dr. Hassan is available tomorrow 3:00 PM. Shall I book?', now() - interval '8 hours' + interval '10 seconds'),
 ('00000000-0000-0000-0000-111111111111', 'c0000000-0000-0000-0000-000000000035', 'customer', 'Yes, 3pm works. See you tomorrow!', now() - interval '7 hours 55 minutes'),
-('00000000-0000-0000-0000-111111111111', 'c0000000-0000-0000-0000-000000000035', 'bot', 'First visit booked! Tomorrow 3:00 PM with Dr. Hassan. Welcome to the SmileCare family!', now() - interval '7 hours 55 minutes' + interval '6 seconds')
+('00000000-0000-0000-0000-111111111111', 'c0000000-0000-0000-0000-000000000035', 'bot', 'First visit booked! Tomorrow 3:00 PM with Dr. Hassan. Welcome to the SmileCare family!', now() - interval '7 hours 55 minutes' + interval '6 seconds'),
+
+('00000000-0000-0000-0000-111111111111', 'c0000000-0000-0000-0000-000000000036', 'customer', 'Hi, I need some information about getting braces.', now() - interval '2 hours'),
+('00000000-0000-0000-0000-111111111111', 'c0000000-0000-0000-0000-000000000036', 'bot', 'Hello Tariq! Welcome to SmileCare Clinic. I can certainly help you with that. Are you looking for traditional metal braces or clear aligners (like Invisalign)?', now() - interval '1 hour 59 minutes'),
+('00000000-0000-0000-0000-111111111111', 'c0000000-0000-0000-0000-000000000036', 'customer', 'Whats the difference in price and duration for both?', now() - interval '1 hour 55 minutes'),
+('00000000-0000-0000-0000-111111111111', 'c0000000-0000-0000-0000-000000000036', 'bot', 'Great question! Traditional metal braces typically cost between PKR 150,000 to PKR 250,000 and treatment lasts 1-2 years. Clear aligners cost between PKR 300,000 to PKR 450,000 and usually take 6-18 months. Duration depends on your specific case. Would you like to schedule a free consultation with Dr. Usman (our Orthodontist) to get an exact estimate?', now() - interval '1 hour 54 minutes'),
+('00000000-0000-0000-0000-111111111111', 'c0000000-0000-0000-0000-000000000036', 'customer', 'Do you guys offer any installment plans? 300k is a bit steep upfront.', now() - interval '1 hour 45 minutes'),
+('00000000-0000-0000-0000-111111111111', 'c0000000-0000-0000-0000-000000000036', 'bot', 'Yes, absolutely! We offer 0% interest flexible payment plans. You can pay 30% upfront and spread the remaining balance over 6 to 12 months. Does this make the clear aligners option more comfortable for you?', now() - interval '1 hour 44 minutes'),
+('00000000-0000-0000-0000-111111111111', 'c0000000-0000-0000-0000-000000000036', 'customer', 'Yes that sounds much better. Where is the clinic located exactly?', now() - interval '1 hour 30 minutes'),
+('00000000-0000-0000-0000-111111111111', 'c0000000-0000-0000-0000-000000000036', 'bot', 'We are located in DHA Phase 5, Lahore, right next to Jalal Sons. We have ample free parking available for our patients.', now() - interval '1 hour 29 minutes'),
+('00000000-0000-0000-0000-111111111111', 'c0000000-0000-0000-0000-000000000036', 'customer', 'Okay, book me for a consultation for the clear aligners then.', now() - interval '1 hour 15 minutes'),
+('00000000-0000-0000-0000-111111111111', 'c0000000-0000-0000-0000-000000000036', 'bot', 'Perfect! The consultation is completely free. Dr. Usman has availability tomorrow at 4:30 PM or Thursday at 11:00 AM. Which one works best for you?', now() - interval '1 hour 14 minutes'),
+('00000000-0000-0000-0000-111111111111', 'c0000000-0000-0000-0000-000000000036', 'customer', 'Tomorrow at 4:30 PM is perfect. Do I need to bring anything?', now() - interval '1 hour 5 minutes'),
+('00000000-0000-0000-0000-111111111111', 'c0000000-0000-0000-0000-000000000036', 'bot', 'Just your CNIC! Your appointment is confirmed for tomorrow at 4:30 PM with Dr. Usman for an Orthodontics Consultation. We will send you a reminder in the morning. We look forward to seeing you, Tariq!', now() - interval '1 hour 4 minutes')
 ON CONFLICT DO NOTHING;
 
 
@@ -253,7 +267,8 @@ INSERT INTO public.appointments (tenant_id, conversation_id, patient_name, patie
 ('00000000-0000-0000-0000-111111111111', 'c0000000-0000-0000-0000-000000000029', 'Kiran Shahzadi',  '923274567829', 'Dr. Usman Ali',      'Smile Makeover',      (now() + interval '1 day')::date,   '16:00', 'confirmed', true,  0,     'dental', 'Free cosmetic consultation'),
 ('00000000-0000-0000-0000-111111111111', 'c0000000-0000-0000-0000-000000000030', 'Hassan Rauf',     '923674567830', 'Dr. Fatima Zahra',   'Emergency Repair',    (now())::date,                      '11:00', 'confirmed', true,  8000,  'dental', 'Broken tooth emergency'),
 ('00000000-0000-0000-0000-111111111111', 'c0000000-0000-0000-0000-000000000031', 'Lubna Iftikhar',  '923204567831', 'Dr. Hassan Ahmed',   'Couple Scaling',      (now() + interval '2 days')::date,  '10:00', 'pending',   true,  6000,  'dental', 'Couple scaling deal'),
-('00000000-0000-0000-0000-111111111111', 'c0000000-0000-0000-0000-000000000035', 'Rubina Kanwal',   '923457890835', 'Dr. Hassan Ahmed',   'First Visit Checkup', (now() + interval '1 day')::date,   '15:00', 'pending',   true,  2500,  'dental', 'New patient registration')
+('00000000-0000-0000-0000-111111111111', 'c0000000-0000-0000-0000-000000000035', 'Rubina Kanwal',   '923457890835', 'Dr. Hassan Ahmed',   'First Visit Checkup', (now() + interval '1 day')::date,   '15:00', 'pending',   true,  2500,  'dental', 'New patient registration'),
+('00000000-0000-0000-0000-111111111111', 'c0000000-0000-0000-0000-000000000036', 'Tariq Jameel',    '923111222333', 'Dr. Usman Ali',      'Clear Aligners Consult', (now() + interval '1 day')::date,   '16:30', 'confirmed', true,  0,     'dental', 'Interested in installment plan for aligners')
 ON CONFLICT DO NOTHING;
 
 
@@ -327,10 +342,10 @@ ON CONFLICT DO NOTHING;
 
 -- STEP 8: Usage Metrics
 INSERT INTO public.usage_metrics (tenant_id, month, conversations_count, messages_sent, campaigns_sent, templates_submitted, kb_entries_count) VALUES
-('00000000-0000-0000-0000-111111111111', to_char(now(), 'YYYY-MM'), 35, 186, 2, 4, 6)
+('00000000-0000-0000-0000-111111111111', to_char(now(), 'YYYY-MM'), 36, 198, 2, 4, 6)
 ON CONFLICT (tenant_id, month) DO UPDATE SET
-  conversations_count = 35,
-  messages_sent = 186,
+  conversations_count = 36,
+  messages_sent = 198,
   campaigns_sent = 2,
   templates_submitted = 4,
   kb_entries_count = 6;
