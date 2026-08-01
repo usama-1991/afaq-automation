@@ -453,7 +453,7 @@ export default function DashboardPage() {
       }
 
       if (convs && msgs) {
-        const agentMsgs = msgs.filter((m: any) => m.sender_type === 'agent');
+        const agentMsgs = msgs.filter((m: any) => (m.sender_type === 'bot' || m.sender_type === 'agent'));
         const uniqueCustomers = new Set(convs.map((c: any) => c.customer_name)).size;
 
         setStats({
@@ -491,7 +491,7 @@ export default function DashboardPage() {
           days.push({
             time: label,
             inbound: msgs.filter((m: any) => m.sender_type === 'customer' && m.created_at?.startsWith(dateStr)).length,
-            outbound: msgs.filter((m: any) => m.sender_type === 'agent' && m.created_at?.startsWith(dateStr)).length,
+            outbound: msgs.filter((m: any) => (m.sender_type === 'bot' || m.sender_type === 'agent') && m.created_at?.startsWith(dateStr)).length,
           });
         }
         setVolumeData(days);
