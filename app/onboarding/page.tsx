@@ -162,7 +162,7 @@ export default function OnboardingPage() {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <img src="/ittisalo-logo.png" alt="Ittisalo" style={{ width: 36, height: 36, borderRadius: 10, mixBlendMode: 'multiply' }} />
+            <img src="/Code_Generated_Image.png" alt="Logo" style={{ width: 36, height: 36, borderRadius: 10, objectFit: 'contain' }} />
             <span style={{ fontSize: 18, fontWeight: 700, color: '#111827', letterSpacing: '-0.4px' }}>Ittisalo Setup</span>
           </div>
           <button 

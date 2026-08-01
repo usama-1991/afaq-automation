@@ -188,14 +188,9 @@ export default function Sidebar() {
           width: 72, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center',
           borderBottom: '1px solid #1f2937', flexShrink: 0,
         }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: 10, background: '#A8253F',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(168,37,63,0.3)',
-            color: '#fff', fontWeight: 900, fontSize: 22, fontFamily: 'var(--font-jakarta)', fontStyle: 'italic'
-          }}>
-            i
-          </div>
+          <img src="/Code_Generated_Image.png" alt="Logo" style={{
+            width: 48, height: 48, borderRadius: 10, objectFit: 'contain'
+          }} />
         </div>
 
         {/* Nav with Semantic Clusters & Dividers */}
@@ -349,8 +344,8 @@ export default function Sidebar() {
             {/* Logo + close */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <img src="/ittisalo-logo.png" alt="Ittisalo" style={{
-                  width: 34, height: 34, borderRadius: 10, mixBlendMode: 'multiply',
+                <img src="/Code_Generated_Image.png" alt="Logo" style={{
+                  width: 34, height: 34, borderRadius: 10, objectFit: 'contain'
                 }} />
                 <span style={{ fontWeight: 700, fontSize: 16, color: '#111827', fontFamily: 'var(--font-jakarta)' }}>Ittisalo</span>
               </div>

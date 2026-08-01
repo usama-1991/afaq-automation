@@ -8,8 +8,8 @@ export default function RootPage() {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <div style={{ textAlign: 'center' }}>
-        <img src="/ittisalo-logo.png" alt="Ittisalo" style={{
-          width: 48, height: 48, borderRadius: 13, mixBlendMode: 'multiply',
+        <img src="/Code_Generated_Image.png" alt="Logo" style={{
+          width: 48, height: 48, borderRadius: 13, objectFit: 'contain',
           margin: '0 auto 12px',
           boxShadow: '0 4px 14px rgba(220,38,38,0.3)',
         }} />
