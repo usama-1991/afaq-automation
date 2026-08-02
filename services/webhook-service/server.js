@@ -361,7 +361,7 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
 
       // Agent config (name, prompt, tone, language)
       supabase
-        .from('agent_configs')
+        .from('agents')
         .select('name, prompt, tone, language')
         .eq('tenant_id', tenantId)
         .eq('is_active', true)

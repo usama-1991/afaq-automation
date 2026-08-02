@@ -201,7 +201,7 @@ async function processIncomingMessage(platform: string, externalAccountId: strin
         supabase.from('knowledge_base').select('kb_type, title, content').eq('tenant_id', tenantId).eq('is_active', true).limit(20),
         supabase.from('messages').select('sender_type, content, created_at').eq('conversation_id', conversation.id).order('created_at', { ascending: false }).limit(10),
         supabase.from('integrations').select('platform, external_account_id, credentials').eq('tenant_id', tenantId),
-        supabase.from('agent_configs').select('name, prompt, tone, language').eq('tenant_id', tenantId).eq('is_active', true).maybeSingle(),
+        supabase.from('agents').select('name, prompt, tone, language').eq('tenant_id', tenantId).eq('is_active', true).maybeSingle(),
       ]);
 
       const knowledgeBase = kbResult.status === 'fulfilled' ? (kbResult.value.data || []) : [];
