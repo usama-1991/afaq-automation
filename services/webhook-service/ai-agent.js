@@ -185,7 +185,7 @@ export async function processAIAgent(ctx) {
       '',
       kbSection,
       '',
-      (ctx.niche === 'ecommerce' ? [
+      ...( ['ecommerce', 'restaurant', 'food_delivery'].includes(ctx.niche) ? [
         '--- MANDATORY ORDER SUMMARY ---',
         'If you are actively handling an order, you MUST summarize the details at the end of your reply (especially when asking for an email, address, payment method, or confirming).',
         'Use EXACTLY this layout for the order summary (including emojis and formatting):',
@@ -206,16 +206,7 @@ export async function processAIAgent(ctx) {
         '• Method: [Method or Pending]',
         '',
         'Does everything look correct? 👇'
-      ].join('\\n') : [
-        '--- MANDATORY ORDER SUMMARY ---',
-        'If you are actively handling an order, you MUST summarize the details at the end of your reply (especially when asking for an email, address, payment method, or confirming).',
-        'Always include the Unit Price if known. Use this exact format:',
-        `*Product(s)*: [Qty]x [Item Name] @ ${ctx.currency || 'USD'} [Unit Price]`,
-        `*Total Amount*: ${ctx.currency || 'USD'} [Total Amount]`,
-        '*Delivery Address*: [Address or Pending]',
-        '*Email*: [Email Address or Pending]',
-        '*Payment Method*: [Method or Pending]'
-      ].join('\\n')),
+      ] : [] ),
       '',
       '--- MANDATORY INTENT TAG ---',
       'At the VERY END of your message, on a new line, you MUST append exactly ONE of these tags:',
