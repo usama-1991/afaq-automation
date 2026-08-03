@@ -215,9 +215,11 @@ export async function processAIAgent(ctx) {
       'Intent: address_provided (user gave address)',
       'Intent: order_confirmed (user confirmed final order)',
       'Intent: checkout_intent (asking how to pay)',
+      'Intent: booking_intent (user wants to book an appointment, waiting for time/date)',
+      'Intent: appointment_confirmed (user confirmed the final appointment slot)',
       'Intent: human_handoff (user asked for human)',
       'Intent: review_submitted (user is giving a product review or rating for a delivered order)',
-      'Example: [Your reply...] \n\nIntent: order_placed'
+      'Example: [Your reply...] \n\nIntent: booking_intent'
     ].join('\n');
 
     const messages = [{ role: 'system', content: systemPrompt }];
@@ -559,11 +561,27 @@ export async function processAIAgent(ctx) {
           apptDate = d2.toISOString().split('T')[0];
         }
 
+        if (!apptDate) {
+          const specificDateMatch = (msg + ' ' + ai_reply).match(/(\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*)\b/i);
+          if (specificDateMatch) {
+            const d2 = new Date(specificDateMatch[1] + ' ' + new Date().getFullYear());
+            if (!isNaN(d2.getTime())) apptDate = d2.toISOString().split('T')[0];
+          }
+        }
+
         if (timeMatch && !apptTime) {
           const hour = parseInt(timeMatch[1]);
           const isPM = timeMatch[3].toLowerCase() === 'pm';
           const hour24 = isPM && hour !== 12 ? hour + 12 : (!isPM && hour === 12 ? 0 : hour);
           apptTime = `${String(hour24).padStart(2,'0')}:00:00`;
+        }
+
+        if (!apptTime) {
+          const shiftMatch = (msg + ' ' + ai_reply).match(/(morning|afternoon|evening)/i);
+          if (shiftMatch) {
+            const shift = shiftMatch[1].toLowerCase();
+            apptTime = shift === 'morning' ? '10:00:00' : (shift === 'afternoon' ? '14:00:00' : '18:00:00');
+          }
         }
 
         recordData = {

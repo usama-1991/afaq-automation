@@ -570,6 +570,40 @@ export default function OrdersPage() {
                 </>
               )}
 
+              {tableName === 'appointments' && (
+                <>
+                  <div style={{ background: '#fff', borderRadius: 14, padding: 20, border: '1px solid #e5e7eb', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                      <Calendar size={16} color="#dc2626" />
+                      <h3 style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>Appointment Details</h3>
+                    </div>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6', paddingBottom: 10 }}>
+                        <span style={{ fontSize: 13, color: '#6b7280' }}>Service</span>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{selectedRecord.service_type || 'Consultation'}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6', paddingBottom: 10 }}>
+                        <span style={{ fontSize: 13, color: '#6b7280' }}>Date</span>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{selectedRecord.appointment_date || 'TBD'}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6', paddingBottom: 10 }}>
+                        <span style={{ fontSize: 13, color: '#6b7280' }}>Time</span>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{selectedRecord.appointment_time || 'TBD'}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6', paddingBottom: 10 }}>
+                        <span style={{ fontSize: 13, color: '#6b7280' }}>Patient Name</span>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{selectedRecord.patient_name || 'N/A'}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: 13, color: '#6b7280' }}>Doctor</span>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{selectedRecord.doctor_name || 'Any Available'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
               {/* Action Banner Sticky Bottom */}
             </div>
             
