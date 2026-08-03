@@ -564,7 +564,8 @@ export async function processAIAgent(ctx) {
         if (!apptDate) {
           const specificDateMatch = (msg + ' ' + ai_reply).match(/(\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*)\b/i);
           if (specificDateMatch) {
-            const d2 = new Date(specificDateMatch[1] + ' ' + new Date().getFullYear());
+            const cleanDateStr = specificDateMatch[1].replace(/(st|nd|rd|th)/i, '');
+            const d2 = new Date(cleanDateStr + ' ' + new Date().getFullYear());
             if (!isNaN(d2.getTime())) apptDate = d2.toISOString().split('T')[0];
           }
         }
@@ -584,6 +585,18 @@ export async function processAIAgent(ctx) {
           }
         }
 
+        let treatmentType = recordData.treatment_type || recordData.service_type || null;
+        if (!treatmentType) {
+          const fullText = (history.map(h => h.content).join(' ') + ' ' + msg + ' ' + ai_reply).toLowerCase();
+          if (fullText.includes('braces') || fullText.includes('aligners')) treatmentType = 'Braces Consultation';
+          else if (fullText.includes('scaling') || fullText.includes('cleaning') || fullText.includes('polishing')) treatmentType = 'Scaling & Polishing';
+          else if (fullText.includes('root canal')) treatmentType = 'Root Canal';
+          else if (fullText.includes('filling') || fullText.includes('cavity')) treatmentType = 'Dental Filling';
+          else if (fullText.includes('whitening') || fullText.includes('bleaching')) treatmentType = 'Teeth Whitening';
+          else if (fullText.includes('extraction') || fullText.includes('removal')) treatmentType = 'Tooth Extraction';
+          else treatmentType = 'General Consultation';
+        }
+
         recordData = {
           ...recordData,
           tenant_id: ctx.tenant_id,
@@ -591,7 +604,7 @@ export async function processAIAgent(ctx) {
           patient_name: ctx.customer_name,
           patient_phone: ctx.customer_phone,
           niche: niche,
-          treatment_type: recordData.treatment_type || recordData.service_type || 'Consultation',
+          treatment_type: treatmentType,
           appointment_date: apptDate,
           appointment_time: apptTime,
           status: ai_intent === 'appointment_confirmed' ? 'confirmed' : 'pending',
