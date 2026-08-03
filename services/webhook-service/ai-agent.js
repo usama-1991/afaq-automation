@@ -591,7 +591,7 @@ export async function processAIAgent(ctx) {
           patient_name: ctx.customer_name,
           patient_phone: ctx.customer_phone,
           niche: niche,
-          service_type: recordData.service_type || 'Consultation',
+          treatment_type: recordData.treatment_type || recordData.service_type || 'Consultation',
           appointment_date: apptDate,
           appointment_time: apptTime,
           status: ai_intent === 'appointment_confirmed' ? 'confirmed' : 'pending',

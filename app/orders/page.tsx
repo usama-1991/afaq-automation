@@ -394,7 +394,7 @@ export default function OrdersPage() {
                       col2 = 'No items listed';
                     }
                   } else if (tableName === 'appointments') {
-                    col2 = item.service_type || 'Consultation';
+                    col2 = item.treatment_type || item.service_type || 'Consultation';
                   } else {
                     col2 = `${item.intent || 'Buy'} ${item.property_type || 'Property'}`;
                   }
@@ -581,7 +581,7 @@ export default function OrdersPage() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6', paddingBottom: 10 }}>
                         <span style={{ fontSize: 13, color: '#6b7280' }}>Service</span>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{selectedRecord.service_type || 'Consultation'}</span>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{selectedRecord.treatment_type || selectedRecord.service_type || 'Consultation'}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6', paddingBottom: 10 }}>
                         <span style={{ fontSize: 13, color: '#6b7280' }}>Date</span>
