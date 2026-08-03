@@ -22,11 +22,11 @@ VALUES (
   '', '', '', ''
 ) ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+INSERT INTO auth.identities (id, user_id, identity_data, provider, provider_id, last_sign_in_at, created_at, updated_at)
 VALUES (
   gen_random_uuid(), '00000000-0000-0000-0000-222222222222', 
   format('{"sub":"%s","email":"%s"}', '00000000-0000-0000-0000-222222222222', 'admin@ittisalo.ai')::jsonb, 
-  'email', now(), now(), now()
+  'email', '00000000-0000-0000-0000-222222222222', now(), now(), now()
 ) ON CONFLICT DO NOTHING;
 
 -- Set public.users role for Super Admin
@@ -50,11 +50,11 @@ VALUES (
   '', '', '', ''
 ) ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+INSERT INTO auth.identities (id, user_id, identity_data, provider, provider_id, last_sign_in_at, created_at, updated_at)
 VALUES (
   gen_random_uuid(), '00000000-0000-0000-0000-333333333333', 
   format('{"sub":"%s","email":"%s"}', '00000000-0000-0000-0000-333333333333', 'demo@business.com')::jsonb, 
-  'email', now(), now(), now()
+  'email', '00000000-0000-0000-0000-333333333333', now(), now(), now()
 ) ON CONFLICT DO NOTHING;
 
 -- Set public.users role for Business Owner
