@@ -1498,7 +1498,7 @@ export default function AgentsPage() {
               </div>
             </div>
 
-            <div style={{ padding: '28px', maxWidth: 940 }}>
+            <div style={{ padding: '28px', width: '100%', boxSizing: 'border-box' }}>
 
               {/* Sub-Tab Selector Navigation Bar */}
               <div style={{ display: 'flex', gap: 12, marginBottom: 24, borderBottom: '1px solid #e5e7eb', paddingBottom: 12 }}>
@@ -1829,7 +1829,7 @@ export default function AgentsPage() {
                     </div>
 
                     {/* Live Products Directory Grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: 14 }}>
                       {products.map((prod) => {
                         const qty = prod.stock_quantity !== undefined && prod.stock_quantity !== null ? prod.stock_quantity : (prod.stock_status === 'instock' ? 10 : 0);
                         const isOutOfStock = qty <= 0 || prod.stock_status === 'outofstock';
