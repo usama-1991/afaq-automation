@@ -504,17 +504,55 @@ function SettingsInner() {
             niche_settings: nicheSettings,
           };
           // Only update Meta tokens if user typed something new (not the masked placeholder)
-          if (waPhoneId && !waPhoneId.includes('•')) updatePayload.wa_phone_number_id = waPhoneId;
+          if (waPhoneId && !waPhoneId.includes('•')) {
+            updatePayload.wa_phone_number_id = waPhoneId;
+            updatePayload.meta_connected = true;
+          }
           if (waAccountId && !waAccountId.includes('•')) updatePayload.wa_account_id = waAccountId;
           if (waToken && !waToken.includes('•')) updatePayload.wa_token_enc = waToken;
-          await supabase
+
+          const { error: tenantErr } = await supabase
             .from('tenants')
             .update(updatePayload)
             .eq('id', profile.tenant_id);
+
+          if (tenantErr) {
+            alert('Failed to save tenant settings: ' + tenantErr.message);
+            return;
+          }
+
+          // Sync with integrations table for Meta WhatsApp Webhook routing
+          const activePhoneId = (waPhoneId && !waPhoneId.includes('•')) ? waPhoneId : updatePayload.wa_phone_number_id;
+          if (activePhoneId) {
+            await supabase
+              .from('integrations')
+              .delete()
+              .eq('tenant_id', profile.tenant_id)
+              .eq('platform', 'whatsapp');
+
+            const { error: intErr } = await supabase
+              .from('integrations')
+              .insert({
+                tenant_id: profile.tenant_id,
+                platform: 'whatsapp',
+                external_account_id: activePhoneId,
+                credentials: {
+                  phone_number_id: activePhoneId,
+                  access_token: (waToken && !waToken.includes('•')) ? waToken : undefined,
+                  waba_id: (waAccountId && !waAccountId.includes('•')) ? waAccountId : undefined
+                }
+              });
+
+            if (intErr) {
+              console.warn('Warning syncing integrations table:', intErr.message);
+            }
+          }
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving settings to Supabase:', err);
+      alert('Save failed: ' + err.message);
+      return;
     }
     
 

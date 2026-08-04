@@ -61,7 +61,7 @@ async function switchWhatsAppNumber() {
   // 1. Update Tenants Table
   const { error: tenantErr } = await supabase
     .from('tenants')
-    .update({ wa_phone_number_id: realPhoneId })
+    .update({ wa_phone_number_id: realPhoneId, meta_connected: true })
     .eq('id', nicheObj.id);
 
   if (tenantErr) {
