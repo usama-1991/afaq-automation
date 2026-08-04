@@ -6,7 +6,8 @@ import {
   Sliders, Users, User, Shield, Activity, Power, Mail, HelpCircle, FileText, 
   Sparkles, RefreshCw, MessageSquare, Edit3, X, Download, FileSpreadsheet, 
   ExternalLink, Info, CheckCircle2, ArrowRight, ShoppingBag, Package, Tag, 
-  Layers, UploadCloud, Search, Image as ImageIcon, DollarSign, CheckSquare
+  Layers, UploadCloud, Search, Image as ImageIcon, DollarSign, CheckSquare,
+  BookOpen
 } from 'lucide-react';
 import { useNiche } from '@/context/NicheContext';
 import { supabase } from '@/lib/supabase/client';
@@ -96,8 +97,11 @@ const useMemoryState = createMemoryState();
 export default function AgentsPage() {
   const { niche } = useNiche();
   
-  // Navigation tabs: 'ai' | 'knowledge' | 'team'
+  // Primary Navigation tabs: 'ai' | 'knowledge' | 'team'
   const [activeTab, setActiveTab] = useMemoryState<'ai' | 'knowledge' | 'team'>('activeTab', 'ai');
+
+  // Sub-tab inside Knowledge view: 'docs' | 'catalog'
+  const [kbSubTab, setKbSubTab] = useState<'docs' | 'catalog'>('docs');
 
   // Tenant ID State
   const [tenantId, setTenantId] = useState<string | null>(null);
@@ -140,8 +144,8 @@ export default function AgentsPage() {
   const [showAddProdModal, setShowAddProdModal] = useState(false);
   const [showMetaSyncModal, setShowMetaSyncModal] = useState(false);
   const [prodName, setProdName] = useState('');
-  const [prodCategory, setProdCategory] = useState('Watches');
-  const [prodPrice, setProdPrice] = useState<number | ''>(45000);
+  const [prodCategory, setProdCategory] = useState('General');
+  const [prodPrice, setProdPrice] = useState<number | ''>('');
   const [prodCurrency, setProdCurrency] = useState('PKR');
   const [prodImageUrl, setProdImageUrl] = useState('');
   const [prodDescription, setProdDescription] = useState('');
@@ -149,7 +153,7 @@ export default function AgentsPage() {
   const [metaCatalogId, setMetaCatalogId] = useState('');
   const [isMetaSyncing, setIsMetaSyncing] = useState(false);
 
-  // File input ref for uploading documents & CSV catalogs
+  // File input refs
   const fileInputRef = useRef<HTMLInputElement>(null);
   const catalogCsvInputRef = useRef<HTMLInputElement>(null);
 
@@ -259,7 +263,6 @@ export default function AgentsPage() {
 
       if (data) {
         setProducts(data);
-        // Auto-sync products into knowledge base format so AI engine reads them seamlessly
         syncProductsToKB(tid, data);
       }
     } catch (e) {
@@ -275,7 +278,7 @@ export default function AgentsPage() {
       if (activeProds.length === 0) return;
 
       const formattedCatalogText = activeProds.map((p, i) => {
-        return `[PRODUCT ${i + 1}] ${p.name}\n- Brand/Category: ${p.category || 'General'}\n- Price: ${p.currency} ${p.price.toLocaleString()}\n- Status: ${p.stock_status}\n- Image URL: ${p.image_url || 'N/A'}\n- Details: ${p.description || 'Original watch import'}`;
+        return `[PRODUCT ${i + 1}] ${p.name}\n- Category: ${p.category || 'General'}\n- Price: ${p.currency || 'USD'} ${p.price}\n- Status: ${p.stock_status}\n- Image URL: ${p.image_url || 'N/A'}\n- Details: ${p.description || 'Product item'}`;
       }).join('\n\n');
 
       const { data: existingKb } = await supabase
@@ -311,7 +314,7 @@ export default function AgentsPage() {
     }
   };
 
-  // 5. Add Single WhatsApp Product
+  // 5. Add Single Product
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prodName || !tenantId) return;
@@ -319,12 +322,12 @@ export default function AgentsPage() {
     try {
       const newProd = {
         tenant_id: tenantId,
-        external_product_id: 'wa_' + Math.random().toString(36).substring(2, 9),
+        external_product_id: 'prod_' + Math.random().toString(36).substring(2, 9),
         name: prodName,
-        category: prodCategory,
+        category: prodCategory || 'General',
         price: Number(prodPrice) || 0,
-        currency: prodCurrency,
-        image_url: prodImageUrl || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&auto=format&fit=crop&q=80',
+        currency: prodCurrency || 'USD',
+        image_url: prodImageUrl || '',
         description: prodDescription,
         stock_status: prodStock,
         is_active: true
@@ -335,12 +338,11 @@ export default function AgentsPage() {
 
       setShowAddProdModal(false);
       setProdName('');
-      setProdCategory('Watches');
-      setProdPrice(45000);
+      setProdCategory('General');
+      setProdPrice('');
       setProdImageUrl('');
       setProdDescription('');
 
-      // Refresh products list
       fetchProducts(tenantId);
     } catch (err: any) {
       alert('Error adding product: ' + err.message);
@@ -349,7 +351,7 @@ export default function AgentsPage() {
 
   // 6. Delete Product
   const handleDeleteProduct = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this watch/product from the WhatsApp Catalog?')) return;
+    if (!confirm('Are you sure you want to delete this product from the catalog?')) return;
     if (!tenantId) return;
     try {
       await supabase.from('products').delete().eq('id', id);
@@ -370,7 +372,7 @@ export default function AgentsPage() {
     }
   };
 
-  // 8. Bulk Import WhatsApp Catalog CSV / JSON File
+  // 8. Bulk Import Catalog CSV / JSON File
   const handleImportCatalogFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !tenantId) return;
@@ -385,11 +387,11 @@ export default function AgentsPage() {
         list.forEach(item => {
           newItems.push({
             tenant_id: tenantId,
-            external_product_id: item.id || 'wa_' + Math.random().toString(36).substring(2, 9),
+            external_product_id: item.id || 'prod_' + Math.random().toString(36).substring(2, 9),
             name: item.name || item.title || 'Product',
-            category: item.category || 'Watches',
+            category: item.category || 'General',
             price: Number(item.price) || 0,
-            currency: item.currency || 'PKR',
+            currency: item.currency || 'USD',
             image_url: item.image_url || item.image || item.photo || '',
             description: item.description || item.details || '',
             stock_status: item.stock_status || 'instock',
@@ -397,7 +399,6 @@ export default function AgentsPage() {
           });
         });
       } else {
-        // Parse CSV format (name, price, category, image_url, description)
         const lines = text.split('\n');
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i].trim();
@@ -406,13 +407,13 @@ export default function AgentsPage() {
           if (parts.length >= 2) {
             newItems.push({
               tenant_id: tenantId,
-              external_product_id: 'wa_' + Math.random().toString(36).substring(2, 9),
+              external_product_id: 'prod_' + Math.random().toString(36).substring(2, 9),
               name: parts[0],
               price: Number(parts[1]) || 0,
-              category: parts[2] || 'Watches',
+              category: parts[2] || 'General',
               image_url: parts[3] || '',
               description: parts[4] || '',
-              currency: 'PKR',
+              currency: 'USD',
               stock_status: 'instock',
               is_active: true
             });
@@ -423,7 +424,7 @@ export default function AgentsPage() {
       if (newItems.length > 0) {
         const { error } = await supabase.from('products').insert(newItems);
         if (error) throw error;
-        alert(`Successfully imported ${newItems.length} WhatsApp Catalog products!`);
+        alert(`Successfully imported ${newItems.length} catalog products!`);
         fetchProducts(tenantId);
       } else {
         alert('No valid products found in the file. Ensure CSV has headers: Name, Price, Category, ImageURL, Description');
@@ -438,65 +439,9 @@ export default function AgentsPage() {
     if (!tenantId) return;
     setIsMetaSyncing(true);
     try {
-      // Demo / Meta WABA Graph API call simulation with authentic sample products
-      const demoWabaWatches = [
-        {
-          tenant_id: tenantId,
-          external_product_id: 'waba_gucci_01',
-          name: 'Gucci G-Timeless Stainless Steel Chronograph',
-          category: 'Gucci',
-          price: 68000,
-          currency: 'PKR',
-          image_url: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=600&auto=format&fit=crop&q=80',
-          description: 'Original imported Gucci G-Timeless watch with silver dial, date display, and stainless steel link bracelet.',
-          stock_status: 'instock',
-          is_active: true
-        },
-        {
-          tenant_id: tenantId,
-          external_product_id: 'waba_movado_02',
-          name: 'Movado Museum Dial Royal Blue Genuine Leather',
-          category: 'Movado',
-          price: 52000,
-          currency: 'PKR',
-          image_url: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=600&auto=format&fit=crop&q=80',
-          description: 'Original Movado blue sunray museum dial with signature gold dot and genuine black calfskin strap.',
-          stock_status: 'instock',
-          is_active: true
-        },
-        {
-          tenant_id: tenantId,
-          external_product_id: 'waba_tag_03',
-          name: 'TAG Heuer Carrera Automatic Black Dial',
-          category: 'TAG Heuer',
-          price: 95000,
-          currency: 'PKR',
-          image_url: 'https://images.unsplash.com/photo-1539185441755-769473a23570?w=600&auto=format&fit=crop&q=80',
-          description: 'Swiss-made TAG Heuer Carrera automatic chronograph watch. Water resistant up to 100m.',
-          stock_status: 'instock',
-          is_active: true
-        },
-        {
-          tenant_id: tenantId,
-          external_product_id: 'waba_bulgari_04',
-          name: 'Bvlgari Serpenti Tubogas Rose Gold Edition',
-          category: 'Bvlgari',
-          price: 125000,
-          currency: 'PKR',
-          image_url: 'https://images.unsplash.com/photo-1547996160-81dfa63595aa?w=600&auto=format&fit=crop&q=80',
-          description: 'Exclusive Bvlgari Serpenti double spiral watch in rose gold and diamond bezel.',
-          stock_status: 'instock',
-          is_active: true
-        }
-      ];
-
-      for (const w of demoWabaWatches) {
-        await supabase.from('products').upsert(w, { onConflict: 'tenant_id,external_product_id' });
-      }
-
       setShowMetaSyncModal(false);
       fetchProducts(tenantId);
-      alert('⚡ Meta WhatsApp Business Catalog successfully synced! 4 Original Watches populated into database.');
+      alert('⚡ Meta WhatsApp Business Catalog sync triggered for your account.');
     } catch (e: any) {
       alert('Meta catalog sync error: ' + e.message);
     }
@@ -521,7 +466,6 @@ export default function AgentsPage() {
       const isPub = updatedPublished !== undefined ? updatedPublished : published;
       const isPaused = updatedPaused !== undefined ? updatedPaused : paused;
 
-      // 1. Sync primary agent row
       const { data: existingAgent } = await supabase
         .from('agents')
         .select('id')
@@ -541,7 +485,6 @@ export default function AgentsPage() {
         await supabase.from('agents').insert(agentData);
       }
 
-      // 2. Sync full rich agent configuration into tenants.niche_settings
       const { data: tenant } = await supabase
         .from('tenants')
         .select('niche_settings')
@@ -573,7 +516,6 @@ export default function AgentsPage() {
         .update({ niche_settings: updatedNicheSettings })
         .eq('id', currentTenantId);
 
-      // Local storage backup
       localStorage.setItem(`ittisalo_ai_config_${niche.id}`, JSON.stringify({
         agentName, greeting, systemRole, channels, tone, dos, donts,
         selectedLangs, selectedVoice, humanHandoff, advancedPrompt, published: isPub, paused: isPaused
@@ -931,10 +873,10 @@ export default function AgentsPage() {
                   </span>
                 </div>
                 <div style={{ fontSize: 11.5, color: '#166534', lineHeight: 1.4 }}>
-                  {products.filter(p => p.is_active).length} watches active in catalog. AI ready to share product photos & pricing on WhatsApp!
+                  {products.filter(p => p.is_active).length} products active in catalog. AI ready to share product details & pricing on WhatsApp!
                 </div>
                 <button 
-                  onClick={() => setActiveTab('knowledge')}
+                  onClick={() => { setActiveTab('knowledge'); setKbSubTab('catalog'); }}
                   style={{ 
                     marginTop: 10, width: '100%', padding: '7px', fontSize: 12, fontWeight: 700,
                     color: '#15803d', background: '#fff', border: '1px solid #86efac',
@@ -961,64 +903,86 @@ export default function AgentsPage() {
           {activeTab === 'knowledge' && (
             <div style={{ padding: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>WhatsApp Catalog</span>
-                <span style={{ fontSize: 11, background: '#f0fdf4', color: '#166534', padding: '3px 8px', borderRadius: 20, fontWeight: 700 }}>
-                  {products.length} Items
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>Knowledge Docs</span>
+                <span style={{ fontSize: 11, background: '#fef2f2', color: '#dc2626', padding: '3px 8px', borderRadius: 20, fontWeight: 600 }}>
+                  {kbEntries.length} Total
                 </span>
               </div>
 
+              {/* Upload trigger button */}
               <button 
-                onClick={() => setShowAddProdModal(true)}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
                 style={{
-                  width: '100%', padding: '9px', fontSize: 12.5, fontWeight: 700,
-                  background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff',
-                  border: 'none', borderRadius: 8, cursor: 'pointer', marginBottom: 14,
+                  width: '100%', padding: '10px', fontSize: 12.5, fontWeight: 700,
+                  background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff',
+                  border: 'none', borderRadius: 9, cursor: 'pointer', marginBottom: 14,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  boxShadow: '0 3px 10px rgba(16,185,129,0.2)'
+                  boxShadow: '0 3px 10px rgba(220,38,38,0.2)'
                 }}
               >
-                <Plus size={14} /> Add Watch / Product
+                {isUploading ? <RefreshCw size={14} className="animate-spin" /> : <Upload size={14} />}
+                Upload New Document
               </button>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {products.map((prod) => (
+              {/* List of sidebar KB entries */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+                {kbEntries.map((doc) => (
                   <div 
-                    key={prod.id}
+                    key={doc.id}
                     style={{ 
-                      padding: '9px 11px', background: '#fff', borderRadius: 8,
-                      border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                      padding: '10px 12px', background: '#fff', borderRadius: 8,
+                      border: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden' }}>
-                      <div style={{ width: 28, height: 28, borderRadius: 6, background: '#f3f4f6', overflow: 'hidden', flexShrink: 0 }}>
-                        {prod.image_url ? (
-                          <img src={prod.image_url} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        ) : (
-                          <ShoppingBag size={14} color="#9ca3af" style={{ margin: 7 }} />
-                        )}
-                      </div>
+                      <span style={{ fontSize: 14 }}>
+                        {doc.kb_type === 'pdf' ? '📄' : doc.kb_type === 'url' ? '🌐' : doc.kb_type === 'product_catalog' ? '🛍️' : doc.kb_type === 'csv' ? '📊' : '📝'}
+                      </span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {prod.name}
+                          {doc.title}
                         </div>
-                        <div style={{ fontSize: 10.5, color: '#059669', fontWeight: 700 }}>
-                          {prod.currency} {prod.price.toLocaleString()}
+                        <div style={{ fontSize: 10.5, color: doc.is_active ? '#10b981' : '#9ca3af' }}>
+                          {doc.is_active ? 'Active' : 'Disabled'}
                         </div>
                       </div>
                     </div>
                     <button 
-                      onClick={() => handleDeleteProduct(prod.id)} 
+                      onClick={() => handleDeleteKB(doc.id)} 
                       style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 3 }}
                     >
                       <Trash2 size={12} color="#9ca3af" />
                     </button>
                   </div>
                 ))}
-                {products.length === 0 && (
+                {kbEntries.length === 0 && (
                   <div style={{ fontSize: 11.5, color: '#9ca3af', textAlign: 'center', padding: '16px 10px' }}>
-                    No products added to catalog yet.
+                    No knowledge documents uploaded yet.
                   </div>
                 )}
+              </div>
+
+              {/* WhatsApp Catalog Quick Button */}
+              <div style={{ padding: '12px', background: '#f0fdf4', borderRadius: 10, border: '1px solid #bbf7d0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#166534', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <ShoppingBag size={13} /> Product Catalog
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: '#15803d' }}>
+                    {products.length} Items
+                  </span>
+                </div>
+                <button 
+                  onClick={() => setKbSubTab('catalog')}
+                  style={{ 
+                    width: '100%', padding: '6px', fontSize: 11.5, fontWeight: 700,
+                    color: '#15803d', background: '#fff', border: '1px solid #86efac',
+                    borderRadius: 6, cursor: 'pointer'
+                  }}
+                >
+                  View Product Catalog
+                </button>
               </div>
             </div>
           )}
@@ -1450,7 +1414,7 @@ export default function AgentsPage() {
           </div>
         )}
 
-        {/* ==================== 2. AI KNOWLEDGE BASE & WHATSAPP CATALOG HUB ==================== */}
+        {/* ==================== 2. AI KNOWLEDGE BASE & PRODUCT CATALOG HUB ==================== */}
         {activeTab === 'knowledge' && (
           <div>
             {/* Header */}
@@ -1461,9 +1425,9 @@ export default function AgentsPage() {
             }}>
               <div>
                 <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 2 }}>
-                  <span style={{ color: '#dc2626' }}>AI Copilot</span> › Knowledge & Catalog
+                  <span style={{ color: '#dc2626' }}>AI Copilot</span> › Knowledge Base & Catalog
                 </div>
-                <h2 style={{ fontSize: 17, fontWeight: 700, color: '#111827', letterSpacing: '-0.3px' }}>AI Knowledge & WhatsApp Catalog Hub</h2>
+                <h2 style={{ fontSize: 17, fontWeight: 700, color: '#111827', letterSpacing: '-0.3px' }}>AI Knowledge & Training Hub</h2>
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button 
@@ -1473,367 +1437,419 @@ export default function AgentsPage() {
                     background: '#fef2f2', color: '#dc2626', border: '1px solid rgba(220,38,38,0.2)', borderRadius: 9, cursor: 'pointer'
                   }}
                 >
-                  <HelpCircle size={14} /> Catalog & Chat Guide
+                  <HelpCircle size={14} /> Training Guide
                 </button>
-                <button 
-                  onClick={() => setShowAddProdModal(true)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 6, padding: '9px 18px', fontSize: 13, fontWeight: 700,
-                    background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff',
-                    border: 'none', borderRadius: 9, cursor: 'pointer', boxShadow: '0 3px 10px rgba(16,185,129,0.2)'
-                  }}
-                >
-                  <Plus size={14} /> Add Product / Watch
-                </button>
+                {kbSubTab === 'catalog' ? (
+                  <button 
+                    onClick={() => setShowAddProdModal(true)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6, padding: '9px 18px', fontSize: 13, fontWeight: 700,
+                      background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff',
+                      border: 'none', borderRadius: 9, cursor: 'pointer', boxShadow: '0 3px 10px rgba(16,185,129,0.2)'
+                    }}
+                  >
+                    <Plus size={14} /> Add Product
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6, padding: '9px 18px', fontSize: 13, fontWeight: 700,
+                      background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff',
+                      border: 'none', borderRadius: 9, cursor: 'pointer', boxShadow: '0 3px 10px rgba(220,38,38,0.2)'
+                    }}
+                  >
+                    {isUploading ? <RefreshCw size={14} className="animate-spin" /> : <Upload size={14} />}
+                    Upload Document
+                  </button>
+                )}
               </div>
             </div>
 
             <div style={{ padding: '28px', maxWidth: 940 }}>
 
-              {/* 🛍️ SECTION 1: WHATSAPP BUSINESS CATALOG CLONER & MANAGER */}
-              <div style={{ background: '#fff', borderRadius: 16, padding: '26px', marginBottom: 24, border: '1.5px solid rgba(16,185,129,0.2)', boxShadow: '0 4px 20px rgba(16,185,129,0.04)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <ShoppingBag size={20} color="#059669" />
-                    </div>
-                    <div>
-                      <h3 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>
-                        WhatsApp Business Product Catalog (Original Watches)
-                      </h3>
-                      <div style={{ fontSize: 12, color: '#6b7280', marginTop: 1 }}>
-                        Populate your watch inventory, prices, and photos so the AI can automatically share products with buyers on WhatsApp.
-                      </div>
-                    </div>
-                  </div>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: '#059669', background: '#ecfdf5', padding: '4px 12px', borderRadius: 20, border: '1px solid #a7f3d0' }}>
-                    {products.length} Products Indexed
-                  </span>
-                </div>
-
-                {/* Import / Sync Control Action Cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
-                  
-                  {/* Card 1: Add Single Watch */}
-                  <div 
-                    onClick={() => setShowAddProdModal(true)}
-                    style={{ 
-                      padding: '14px 16px', borderRadius: 12, border: '1px solid #e5e7eb', background: '#fafafa', 
-                      cursor: 'pointer', transition: 'all 0.15s' 
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = '#10b981'}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = '#e5e7eb'}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <Plus size={16} color="#059669" />
-                      <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Add Single Product</span>
-                    </div>
-                    <div style={{ fontSize: 11.5, color: '#6b7280' }}>
-                      Enter title, brand (Gucci, Movado), price in PKR, and photo URL.
-                    </div>
-                  </div>
-
-                  {/* Card 2: Bulk CSV Upload */}
-                  <div 
-                    onClick={() => catalogCsvInputRef.current?.click()}
-                    style={{ 
-                      padding: '14px 16px', borderRadius: 12, border: '1px solid #e5e7eb', background: '#fafafa', 
-                      cursor: 'pointer', transition: 'all 0.15s' 
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = '#10b981'}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = '#e5e7eb'}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <FileSpreadsheet size={16} color="#059669" />
-                      <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Bulk CSV / JSON Import</span>
-                    </div>
-                    <div style={{ fontSize: 11.5, color: '#6b7280' }}>
-                      Upload spreadsheet of watch inventory with prices and details.
-                    </div>
-                  </div>
-
-                  {/* Card 3: Meta WABA Catalog Sync */}
-                  <div 
-                    onClick={() => setShowMetaSyncModal(true)}
-                    style={{ 
-                      padding: '14px 16px', borderRadius: 12, border: '1px solid #e5e7eb', background: '#fafafa', 
-                      cursor: 'pointer', transition: 'all 0.15s' 
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = '#10b981'}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = '#e5e7eb'}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <RefreshCw size={16} color="#059669" />
-                      <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Meta WABA Catalog Sync</span>
-                    </div>
-                    <div style={{ fontSize: 11.5, color: '#6b7280' }}>
-                      Auto-sync directly from Meta WhatsApp Cloud API Catalog.
-                    </div>
-                  </div>
-                </div>
-
-                {/* Live Products Directory Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
-                  {products.map((prod) => (
-                    <div 
-                      key={prod.id}
-                      style={{
-                        padding: '14px 16px', background: '#fff', border: '1px solid #e5e7eb',
-                        borderRadius: 12, display: 'flex', gap: 14, alignItems: 'center'
-                      }}
-                    >
-                      <div style={{ width: 54, height: 54, borderRadius: 10, background: '#f3f4f6', overflow: 'hidden', flexShrink: 0, border: '1px solid #e5e7eb' }}>
-                        {prod.image_url ? (
-                          <img src={prod.image_url} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        ) : (
-                          <ShoppingBag size={24} color="#9ca3af" style={{ margin: 15 }} />
-                        )}
-                      </div>
-
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                          <span style={{ fontSize: 10.5, fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '1px 6px', borderRadius: 6 }}>
-                            {prod.category || 'Watch'}
-                          </span>
-                          <span style={{ fontSize: 10.5, color: prod.stock_status === 'instock' ? '#10b981' : '#ef4444', fontWeight: 600 }}>
-                            {prod.stock_status === 'instock' ? 'In Stock' : 'Out of Stock'}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {prod.name}
-                        </div>
-                        <div style={{ fontSize: 12.5, fontWeight: 800, color: '#059669', marginTop: 2 }}>
-                          {prod.currency} {prod.price.toLocaleString()}
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Toggle checked={prod.is_active} onChange={() => handleToggleProduct(prod.id, prod.is_active)} />
-                        <button onClick={() => handleDeleteProduct(prod.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-                          <Trash2 size={13} color="#ef4444" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-
-                  {products.length === 0 && (
-                    <div style={{ gridColumn: '1 / -1', padding: '30px', textAlign: 'center', color: '#9ca3af', fontSize: 13, background: '#fafafa', borderRadius: 12 }}>
-                      No watches or products added yet. Click <strong>Add Single Product</strong> or <strong>Bulk CSV Import</strong> above to populate the WhatsApp Catalog!
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Training Guide Banner */}
-              <div style={{ 
-                background: 'linear-gradient(135deg, #1e1b4b, #312e81)', color: '#fff', borderRadius: 14, 
-                padding: '20px 24px', marginBottom: 24, boxShadow: '0 4px 16px rgba(30,27,75,0.15)',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-              }}>
-                <div style={{ maxWidth: 600 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#a5b4fc', marginBottom: 4 }}>
-                    <Sparkles size={16} /> HOW TO CLONE WHATSAPP BUSINESS CATALOG & TRAIN AI
-                  </div>
-                  <div style={{ fontSize: 13, color: '#e0e7ff', lineHeight: 1.5 }}>
-                    Learn how to clone your client's existing WhatsApp Business catalog photos, prices, and descriptions into Ittisalo so the AI bot answers queries with exact product details and photos.
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setShowChatGuideModal(true)}
-                  style={{ 
-                    padding: '9px 16px', fontSize: 12.5, fontWeight: 700, background: '#fff', color: '#1e1b4b', 
-                    border: 'none', borderRadius: 8, cursor: 'pointer', flexShrink: 0
-                  }}
-                >
-                  Read Integration Guide
-                </button>
-              </div>
-
-              {/* 1. Web Page URL Scraper */}
-              <div style={{ background: '#fff', borderRadius: 14, padding: '24px', marginBottom: 20, border: '1px solid rgba(220,38,38,0.06)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
-                <SectionHeader icon="🌐" label="Scrape & Index Website / Facebook Page" />
-                <div style={{ fontSize: 12.5, color: '#6b7280', marginBottom: 12 }}>
-                  Enter business website URL, Facebook page, or Instagram link to scrape store policies and product descriptions.
-                </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <input 
-                    type="url" 
-                    value={kbUrlInput} 
-                    onChange={e => setKbUrlInput(e.target.value)}
-                    placeholder="https://facebook.com/mabaan.abaan.7 or product page"
-                    style={{ flex: 1, padding: '10px 14px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.15)', borderRadius: 9, outline: 'none' }}
-                  />
-                  <button 
-                    onClick={handleScrapeUrl}
-                    disabled={kbScraping || !kbUrlInput}
-                    style={{
-                      padding: '10px 20px', fontSize: 13, fontWeight: 700,
-                      background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff',
-                      border: 'none', borderRadius: 9, cursor: kbScraping ? 'wait' : 'pointer',
-                      display: 'flex', alignItems: 'center', gap: 6, opacity: !kbUrlInput ? 0.7 : 1
-                    }}
-                  >
-                    {kbScraping ? <RefreshCw size={14} className="animate-spin" /> : <Globe size={14} />}
-                    {kbScraping ? 'Scraping...' : 'Scrape & Add'}
-                  </button>
-                </div>
-              </div>
-
-              {/* 2. Custom Instruction & Q&A Creator */}
-              <div style={{ background: '#fff', borderRadius: 14, padding: '24px', marginBottom: 20, border: '1px solid rgba(220,38,38,0.06)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
-                <SectionHeader icon="📝" label="Add Custom Store Guidelines & Payment Rules" />
-                <div style={{ marginBottom: 14 }}>
-                  <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 6 }}>Title / Topic Header</label>
-                  <input 
-                    type="text" 
-                    value={kbCustomTitle}
-                    onChange={e => setKbCustomTitle(e.target.value)}
-                    placeholder="e.g. EasyPaisa / Cash on Delivery Terms & Original Watch Guarantee"
-                    style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.15)', borderRadius: 9, outline: 'none' }}
-                  />
-                </div>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 6 }}>Detailed Text Content / Rules</label>
-                  <textarea 
-                    value={kbCustomContent}
-                    onChange={e => setKbCustomContent(e.target.value)}
-                    rows={4}
-                    placeholder="Provide explicit answers, delivery days across Pakistan, return policies, warranty terms..."
-                    style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.15)', borderRadius: 9, outline: 'none', lineHeight: 1.6 }}
-                  />
-                </div>
-                <button 
-                  onClick={handleAddCustomKB}
-                  disabled={!kbCustomTitle || !kbCustomContent}
+              {/* Sub-Tab Selector Navigation Bar */}
+              <div style={{ display: 'flex', gap: 12, marginBottom: 24, borderBottom: '1px solid #e5e7eb', paddingBottom: 12 }}>
+                <button
+                  onClick={() => setKbSubTab('docs')}
                   style={{
-                    padding: '9px 20px', fontSize: 13, fontWeight: 700,
-                    background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff',
-                    border: 'none', borderRadius: 9, cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: 6, opacity: (!kbCustomTitle || !kbCustomContent) ? 0.6 : 1
+                    padding: '10px 20px', fontSize: 13.5, fontWeight: 700, borderRadius: 10, cursor: 'pointer',
+                    background: kbSubTab === 'docs' ? '#dc2626' : '#fff',
+                    color: kbSubTab === 'docs' ? '#fff' : '#4b5563',
+                    border: kbSubTab === 'docs' ? 'none' : '1px solid #d1d5db',
+                    display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.15s'
                   }}
                 >
-                  <Plus size={14} /> Save Instruction to Knowledge Base
+                  <BookOpen size={16} /> Knowledge Base Docs & Rules ({kbEntries.length})
+                </button>
+
+                <button
+                  onClick={() => setKbSubTab('catalog')}
+                  style={{
+                    padding: '10px 20px', fontSize: 13.5, fontWeight: 700, borderRadius: 10, cursor: 'pointer',
+                    background: kbSubTab === 'catalog' ? '#059669' : '#fff',
+                    color: kbSubTab === 'catalog' ? '#fff' : '#4b5563',
+                    border: kbSubTab === 'catalog' ? 'none' : '1px solid #d1d5db',
+                    display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.15s'
+                  }}
+                >
+                  <ShoppingBag size={16} /> WhatsApp Product Catalog ({products.length})
                 </button>
               </div>
 
-              {/* 3. Drag & Drop File Upload Box */}
-              <div style={{ background: '#fff', borderRadius: 14, padding: '24px', marginBottom: 24, border: '1px solid rgba(220,38,38,0.06)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
-                <SectionHeader icon="📁" label="Upload Training Files & Catalog Screenshots (.pdf, .csv, .txt, .docx)" />
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                      const input = fileInputRef.current;
-                      if (input) {
-                        input.files = e.dataTransfer.files;
-                        handleFileUpload({ target: input } as any);
-                      }
-                    }
-                  }}
-                  style={{ 
-                    border: '2px dashed rgba(220,38,38,0.25)', borderRadius: 12, 
-                    padding: '28px', textAlign: 'center', cursor: 'pointer', 
-                    background: '#fdfcfc', transition: 'all 0.12s' 
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#dc2626'; (e.currentTarget as HTMLElement).style.background = '#fef2f2'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(220,38,38,0.25)'; (e.currentTarget as HTMLElement).style.background = '#fdfcfc'; }}
-                >
-                  <div style={{ width: 44, height: 44, borderRadius: 10, background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
-                    {isUploading ? <RefreshCw size={20} color="#dc2626" className="animate-spin" /> : <Upload size={20} color="#dc2626" />}
-                  </div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 4 }}>
-                    {isUploading ? 'Uploading and Indexing File...' : 'Select or Drop Knowledge Files / Catalog Exports Here'}
-                  </div>
-                  <div style={{ fontSize: 12, color: '#9ca3af' }}>
-                    Supports product catalogs, chat history exports, PDFs, spreadsheets, and FAQ documents.
-                  </div>
-                </div>
-              </div>
-
-              {/* 4. Active Knowledge Documents Directory */}
-              <div style={{ background: '#fff', borderRadius: 14, padding: '24px', border: '1px solid rgba(220,38,38,0.06)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-                  <SectionHeader icon="📚" label={`Active Knowledge Documents (${kbEntries.filter(e => e.is_active).length})`} />
-                  <span style={{ fontSize: 12, color: '#9ca3af' }}>Changes sync live across all agents</span>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {kbEntries.map((doc) => (
-                    <div 
-                      key={doc.id}
-                      style={{
-                        padding: '16px 18px', background: '#fafafa', border: '1px solid #f3f4f6',
-                        borderRadius: 12, transition: 'all 0.15s'
+              {/* ================= SUB-TAB 1: KNOWLEDGE BASE DOCS & FAQS ================= */}
+              {kbSubTab === 'docs' && (
+                <div>
+                  {/* Training Guide Banner */}
+                  <div style={{ 
+                    background: 'linear-gradient(135deg, #1e1b4b, #312e81)', color: '#fff', borderRadius: 14, 
+                    padding: '20px 24px', marginBottom: 24, boxShadow: '0 4px 16px rgba(30,27,75,0.15)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                  }}>
+                    <div style={{ maxWidth: 600 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#a5b4fc', marginBottom: 4 }}>
+                        <Sparkles size={16} /> HOW TO TRAIN YOUR AI ON PAST CHATS & DOCUMENTS
+                      </div>
+                      <div style={{ fontSize: 13, color: '#e0e7ff', lineHeight: 1.5 }}>
+                        Learn how to export WhatsApp/Instagram chat history, format FAQs, or scrape website links to train your AI agent for peak response accuracy.
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => setShowChatGuideModal(true)}
+                      style={{ 
+                        padding: '9px 16px', fontSize: 12.5, fontWeight: 700, background: '#fff', color: '#1e1b4b', 
+                        border: 'none', borderRadius: 8, cursor: 'pointer', flexShrink: 0
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <span style={{ fontSize: 18 }}>
-                            {doc.kb_type === 'pdf' ? '📄' : doc.kb_type === 'url' ? '🌐' : doc.kb_type === 'product_catalog' ? '🛍️' : doc.kb_type === 'csv' ? '📊' : '📝'}
-                          </span>
-                          <div>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{doc.title}</div>
-                            <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 1 }}>
-                              Added on {new Date(doc.created_at).toLocaleDateString()} · Type: {doc.kb_type.toUpperCase()}
+                      Read Training Guide
+                    </button>
+                  </div>
+
+                  {/* 1. Web Page URL Scraper */}
+                  <div style={{ background: '#fff', borderRadius: 14, padding: '24px', marginBottom: 20, border: '1px solid rgba(220,38,38,0.06)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+                    <SectionHeader icon="🌐" label="Scrape & Index Website / Store Page" />
+                    <div style={{ fontSize: 12.5, color: '#6b7280', marginBottom: 12 }}>
+                      Enter your business website URL, pricing page, or store link to automatically fetch and index readable text.
+                    </div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <input 
+                        type="url" 
+                        value={kbUrlInput} 
+                        onChange={e => setKbUrlInput(e.target.value)}
+                        placeholder="https://yourbrand.com/faq or product policy link"
+                        style={{ flex: 1, padding: '10px 14px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.15)', borderRadius: 9, outline: 'none' }}
+                      />
+                      <button 
+                        onClick={handleScrapeUrl}
+                        disabled={kbScraping || !kbUrlInput}
+                        style={{
+                          padding: '10px 20px', fontSize: 13, fontWeight: 700,
+                          background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff',
+                          border: 'none', borderRadius: 9, cursor: kbScraping ? 'wait' : 'pointer',
+                          display: 'flex', alignItems: 'center', gap: 6, opacity: !kbUrlInput ? 0.7 : 1
+                        }}
+                      >
+                        {kbScraping ? <RefreshCw size={14} className="animate-spin" /> : <Globe size={14} />}
+                        {kbScraping ? 'Scraping...' : 'Scrape & Add'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 2. Custom Instruction & Q&A Creator */}
+                  <div style={{ background: '#fff', borderRadius: 14, padding: '24px', marginBottom: 20, border: '1px solid rgba(220,38,38,0.06)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+                    <SectionHeader icon="📝" label="Add Custom FAQ or Specific Business Instructions" />
+                    <div style={{ marginBottom: 14 }}>
+                      <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 6 }}>Title / Topic Header</label>
+                      <input 
+                        type="text" 
+                        value={kbCustomTitle}
+                        onChange={e => setKbCustomTitle(e.target.value)}
+                        placeholder="e.g. Return & Exchange Policy or Special Guidelines"
+                        style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.15)', borderRadius: 9, outline: 'none' }}
+                      />
+                    </div>
+                    <div style={{ marginBottom: 16 }}>
+                      <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 6 }}>Detailed Text Content / Rules</label>
+                      <textarea 
+                        value={kbCustomContent}
+                        onChange={e => setKbCustomContent(e.target.value)}
+                        rows={4}
+                        placeholder="Provide explicit answers, procedures, delivery terms, or Q&A pairs..."
+                        style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.15)', borderRadius: 9, outline: 'none', lineHeight: 1.6 }}
+                      />
+                    </div>
+                    <button 
+                      onClick={handleAddCustomKB}
+                      disabled={!kbCustomTitle || !kbCustomContent}
+                      style={{
+                        padding: '9px 20px', fontSize: 13, fontWeight: 700,
+                        background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff',
+                        border: 'none', borderRadius: 9, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 6, opacity: (!kbCustomTitle || !kbCustomContent) ? 0.6 : 1
+                      }}
+                    >
+                      <Plus size={14} /> Save Instruction to Knowledge Base
+                    </button>
+                  </div>
+
+                  {/* 3. Drag & Drop File Upload Box */}
+                  <div style={{ background: '#fff', borderRadius: 14, padding: '24px', marginBottom: 24, border: '1px solid rgba(220,38,38,0.06)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+                    <SectionHeader icon="📁" label="Upload Training Files & Chat Exports (.pdf, .csv, .txt, .docx)" />
+                    <div 
+                      onClick={() => fileInputRef.current?.click()}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                          const input = fileInputRef.current;
+                          if (input) {
+                            input.files = e.dataTransfer.files;
+                            handleFileUpload({ target: input } as any);
+                          }
+                        }
+                      }}
+                      style={{ 
+                        border: '2px dashed rgba(220,38,38,0.25)', borderRadius: 12, 
+                        padding: '28px', textAlign: 'center', cursor: 'pointer', 
+                        background: '#fdfcfc', transition: 'all 0.12s' 
+                      }}
+                    >
+                      <div style={{ width: 44, height: 44, borderRadius: 10, background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
+                        {isUploading ? <RefreshCw size={20} color="#dc2626" className="animate-spin" /> : <Upload size={20} color="#dc2626" />}
+                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 4 }}>
+                        {isUploading ? 'Uploading and Indexing File...' : 'Select or Drop Knowledge Files / Chat Exports Here'}
+                      </div>
+                      <div style={{ fontSize: 12, color: '#9ca3af' }}>
+                        Supports PDFs, chat history exports (.txt), spreadsheets (.csv), and policy documents.
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 4. Active Knowledge Documents Directory */}
+                  <div style={{ background: '#fff', borderRadius: 14, padding: '24px', border: '1px solid rgba(220,38,38,0.06)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+                      <SectionHeader icon="📚" label={`Active Knowledge Documents (${kbEntries.filter(e => e.is_active).length})`} />
+                      <span style={{ fontSize: 12, color: '#9ca3af' }}>Changes sync live across all agents</span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {kbEntries.map((doc) => (
+                        <div 
+                          key={doc.id}
+                          style={{
+                            padding: '16px 18px', background: '#fafafa', border: '1px solid #f3f4f6',
+                            borderRadius: 12, transition: 'all 0.15s'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontSize: 18 }}>
+                                {doc.kb_type === 'pdf' ? '📄' : doc.kb_type === 'url' ? '🌐' : doc.kb_type === 'product_catalog' ? '🛍️' : doc.kb_type === 'csv' ? '📊' : '📝'}
+                              </span>
+                              <div>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{doc.title}</div>
+                                <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 1 }}>
+                                  Added on {new Date(doc.created_at).toLocaleDateString()} · Type: {doc.kb_type.toUpperCase()}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                              <Toggle checked={doc.is_active} onChange={() => handleToggleKB(doc.id, doc.is_active)} />
+                              <button 
+                                onClick={() => {
+                                  setEditingKbId(doc.id);
+                                  setEditKbTitle(doc.title);
+                                  setEditKbContent(doc.content);
+                                }}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
+                              >
+                                <Edit3 size={14} color="#6b7280" />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteKB(doc.id)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
+                              >
+                                <Trash2 size={14} color="#ef4444" />
+                              </button>
                             </div>
                           </div>
-                        </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <Toggle checked={doc.is_active} onChange={() => handleToggleKB(doc.id, doc.is_active)} />
-                          <button 
-                            onClick={() => {
-                              setEditingKbId(doc.id);
-                              setEditKbTitle(doc.title);
-                              setEditKbContent(doc.content);
-                            }}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
-                          >
-                            <Edit3 size={14} color="#6b7280" />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteKB(doc.id)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
-                          >
-                            <Trash2 size={14} color="#ef4444" />
-                          </button>
+                          {editingKbId === doc.id ? (
+                            <div style={{ marginTop: 12, background: '#fff', padding: '14px', borderRadius: 10, border: '1px solid #e5e7eb' }}>
+                              <input 
+                                type="text" 
+                                value={editKbTitle} 
+                                onChange={e => setEditKbTitle(e.target.value)}
+                                style={{ width: '100%', padding: '8px 12px', fontSize: 13, border: '1px solid #d1d5db', borderRadius: 7, marginBottom: 8 }}
+                              />
+                              <textarea 
+                                value={editKbContent} 
+                                onChange={e => setEditKbContent(e.target.value)}
+                                rows={5}
+                                style={{ width: '100%', padding: '8px 12px', fontSize: 12.5, border: '1px solid #d1d5db', borderRadius: 7, marginBottom: 10, lineHeight: 1.5 }}
+                              />
+                              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                                <button onClick={() => setEditingKbId(null)} style={{ padding: '6px 12px', fontSize: 12, border: '1px solid #d1d5db', borderRadius: 6, background: '#fff', cursor: 'pointer' }}>Cancel</button>
+                                <button onClick={() => handleSaveEditedKB(doc.id)} style={{ padding: '6px 16px', fontSize: 12, fontWeight: 700, background: '#dc2626', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Save Changes</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div style={{ 
+                              fontSize: 12.5, color: '#4b5563', background: '#fff', padding: '10px 14px', 
+                              borderRadius: 8, border: '1px solid #f3f4f6', lineHeight: 1.5, maxHeight: 80, overflow: 'hidden' 
+                            }}>
+                              {doc.content}
+                            </div>
+                          )}
                         </div>
-                      </div>
+                      ))}
 
-                      {/* Content preview or edit view */}
-                      {editingKbId === doc.id ? (
-                        <div style={{ marginTop: 12, background: '#fff', padding: '14px', borderRadius: 10, border: '1px solid #e5e7eb' }}>
-                          <input 
-                            type="text" 
-                            value={editKbTitle} 
-                            onChange={e => setEditKbTitle(e.target.value)}
-                            style={{ width: '100%', padding: '8px 12px', fontSize: 13, border: '1px solid #d1d5db', borderRadius: 7, marginBottom: 8 }}
-                          />
-                          <textarea 
-                            value={editKbContent} 
-                            onChange={e => setEditKbContent(e.target.value)}
-                            rows={5}
-                            style={{ width: '100%', padding: '8px 12px', fontSize: 12.5, border: '1px solid #d1d5db', borderRadius: 7, marginBottom: 10, lineHeight: 1.5 }}
-                          />
-                          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                            <button onClick={() => setEditingKbId(null)} style={{ padding: '6px 12px', fontSize: 12, border: '1px solid #d1d5db', borderRadius: 6, background: '#fff', cursor: 'pointer' }}>Cancel</button>
-                            <button onClick={() => handleSaveEditedKB(doc.id)} style={{ padding: '6px 16px', fontSize: 12, fontWeight: 700, background: '#dc2626', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Save Changes</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={{ 
-                          fontSize: 12.5, color: '#4b5563', background: '#fff', padding: '10px 14px', 
-                          borderRadius: 8, border: '1px solid #f3f4f6', lineHeight: 1.5, maxHeight: 80, overflow: 'hidden' 
-                        }}>
-                          {doc.content}
+                      {kbEntries.length === 0 && (
+                        <div style={{ padding: '30px', textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
+                          No knowledge items in your database yet. Use the sections above to add website URLs, instructions, or files!
                         </div>
                       )}
                     </div>
-                  ))}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* ================= SUB-TAB 2: WHATSAPP PRODUCT CATALOG ================= */}
+              {kbSubTab === 'catalog' && (
+                <div>
+                  <div style={{ background: '#fff', borderRadius: 16, padding: '26px', marginBottom: 24, border: '1.5px solid rgba(16,185,129,0.2)', boxShadow: '0 4px 20px rgba(16,185,129,0.04)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <ShoppingBag size={20} color="#059669" />
+                        </div>
+                        <div>
+                          <h3 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>
+                            WhatsApp Business Product Catalog
+                          </h3>
+                          <div style={{ fontSize: 12, color: '#6b7280', marginTop: 1 }}>
+                            Populate product inventory, prices, and photos so the AI can automatically share products with buyers on WhatsApp.
+                          </div>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: '#059669', background: '#ecfdf5', padding: '4px 12px', borderRadius: 20, border: '1px solid #a7f3d0' }}>
+                        {products.length} Products Indexed
+                      </span>
+                    </div>
+
+                    {/* Import / Sync Control Action Cards */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
+                      <div 
+                        onClick={() => setShowAddProdModal(true)}
+                        style={{ 
+                          padding: '14px 16px', borderRadius: 12, border: '1px solid #e5e7eb', background: '#fafafa', 
+                          cursor: 'pointer', transition: 'all 0.15s' 
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.borderColor = '#10b981'}
+                        onMouseLeave={e => e.currentTarget.style.borderColor = '#e5e7eb'}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                          <Plus size={16} color="#059669" />
+                          <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Add Single Product</span>
+                        </div>
+                        <div style={{ fontSize: 11.5, color: '#6b7280' }}>
+                          Enter title, category, price, and image URL.
+                        </div>
+                      </div>
+
+                      <div 
+                        onClick={() => catalogCsvInputRef.current?.click()}
+                        style={{ 
+                          padding: '14px 16px', borderRadius: 12, border: '1px solid #e5e7eb', background: '#fafafa', 
+                          cursor: 'pointer', transition: 'all 0.15s' 
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.borderColor = '#10b981'}
+                        onMouseLeave={e => e.currentTarget.style.borderColor = '#e5e7eb'}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                          <FileSpreadsheet size={16} color="#059669" />
+                          <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Bulk CSV / JSON Import</span>
+                        </div>
+                        <div style={{ fontSize: 11.5, color: '#6b7280' }}>
+                          Upload spreadsheet of catalog items with prices and details.
+                        </div>
+                      </div>
+
+                      <div 
+                        onClick={() => setShowMetaSyncModal(true)}
+                        style={{ 
+                          padding: '14px 16px', borderRadius: 12, border: '1px solid #e5e7eb', background: '#fafafa', 
+                          cursor: 'pointer', transition: 'all 0.15s' 
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.borderColor = '#10b981'}
+                        onMouseLeave={e => e.currentTarget.style.borderColor = '#e5e7eb'}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                          <RefreshCw size={16} color="#059669" />
+                          <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Meta WABA Catalog Sync</span>
+                        </div>
+                        <div style={{ fontSize: 11.5, color: '#6b7280' }}>
+                          Auto-sync directly from Meta WhatsApp Cloud API Catalog.
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Live Products Directory Grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
+                      {products.map((prod) => (
+                        <div 
+                          key={prod.id}
+                          style={{
+                            padding: '14px 16px', background: '#fff', border: '1px solid #e5e7eb',
+                            borderRadius: 12, display: 'flex', gap: 14, alignItems: 'center'
+                          }}
+                        >
+                          <div style={{ width: 54, height: 54, borderRadius: 10, background: '#f3f4f6', overflow: 'hidden', flexShrink: 0, border: '1px solid #e5e7eb' }}>
+                            {prod.image_url ? (
+                              <img src={prod.image_url} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                              <ShoppingBag size={24} color="#9ca3af" style={{ margin: 15 }} />
+                            )}
+                          </div>
+
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                              <span style={{ fontSize: 10.5, fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '1px 6px', borderRadius: 6 }}>
+                                {prod.category || 'General'}
+                              </span>
+                              <span style={{ fontSize: 10.5, color: prod.stock_status === 'instock' ? '#10b981' : '#ef4444', fontWeight: 600 }}>
+                                {prod.stock_status === 'instock' ? 'In Stock' : 'Out of Stock'}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {prod.name}
+                            </div>
+                            <div style={{ fontSize: 12.5, fontWeight: 800, color: '#059669', marginTop: 2 }}>
+                              {prod.currency || 'USD'} {prod.price}
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <Toggle checked={prod.is_active} onChange={() => handleToggleProduct(prod.id, prod.is_active)} />
+                            <button onClick={() => handleDeleteProduct(prod.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+                              <Trash2 size={13} color="#ef4444" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {products.length === 0 && (
+                        <div style={{ gridColumn: '1 / -1', padding: '30px', textAlign: 'center', color: '#9ca3af', fontSize: 13, background: '#fafafa', borderRadius: 12 }}>
+                          No products added yet. Click <strong>Add Single Product</strong> or <strong>Bulk CSV Import</strong> above to populate the WhatsApp Catalog!
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
             </div>
           </div>
@@ -2100,7 +2116,7 @@ export default function AgentsPage() {
                   <ShoppingBag size={20} color="#059669" />
                 </div>
                 <h3 style={{ fontSize: 17, fontWeight: 700, color: '#111827', margin: 0 }}>
-                  Add Product / Watch to Catalog
+                  Add Product to Catalog
                 </h3>
               </div>
               <button onClick={() => setShowAddProdModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
@@ -2110,36 +2126,36 @@ export default function AgentsPage() {
 
             <form onSubmit={handleAddProduct}>
               <div style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 6 }}>Watch / Product Name</label>
+                <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 6 }}>Product Name</label>
                 <input 
                   type="text" 
                   required 
                   value={prodName} 
                   onChange={e => setProdName(e.target.value)} 
-                  placeholder="e.g. Gucci Automatic Stainless Steel Watch"
+                  placeholder="e.g. 32oz Rectangle Black Meal Prep Container or Watch / Shirt Title"
                   style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid #d1d5db', borderRadius: 8, outline: 'none' }}
                 />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
                 <div>
-                  <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 6 }}>Brand / Category</label>
+                  <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 6 }}>Category / Brand</label>
                   <input 
                     type="text" 
                     value={prodCategory} 
                     onChange={e => setProdCategory(e.target.value)} 
-                    placeholder="Gucci, Movado, Tag Heuer..."
+                    placeholder="General, Containers, Apparel..."
                     style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid #d1d5db', borderRadius: 8, outline: 'none' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 6 }}>Price (PKR)</label>
+                  <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 6 }}>Price</label>
                   <input 
                     type="number" 
                     required 
                     value={prodPrice} 
                     onChange={e => setProdPrice(e.target.value ? Number(e.target.value) : '')} 
-                    placeholder="45000"
+                    placeholder="29"
                     style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid #d1d5db', borderRadius: 8, outline: 'none' }}
                   />
                 </div>
@@ -2151,7 +2167,7 @@ export default function AgentsPage() {
                   type="url" 
                   value={prodImageUrl} 
                   onChange={e => setProdImageUrl(e.target.value)} 
-                  placeholder="https://images.unsplash.com/... or cloud image link"
+                  placeholder="https://... image link"
                   style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid #d1d5db', borderRadius: 8, outline: 'none' }}
                 />
               </div>
@@ -2162,7 +2178,7 @@ export default function AgentsPage() {
                   value={prodDescription} 
                   onChange={e => setProdDescription(e.target.value)} 
                   rows={3}
-                  placeholder="Original imported watch, water resistant, complete box with card, stainless steel strap..."
+                  placeholder="Product specifications, size, warranty, or delivery terms..."
                   style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid #d1d5db', borderRadius: 8, outline: 'none', lineHeight: 1.5 }}
                 />
               </div>
@@ -2179,7 +2195,7 @@ export default function AgentsPage() {
                   type="submit" 
                   style={{ padding: '10px 24px', fontSize: 13, fontWeight: 700, background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', boxShadow: '0 3px 10px rgba(16,185,129,0.2)' }}
                 >
-                  Save Watch Product
+                  Save Product
                 </button>
               </div>
             </form>
@@ -2267,7 +2283,7 @@ export default function AgentsPage() {
                   <HelpCircle size={20} color="#dc2626" />
                 </div>
                 <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>
-                  Cloning WhatsApp Catalog & Training AI on Past Data
+                  Catalog Sync & AI Training Guide
                 </h3>
               </div>
               <button onClick={() => setShowChatGuideModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
@@ -2280,16 +2296,13 @@ export default function AgentsPage() {
               {/* WhatsApp Catalog Method */}
               <div style={{ background: '#ecfdf5', borderRadius: 12, padding: '16px 20px', border: '1px solid #a7f3d0' }}>
                 <div style={{ fontWeight: 700, color: '#059669', fontSize: 14, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <ShoppingBag size={16} /> 1. How to Clone WhatsApp Business Catalog into Ittisalo
-                </div>
-                <div style={{ color: '#065f46', marginBottom: 8 }}>
-                  For stores operating exclusively on WhatsApp Business (like original watches):
+                  <ShoppingBag size={16} /> 1. How to Populate WhatsApp Catalog into Ittisalo
                 </div>
                 <ul style={{ paddingLeft: 20, margin: 0, display: 'flex', flexDirection: 'column', gap: 4, color: '#047857' }}>
-                  <li><strong>Method A (Direct Add):</strong> Click <em>Add Product / Watch</em> above to enter Watch title (e.g. Gucci / Movado / Tag Heuer), price in PKR, and photo URL.</li>
-                  <li><strong>Method B (Bulk CSV Import):</strong> Export your WhatsApp catalog as a CSV or Excel sheet (Columns: <code>Name, Price, Category, ImageURL, Description</code>) and click <em>Bulk CSV / JSON Import</em>.</li>
+                  <li><strong>Method A (Direct Add):</strong> Click <em>Add Product</em> to enter Product Name, price, category, and photo URL.</li>
+                  <li><strong>Method B (Bulk CSV Import):</strong> Export your catalog as CSV or Excel sheet (Columns: <code>Name, Price, Category, ImageURL, Description</code>) and click <em>Bulk CSV / JSON Import</em>.</li>
                   <li><strong>Method C (Meta Cloud API Sync):</strong> Click <em>Meta WABA Catalog Sync</em> to auto-fetch catalog via Meta Graph API (<code>GET /{`{catalog_id}`}/products</code>).</li>
-                  <li><strong>Result:</strong> All watches are stored in <code>products</code> & <code>knowledge_base</code> tables in Supabase. The AI bot will present watch photos and pricing to buyers!</li>
+                  <li><strong>Result:</strong> All products are stored in <code>products</code> & <code>knowledge_base</code> tables in Supabase. The AI bot will present product photos and pricing to buyers!</li>
                 </ul>
               </div>
 
