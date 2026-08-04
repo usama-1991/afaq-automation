@@ -68,7 +68,11 @@ export async function processAIAgent(ctx) {
       : '';
       
     const productEntries = productDocs.length > 0
-      ? productDocs.map(p => `Title: ${p.name}\nCategory: ${p.category || 'General'}\nPrice: ${ctx.currency || 'USD'} ${p.price || 'Ask'}\nDesc: ${p.description || 'N/A'}${p.image_url ? `\nImage_URL: ${p.image_url}` : ''}${p.product_url ? `\nLink: ${p.product_url}` : ''}${p.external_product_id ? `\nID: ${p.external_product_id}` : ''}\n`).join('\n')
+      ? productDocs.map(p => {
+          const qty = p.stock_quantity !== undefined && p.stock_quantity !== null ? p.stock_quantity : (p.stock_status === 'instock' ? 10 : 0);
+          const stockInfo = qty > 0 ? `Stock: ${qty} units available (IN STOCK)` : 'Stock: 0 units (OUT OF STOCK - DO NOT ACCEPT ORDERS OR PROMISE DELIVERY)';
+          return `Title: ${p.name}\nCategory: ${p.category || 'General'}\nPrice: ${ctx.currency || 'USD'} ${p.price || 'Ask'}\n${stockInfo}\nDesc: ${p.description || 'N/A'}${p.image_url ? `\nImage_URL: ${p.image_url}` : ''}${p.product_url ? `\nLink: ${p.product_url}` : ''}${p.external_product_id ? `\nID: ${p.external_product_id}` : ''}\n`;
+        }).join('\n')
       : '';
 
     let finalContext = '';

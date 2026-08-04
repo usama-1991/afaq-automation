@@ -58,6 +58,7 @@ export interface ProductItem {
   image_url?: string;
   product_url?: string;
   stock_status: string;
+  stock_quantity?: number;
   is_active: boolean;
   created_at: string;
 }
@@ -146,6 +147,7 @@ export default function AgentsPage() {
   const [prodName, setProdName] = useState('');
   const [prodCategory, setProdCategory] = useState('General');
   const [prodPrice, setProdPrice] = useState<number | ''>('');
+  const [prodQuantity, setProdQuantity] = useState<number | ''>(10);
   const [prodCurrency, setProdCurrency] = useState('PKR');
   const [prodImageUrl, setProdImageUrl] = useState('');
   const [prodDescription, setProdDescription] = useState('');
@@ -278,7 +280,9 @@ export default function AgentsPage() {
       if (activeProds.length === 0) return;
 
       const formattedCatalogText = activeProds.map((p, i) => {
-        return `[PRODUCT ${i + 1}] ${p.name}\n- Category: ${p.category || 'General'}\n- Price: ${p.currency || 'USD'} ${p.price}\n- Status: ${p.stock_status}\n- Image URL: ${p.image_url || 'N/A'}\n- Details: ${p.description || 'Product item'}`;
+        const qty = p.stock_quantity !== undefined && p.stock_quantity !== null ? p.stock_quantity : (p.stock_status === 'instock' ? 10 : 0);
+        const statusLabel = qty > 0 ? `AVAILABLE (${qty} units in stock)` : 'OUT OF STOCK (0 units - DO NOT ACCEPT ORDERS OR PROMISE DELIVERY)';
+        return `[PRODUCT ${i + 1}] ${p.name}\n- Category: ${p.category || 'General'}\n- Price: ${p.currency || 'USD'} ${p.price}\n- Inventory Stock: ${statusLabel}\n- Image URL: ${p.image_url || 'N/A'}\n- Details: ${p.description || 'Product item'}`;
       }).join('\n\n');
 
       const { data: existingKb } = await supabase
@@ -320,6 +324,7 @@ export default function AgentsPage() {
     if (!prodName || !tenantId) return;
 
     try {
+      const qtyNum = Number(prodQuantity) || 0;
       const newProd = {
         tenant_id: tenantId,
         external_product_id: 'prod_' + Math.random().toString(36).substring(2, 9),
@@ -329,7 +334,8 @@ export default function AgentsPage() {
         currency: prodCurrency || 'USD',
         image_url: prodImageUrl || '',
         description: prodDescription,
-        stock_status: prodStock,
+        stock_status: qtyNum > 0 ? 'instock' : 'outofstock',
+        stock_quantity: qtyNum,
         is_active: true
       };
 
@@ -340,6 +346,7 @@ export default function AgentsPage() {
       setProdName('');
       setProdCategory('General');
       setProdPrice('');
+      setProdQuantity(10);
       setProdImageUrl('');
       setProdDescription('');
 
@@ -349,7 +356,24 @@ export default function AgentsPage() {
     }
   };
 
-  // 6. Delete Product
+  // 6. Inline Update Stock Quantity
+  const handleUpdateStockQuantity = async (id: string, newQty: number) => {
+    if (!tenantId) return;
+    const finalQty = Math.max(0, newQty);
+    const newStatus = finalQty > 0 ? 'instock' : 'outofstock';
+
+    try {
+      await supabase.from('products').update({
+        stock_quantity: finalQty,
+        stock_status: newStatus
+      }).eq('id', id);
+      fetchProducts(tenantId);
+    } catch (e: any) {
+      console.error('Failed to update stock quantity:', e.message);
+    }
+  };
+
+  // 7. Delete Product
   const handleDeleteProduct = async (id: string) => {
     if (!confirm('Are you sure you want to delete this product from the catalog?')) return;
     if (!tenantId) return;
@@ -361,7 +385,7 @@ export default function AgentsPage() {
     }
   };
 
-  // 7. Toggle Product Active Status
+  // 8. Toggle Product Active Status
   const handleToggleProduct = async (id: string, active: boolean) => {
     if (!tenantId) return;
     try {
@@ -372,7 +396,7 @@ export default function AgentsPage() {
     }
   };
 
-  // 8. Bulk Import Catalog CSV / JSON File
+  // 9. Bulk Import Catalog CSV / JSON File
   const handleImportCatalogFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !tenantId) return;
@@ -385,6 +409,7 @@ export default function AgentsPage() {
         const parsed = JSON.parse(text);
         const list = Array.isArray(parsed) ? parsed : [parsed];
         list.forEach(item => {
+          const qty = item.quantity !== undefined ? Number(item.quantity) : (item.stock_quantity !== undefined ? Number(item.stock_quantity) : 10);
           newItems.push({
             tenant_id: tenantId,
             external_product_id: item.id || 'prod_' + Math.random().toString(36).substring(2, 9),
@@ -394,7 +419,8 @@ export default function AgentsPage() {
             currency: item.currency || 'USD',
             image_url: item.image_url || item.image || item.photo || '',
             description: item.description || item.details || '',
-            stock_status: item.stock_status || 'instock',
+            stock_status: qty > 0 ? 'instock' : 'outofstock',
+            stock_quantity: qty,
             is_active: true
           });
         });
@@ -405,6 +431,7 @@ export default function AgentsPage() {
           if (!line) continue;
           const parts = line.split(',').map(p => p.replace(/^["']|["']$/g, '').trim());
           if (parts.length >= 2) {
+            const qty = parts[5] ? Number(parts[5]) || 10 : 10;
             newItems.push({
               tenant_id: tenantId,
               external_product_id: 'prod_' + Math.random().toString(36).substring(2, 9),
@@ -413,8 +440,9 @@ export default function AgentsPage() {
               category: parts[2] || 'General',
               image_url: parts[3] || '',
               description: parts[4] || '',
+              stock_quantity: qty,
+              stock_status: qty > 0 ? 'instock' : 'outofstock',
               currency: 'USD',
-              stock_status: 'instock',
               is_active: true
             });
           }
@@ -427,14 +455,14 @@ export default function AgentsPage() {
         alert(`Successfully imported ${newItems.length} catalog products!`);
         fetchProducts(tenantId);
       } else {
-        alert('No valid products found in the file. Ensure CSV has headers: Name, Price, Category, ImageURL, Description');
+        alert('No valid products found in the file. Ensure CSV has headers: Name, Price, Category, ImageURL, Description, Quantity');
       }
     } catch (err: any) {
       alert('Import failed: ' + err.message);
     }
   };
 
-  // 9. Meta WhatsApp Catalog WABA API Sync
+  // 10. Meta WhatsApp Catalog WABA API Sync
   const handleMetaCatalogSync = async () => {
     if (!tenantId) return;
     setIsMetaSyncing(true);
@@ -448,7 +476,7 @@ export default function AgentsPage() {
     setIsMetaSyncing(false);
   };
 
-  // 10. Save AI Config to Supabase DB & LocalStorage
+  // 11. Save AI Config to Supabase DB & LocalStorage
   const syncAgentToDB = async (updatedPublished?: boolean, updatedPaused?: boolean) => {
     try {
       let currentTenantId = tenantId;
@@ -540,7 +568,7 @@ export default function AgentsPage() {
     setTimeout(() => setSaved(false), 2000);
   };
 
-  // 11. Document File Upload Handler
+  // 12. Document File Upload Handler
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !tenantId) return;
@@ -592,7 +620,7 @@ export default function AgentsPage() {
     setIsUploading(false);
   };
 
-  // 12. Scrape Web Page URL
+  // 13. Scrape Web Page URL
   const handleScrapeUrl = async () => {
     if (!kbUrlInput || !tenantId) return;
     setKbScraping(true);
@@ -632,7 +660,7 @@ export default function AgentsPage() {
     setKbScraping(false);
   };
 
-  // 13. Add Custom Text Instruction
+  // 14. Add Custom Text Instruction
   const handleAddCustomKB = async () => {
     if (!kbCustomTitle || !kbCustomContent || !tenantId) return;
     try {
@@ -653,7 +681,7 @@ export default function AgentsPage() {
     }
   };
 
-  // 14. Delete KB Entry
+  // 15. Delete KB Entry
   const handleDeleteKB = async (id: string) => {
     if (!confirm('Are you sure you want to remove this document from the AI Knowledge Base?')) return;
     try {
@@ -665,7 +693,7 @@ export default function AgentsPage() {
     }
   };
 
-  // 15. Toggle Active KB Entry
+  // 16. Toggle Active KB Entry
   const handleToggleKB = async (id: string, active: boolean) => {
     try {
       await supabase.from('knowledge_base').update({ is_active: !active }).eq('id', id);
@@ -675,7 +703,7 @@ export default function AgentsPage() {
     }
   };
 
-  // 16. Edit KB Entry
+  // 17. Edit KB Entry
   const handleSaveEditedKB = async (id: string) => {
     if (!tenantId) return;
     try {
@@ -1731,7 +1759,7 @@ export default function AgentsPage() {
                             WhatsApp Business Product Catalog
                           </h3>
                           <div style={{ fontSize: 12, color: '#6b7280', marginTop: 1 }}>
-                            Populate product inventory, prices, and photos so the AI can automatically share products with buyers on WhatsApp.
+                            Populate product inventory, stock quantities, prices, and photos so the AI stops selling when out of stock.
                           </div>
                         </div>
                       </div>
@@ -1756,7 +1784,7 @@ export default function AgentsPage() {
                           <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Add Single Product</span>
                         </div>
                         <div style={{ fontSize: 11.5, color: '#6b7280' }}>
-                          Enter title, category, price, and image URL.
+                          Enter title, category, price, stock quantity, and photo.
                         </div>
                       </div>
 
@@ -1774,7 +1802,7 @@ export default function AgentsPage() {
                           <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Bulk CSV / JSON Import</span>
                         </div>
                         <div style={{ fontSize: 11.5, color: '#6b7280' }}>
-                          Upload spreadsheet of catalog items with prices and details.
+                          Upload spreadsheet with Name, Price, Category, Image, Quantity.
                         </div>
                       </div>
 
@@ -1799,47 +1827,82 @@ export default function AgentsPage() {
 
                     {/* Live Products Directory Grid */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
-                      {products.map((prod) => (
-                        <div 
-                          key={prod.id}
-                          style={{
-                            padding: '14px 16px', background: '#fff', border: '1px solid #e5e7eb',
-                            borderRadius: 12, display: 'flex', gap: 14, alignItems: 'center'
-                          }}
-                        >
-                          <div style={{ width: 54, height: 54, borderRadius: 10, background: '#f3f4f6', overflow: 'hidden', flexShrink: 0, border: '1px solid #e5e7eb' }}>
-                            {prod.image_url ? (
-                              <img src={prod.image_url} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            ) : (
-                              <ShoppingBag size={24} color="#9ca3af" style={{ margin: 15 }} />
-                            )}
-                          </div>
+                      {products.map((prod) => {
+                        const qty = prod.stock_quantity !== undefined && prod.stock_quantity !== null ? prod.stock_quantity : (prod.stock_status === 'instock' ? 10 : 0);
+                        const isOutOfStock = qty <= 0 || prod.stock_status === 'outofstock';
 
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                              <span style={{ fontSize: 10.5, fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '1px 6px', borderRadius: 6 }}>
-                                {prod.category || 'General'}
-                              </span>
-                              <span style={{ fontSize: 10.5, color: prod.stock_status === 'instock' ? '#10b981' : '#ef4444', fontWeight: 600 }}>
-                                {prod.stock_status === 'instock' ? 'In Stock' : 'Out of Stock'}
-                              </span>
+                        return (
+                          <div 
+                            key={prod.id}
+                            style={{
+                              padding: '14px 16px', background: '#fff', border: `1px solid ${isOutOfStock ? '#fecaca' : '#e5e7eb'}`,
+                              borderRadius: 12, display: 'flex', gap: 14, alignItems: 'center'
+                            }}
+                          >
+                            <div style={{ width: 54, height: 54, borderRadius: 10, background: '#f3f4f6', overflow: 'hidden', flexShrink: 0, border: '1px solid #e5e7eb' }}>
+                              {prod.image_url ? (
+                                <img src={prod.image_url} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                <ShoppingBag size={24} color="#9ca3af" style={{ margin: 15 }} />
+                              )}
                             </div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {prod.name}
-                            </div>
-                            <div style={{ fontSize: 12.5, fontWeight: 800, color: '#059669', marginTop: 2 }}>
-                              {prod.currency || 'USD'} {prod.price}
-                            </div>
-                          </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <Toggle checked={prod.is_active} onChange={() => handleToggleProduct(prod.id, prod.is_active)} />
-                            <button onClick={() => handleDeleteProduct(prod.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-                              <Trash2 size={13} color="#ef4444" />
-                            </button>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                                <span style={{ fontSize: 10.5, fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '1px 6px', borderRadius: 6 }}>
+                                  {prod.category || 'General'}
+                                </span>
+                                <span style={{ 
+                                  fontSize: 10.5, fontWeight: 700, 
+                                  color: isOutOfStock ? '#dc2626' : '#059669', 
+                                  background: isOutOfStock ? '#fef2f2' : '#f0fdf4', 
+                                  padding: '1px 6px', borderRadius: 6, border: `1px solid ${isOutOfStock ? '#fecaca' : '#bbf7d0'}`
+                                }}>
+                                  {isOutOfStock ? '🔴 OUT OF STOCK' : `🟢 ${qty} IN STOCK`}
+                                </span>
+                              </div>
+
+                              <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {prod.name}
+                              </div>
+
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+                                <div style={{ fontSize: 12.5, fontWeight: 800, color: '#059669' }}>
+                                  {prod.currency || 'USD'} {prod.price}
+                                </div>
+
+                                {/* Inline Stock Quick Adjuster */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 6, padding: '2px 4px' }}>
+                                  <button 
+                                    onClick={() => handleUpdateStockQuantity(prod.id, qty - 1)}
+                                    style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 2, display: 'flex', color: '#6b7280' }}
+                                    title="Decrease Stock"
+                                  >
+                                    <Minus size={11} />
+                                  </button>
+                                  <span style={{ fontSize: 11, fontWeight: 800, color: '#374151', minWidth: 16, textAlign: 'center' }}>
+                                    {qty}
+                                  </span>
+                                  <button 
+                                    onClick={() => handleUpdateStockQuantity(prod.id, qty + 1)}
+                                    style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 2, display: 'flex', color: '#059669' }}
+                                    title="Increase Stock"
+                                  >
+                                    <Plus size={11} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <Toggle checked={prod.is_active} onChange={() => handleToggleProduct(prod.id, prod.is_active)} />
+                              <button onClick={() => handleDeleteProduct(prod.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+                                <Trash2 size={13} color="#ef4444" />
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
 
                       {products.length === 0 && (
                         <div style={{ gridColumn: '1 / -1', padding: '30px', textAlign: 'center', color: '#9ca3af', fontSize: 13, background: '#fafafa', borderRadius: 12 }}>
@@ -2107,7 +2170,7 @@ export default function AgentsPage() {
           backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 
         }}>
           <div style={{ 
-            background: '#fff', borderRadius: 16, width: '100%', maxWidth: 540, 
+            background: '#fff', borderRadius: 16, width: '100%', maxWidth: 580, 
             padding: '28px', boxShadow: '0 20px 50px rgba(0,0,0,0.2)' 
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
@@ -2132,19 +2195,19 @@ export default function AgentsPage() {
                   required 
                   value={prodName} 
                   onChange={e => setProdName(e.target.value)} 
-                  placeholder="e.g. 32oz Rectangle Black Meal Prep Container or Watch / Shirt Title"
+                  placeholder="e.g. 32oz Rectangle Black Meal Prep Container or Product Title"
                   style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid #d1d5db', borderRadius: 8, outline: 'none' }}
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 14 }}>
                 <div>
                   <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 6 }}>Category / Brand</label>
                   <input 
                     type="text" 
                     value={prodCategory} 
                     onChange={e => setProdCategory(e.target.value)} 
-                    placeholder="General, Containers, Apparel..."
+                    placeholder="General, Containers..."
                     style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid #d1d5db', borderRadius: 8, outline: 'none' }}
                   />
                 </div>
@@ -2156,6 +2219,18 @@ export default function AgentsPage() {
                     value={prodPrice} 
                     onChange={e => setProdPrice(e.target.value ? Number(e.target.value) : '')} 
                     placeholder="29"
+                    style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid #d1d5db', borderRadius: 8, outline: 'none' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 6 }}>Stock Quantity</label>
+                  <input 
+                    type="number" 
+                    min={0} 
+                    required 
+                    value={prodQuantity} 
+                    onChange={e => setProdQuantity(e.target.value ? Number(e.target.value) : 0)} 
+                    placeholder="10"
                     style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid #d1d5db', borderRadius: 8, outline: 'none' }}
                   />
                 </div>
@@ -2299,10 +2374,10 @@ export default function AgentsPage() {
                   <ShoppingBag size={16} /> 1. How to Populate WhatsApp Catalog into Ittisalo
                 </div>
                 <ul style={{ paddingLeft: 20, margin: 0, display: 'flex', flexDirection: 'column', gap: 4, color: '#047857' }}>
-                  <li><strong>Method A (Direct Add):</strong> Click <em>Add Product</em> to enter Product Name, price, category, and photo URL.</li>
-                  <li><strong>Method B (Bulk CSV Import):</strong> Export your catalog as CSV or Excel sheet (Columns: <code>Name, Price, Category, ImageURL, Description</code>) and click <em>Bulk CSV / JSON Import</em>.</li>
+                  <li><strong>Method A (Direct Add):</strong> Click <em>Add Product</em> to enter Product Name, price, stock quantity, category, and photo URL.</li>
+                  <li><strong>Method B (Bulk CSV Import):</strong> Export your catalog as CSV or Excel sheet (Columns: <code>Name, Price, Category, ImageURL, Description, Quantity</code>) and click <em>Bulk CSV / JSON Import</em>.</li>
                   <li><strong>Method C (Meta Cloud API Sync):</strong> Click <em>Meta WABA Catalog Sync</em> to auto-fetch catalog via Meta Graph API (<code>GET /{`{catalog_id}`}/products</code>).</li>
-                  <li><strong>Result:</strong> All products are stored in <code>products</code> & <code>knowledge_base</code> tables in Supabase. The AI bot will present product photos and pricing to buyers!</li>
+                  <li><strong>Result:</strong> All products are stored in <code>products</code> & <code>knowledge_base</code> tables in Supabase. The AI bot will track inventory stock and stop selling when out of stock!</li>
                 </ul>
               </div>
 
