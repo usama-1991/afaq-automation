@@ -33,8 +33,12 @@ import { createMemoryState } from '@/lib/useMemoryState';
 
 const useMemoryState = createMemoryState();
 
+import { useConfirm, useAlert } from '@/context/DialogContext';
+
 export default function ContactsPage() {
   const router = useRouter();
+  const confirm = useConfirm();
+  const showAlert = useAlert();
   const [contacts, setContacts] = useMemoryState<Contact[]>('contacts', []);
   const [loading, setLoading] = useMemoryState('loading', true);
   const [search, setSearch] = useMemoryState('search', '');
@@ -170,7 +174,7 @@ export default function ContactsPage() {
       // Check if contact already exists
       const existing = contacts.find(c => c.phone === newPhone);
       if (existing) {
-        alert("A contact with this phone number already exists!");
+        showAlert({ title: 'Duplicate Contact', message: 'A contact with this phone number already exists!', type: 'warning' });
         setLoading(false);
         return;
       }
@@ -210,7 +214,7 @@ export default function ContactsPage() {
         setNewName(''); setNewPhone(''); setNewEmail(''); setNewTags(['New']);
       }
     } catch (err: any) {
-      alert("Error saving contact: " + err.message);
+      showAlert({ title: 'Save Error', message: 'Error saving contact: ' + err.message, type: 'danger' });
     } finally {
       setLoading(false);
     }

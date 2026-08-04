@@ -11,8 +11,12 @@ import {
   ExternalLink, Mail, Store
 } from 'lucide-react';
 
+import { useConfirm, useAlert } from '@/context/DialogContext';
+
 export default function OrdersPage() {
   const { niche } = useNiche();
+  const confirm = useConfirm();
+  const showAlert = useAlert();
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,7 +122,7 @@ export default function OrdersPage() {
       }
     } catch (err) {
       console.error('Error updating status:', err);
-      alert('Failed to update status. Please try again.');
+      showAlert({ title: 'Update Failed', message: 'Failed to update status. Please try again.', type: 'danger' });
     } finally {
       setActionLoading(null);
     }
@@ -126,7 +130,7 @@ export default function OrdersPage() {
 
   const downloadCSV = () => {
     if (data.length === 0) {
-      alert("No data available to download.");
+      showAlert({ title: 'No Data', message: 'No data available to download.', type: 'warning' });
       return;
     }
     

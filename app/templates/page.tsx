@@ -42,11 +42,14 @@ const mapDbToTemplate = (dbTpl: any): Template => {
 };
 
 import { createMemoryState } from '@/lib/useMemoryState';
+import { useConfirm, useAlert } from '@/context/DialogContext';
 
 const useMemoryState = createMemoryState();
 
 export default function TemplatesPage() {
   const router = useRouter();
+  const confirm = useConfirm();
+  const showAlert = useAlert();
   const [templates, setTemplates] = useMemoryState<Template[]>('templates', []);
   const [searchQuery, setSearchQuery] = useMemoryState('searchQuery', '');
   const [selectedCategory, setSelectedCategory] = useMemoryState<string>('selectedCategory', 'All');
@@ -76,7 +79,7 @@ export default function TemplatesPage() {
 
 
   const handleDeleteTemplate = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this template?')) return;
+    if (!await confirm({ title: 'Delete Template', message: 'Are you sure you want to delete this template?', confirmText: 'Delete Template', type: 'danger' })) return;
     try {
       const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' });
       if (res.ok) {
@@ -86,11 +89,11 @@ export default function TemplatesPage() {
           setSelectedTemplate(updated.length > 0 ? updated[0] : null);
         }
       } else {
-        alert('Failed to delete template');
+        showAlert({ title: 'Delete Failed', message: 'Failed to delete template', type: 'danger' });
       }
     } catch (e) {
       console.error(e);
-      alert('Network error deleting template');
+      showAlert({ title: 'Network Error', message: 'Network error deleting template', type: 'danger' });
     }
   };
 

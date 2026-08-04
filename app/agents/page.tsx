@@ -10,6 +10,7 @@ import {
   BookOpen
 } from 'lucide-react';
 import { useNiche } from '@/context/NicheContext';
+import { useConfirm, useAlert } from '@/context/DialogContext';
 import { supabase } from '@/lib/supabase/client';
 import { createMemoryState } from '@/lib/useMemoryState';
 
@@ -97,6 +98,8 @@ const useMemoryState = createMemoryState();
 
 export default function AgentsPage() {
   const { niche } = useNiche();
+  const confirm = useConfirm();
+  const showAlert = useAlert();
   
   // Primary Navigation tabs: 'ai' | 'knowledge' | 'team'
   const [activeTab, setActiveTab] = useMemoryState<'ai' | 'knowledge' | 'team'>('activeTab', 'ai');
@@ -352,7 +355,7 @@ export default function AgentsPage() {
 
       fetchProducts(tenantId);
     } catch (err: any) {
-      alert('Error adding product: ' + err.message);
+      showAlert({ title: 'Add Product Error', message: 'Error adding product: ' + err.message, type: 'danger' });
     }
   };
 
@@ -375,13 +378,13 @@ export default function AgentsPage() {
 
   // 7. Delete Product
   const handleDeleteProduct = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product from the catalog?')) return;
+    if (!await confirm({ title: 'Delete Product', message: 'Are you sure you want to delete this product from the catalog?', confirmText: 'Delete Product', type: 'danger' })) return;
     if (!tenantId) return;
     try {
       await supabase.from('products').delete().eq('id', id);
       fetchProducts(tenantId);
     } catch (e: any) {
-      alert('Delete failed: ' + e.message);
+      showAlert({ title: 'Delete Failed', message: 'Delete failed: ' + e.message, type: 'danger' });
     }
   };
 
@@ -452,13 +455,13 @@ export default function AgentsPage() {
       if (newItems.length > 0) {
         const { error } = await supabase.from('products').insert(newItems);
         if (error) throw error;
-        alert(`Successfully imported ${newItems.length} catalog products!`);
+        showAlert({ title: 'Import Successful', message: `Successfully imported ${newItems.length} catalog products!`, type: 'success' });
         fetchProducts(tenantId);
       } else {
-        alert('No valid products found in the file. Ensure CSV has headers: Name, Price, Category, ImageURL, Description, Quantity');
+        showAlert({ title: 'Import Failed', message: 'No valid products found in the file. Ensure CSV has headers: Name, Price, Category, ImageURL, Description, Quantity', type: 'warning' });
       }
     } catch (err: any) {
-      alert('Import failed: ' + err.message);
+      showAlert({ title: 'Import Failed', message: err.message, type: 'danger' });
     }
   };
 
@@ -469,9 +472,9 @@ export default function AgentsPage() {
     try {
       setShowMetaSyncModal(false);
       fetchProducts(tenantId);
-      alert('⚡ Meta WhatsApp Business Catalog sync triggered for your account.');
+      showAlert({ title: 'Sync Triggered', message: 'Meta WhatsApp Business Catalog sync triggered for your account.', type: 'success' });
     } catch (e: any) {
-      alert('Meta catalog sync error: ' + e.message);
+      showAlert({ title: 'Sync Error', message: 'Meta catalog sync error: ' + e.message, type: 'danger' });
     }
     setIsMetaSyncing(false);
   };
@@ -608,14 +611,14 @@ export default function AgentsPage() {
 
         if (error) {
           console.error('Failed to insert knowledge entry:', error);
-          alert(`Error uploading ${file.name}: ` + error.message);
+          showAlert({ title: 'Upload Error', message: `Error uploading ${file.name}: ` + error.message, type: 'danger' });
         }
       }
 
       await fetchKnowledgeBase(tenantId);
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err: any) {
-      alert('Upload failed: ' + err.message);
+      showAlert({ title: 'Upload Failed', message: 'Upload failed: ' + err.message, type: 'danger' });
     }
     setIsUploading(false);
   };
@@ -655,7 +658,7 @@ export default function AgentsPage() {
       setKbUrlInput('');
       fetchKnowledgeBase(tenantId);
     } catch (e: any) {
-      alert('Scrape failed: ' + e.message);
+      showAlert({ title: 'Scrape Failed', message: e.message, type: 'danger' });
     }
     setKbScraping(false);
   };
@@ -677,19 +680,19 @@ export default function AgentsPage() {
       setKbCustomContent('');
       fetchKnowledgeBase(tenantId);
     } catch (e: any) {
-      alert('Failed to add knowledge item: ' + e.message);
+      showAlert({ title: 'Add Failed', message: 'Failed to add knowledge item: ' + e.message, type: 'danger' });
     }
   };
 
   // 15. Delete KB Entry
   const handleDeleteKB = async (id: string) => {
-    if (!confirm('Are you sure you want to remove this document from the AI Knowledge Base?')) return;
+    if (!await confirm({ title: 'Remove Document', message: 'Are you sure you want to remove this document from the AI Knowledge Base?', confirmText: 'Remove Document', type: 'danger' })) return;
     try {
       const { error } = await supabase.from('knowledge_base').delete().eq('id', id);
       if (error) throw error;
       if (tenantId) fetchKnowledgeBase(tenantId);
     } catch (e: any) {
-      alert('Delete failed: ' + e.message);
+      showAlert({ title: 'Delete Failed', message: 'Delete failed: ' + e.message, type: 'danger' });
     }
   };
 
@@ -714,7 +717,7 @@ export default function AgentsPage() {
       setEditingKbId(null);
       fetchKnowledgeBase(tenantId);
     } catch (e: any) {
-      alert('Save edit failed: ' + e.message);
+      showAlert({ title: 'Save Failed', message: 'Save edit failed: ' + e.message, type: 'danger' });
     }
   };
 
@@ -766,7 +769,7 @@ export default function AgentsPage() {
     setSelectedTeamMember(newMember);
     setShowAddTeam(false);
     
-    alert(`Invitation link sent to ${addEmail}`);
+    showAlert({ title: 'Invitation Sent', message: `Invitation link sent to ${addEmail}`, type: 'success' });
     setAddName('');
     setAddEmail('');
     setAddRole('Agent');

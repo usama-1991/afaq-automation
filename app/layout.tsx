@@ -5,6 +5,8 @@ import { NicheProvider } from '@/context/NicheContext';
 import { PlanProvider } from '@/context/PlanContext';
 import AppShell from '@/components/AppShell';
 
+import { DialogProvider } from '@/context/DialogContext';
+
 export const metadata: Metadata = {
   title: 'Ittisalo — AI-Powered WhatsApp Business Dashboard',
   description: 'Ittisalo: AI-powered omnichannel CRM and WhatsApp automation for your business',
@@ -19,7 +21,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <NicheProvider>
           <PlanProvider>
-            <AppShell>{children}</AppShell>
+            <DialogProvider>
+              <AppShell>{children}</AppShell>
+            </DialogProvider>
           </PlanProvider>
         </NicheProvider>
       </body>

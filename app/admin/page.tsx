@@ -17,7 +17,11 @@ interface Tenant {
   created_at: string;
 }
 
+import { useConfirm, useAlert } from '@/context/DialogContext';
+
 export default function SuperAdminPage() {
+  const confirm = useConfirm();
+  const showAlert = useAlert();
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [search, setSearch] = useState('');
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
@@ -66,7 +70,7 @@ export default function SuperAdminPage() {
       setTenants(prev => prev.map(t => t.id === selectedTenant.id ? { ...t, plan: editPlan, plan_status: editStatus, admin_notes: editNotes } : t));
       setSelectedTenant(null);
     } else {
-      alert('Failed to save changes. Are you sure you are a Super Admin?');
+      showAlert({ title: 'Permission Error', message: 'Failed to save changes. Are you sure you are a Super Admin?', type: 'danger' });
     }
     setSaving(false);
   };

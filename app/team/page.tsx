@@ -27,10 +27,13 @@ import { supabase } from '@/lib/supabase/client';
 import { useEffect } from 'react';
 
 import { createMemoryState } from '@/lib/useMemoryState';
+import { useConfirm, useAlert } from '@/context/DialogContext';
 
 const useMemoryState = createMemoryState();
 
 export default function TeamPage() {
+  const confirm = useConfirm();
+  const showAlert = useAlert();
   const [agents, setAgents] = useMemoryState<Agent[]>('agents', []);
   const [view, setView] = useMemoryState<'list' | 'edit'>('view', 'list');
   const [editingAgent, setEditingAgent] = useMemoryState<Agent | null>('editingAgent', null);
@@ -121,13 +124,14 @@ export default function TeamPage() {
         await fetchAgents();
         setView('list');
       } catch (err) {
-        alert('Failed to update agent.');
+        showAlert({ title: 'Update Failed', message: 'Failed to update agent.', type: 'danger' });
       }
     } else {
       // Create new
       if (!newName || !newEmail) {
         setLoading(false);
-        return alert('Name and email are required to create an agent.');
+        showAlert({ title: 'Missing Information', message: 'Name and email are required to create an agent.', type: 'warning' });
+        return;
       }
       
       try {
@@ -150,10 +154,10 @@ export default function TeamPage() {
           await fetchAgents();
           setShowSuccessModal(true);
         } else {
-          alert('Error: ' + data.error);
+          showAlert({ title: 'Error', message: data.error, type: 'danger' });
         }
       } catch (err) {
-        alert('Failed to create agent.');
+        showAlert({ title: 'Creation Failed', message: 'Failed to create agent.', type: 'danger' });
       }
     }
     setLoading(false);

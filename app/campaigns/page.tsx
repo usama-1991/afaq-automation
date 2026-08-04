@@ -22,10 +22,13 @@ interface Campaign {
 const defaultCampaigns: Campaign[] = [];
 
 import { createMemoryState } from '@/lib/useMemoryState';
+import { useConfirm, useAlert } from '@/context/DialogContext';
 
 const useMemoryState = createMemoryState();
 
 export default function CampaignsPage() {
+  const confirm = useConfirm();
+  const showAlert = useAlert();
   const [campaigns, setCampaigns] = useMemoryState<Campaign[]>('campaigns', []);
   const [showCreate, setShowCreate] = useMemoryState('showCreate', false);
   const [tplList, setTplList] = useMemoryState<any[]>('tplList', []);
@@ -121,27 +124,27 @@ export default function CampaignsPage() {
         setScheduleTime('');
       } else {
         const err = await res.json();
-        alert(`Failed to launch: ${err.error || 'Unknown error'}`);
+        showAlert({ title: 'Launch Failed', message: `Failed to launch: ${err.error || 'Unknown error'}`, type: 'danger' });
       }
     } catch (e) {
       console.error(e);
-      alert('Network error launching campaign');
+      showAlert({ title: 'Network Error', message: 'Network error launching campaign', type: 'danger' });
     }
   };
 
   const handleDeleteCampaign = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this campaign?')) return;
+    if (!await confirm({ title: 'Delete Campaign', message: 'Are you sure you want to delete this campaign?', confirmText: 'Delete Campaign', type: 'danger' })) return;
     try {
       const res = await fetch(`/api/campaigns/${id}`, { method: 'DELETE' });
       if (res.ok) {
         const updated = campaigns.filter(c => c.id !== id);
         setCampaigns(updated);
       } else {
-        alert('Failed to delete campaign');
+        showAlert({ title: 'Delete Failed', message: 'Failed to delete campaign', type: 'danger' });
       }
     } catch (e) {
       console.error(e);
-      alert('Network error deleting campaign');
+      showAlert({ title: 'Network Error', message: 'Network error deleting campaign', type: 'danger' });
     }
   };
 

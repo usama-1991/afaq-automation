@@ -10,6 +10,7 @@ import {
   ExternalLink, Link2, Home
 } from 'lucide-react';
 import { useNiche } from '@/context/NicheContext';
+import { useConfirm, useAlert } from '@/context/DialogContext';
 import { niches } from '@/lib/niches';
 import { supabase } from '@/lib/supabase/client';
 
@@ -61,6 +62,8 @@ function Field({ label, value, onChange, type = 'text', hint }: { label: string;
 
 function SettingsInner() {
   const { niche, setNicheId, setOnboarded } = useNiche();
+  const confirm = useConfirm();
+  const showAlert = useAlert();
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>('Business Profile');
   const [saved, setSaved] = useState(false);
@@ -283,7 +286,7 @@ function SettingsInner() {
       setKbUrlInput('');
       fetchKnowledgeBase(tenantIdState);
     } catch (e: any) {
-      alert('Scrape failed: ' + e.message);
+      showAlert({ title: 'Scrape Failed', message: e.message, type: 'danger' });
     }
     setKbScraping(false);
   };
@@ -371,7 +374,7 @@ function SettingsInner() {
       setIsEditingListing(false);
       fetchListings(tenantIdState);
     } catch (e: any) {
-      alert('Failed to save listing: ' + e.message);
+      showAlert({ title: 'Save Failed', message: 'Failed to save listing: ' + e.message, type: 'danger' });
     }
   };
 
@@ -393,7 +396,7 @@ function SettingsInner() {
   };
 
   const handleDeleteListing = async (id: string) => {
-    if (!tenantIdState || !confirm('Are you sure you want to delete this listing?')) return;
+    if (!tenantIdState || !await confirm({ title: 'Delete Listing', message: 'Are you sure you want to delete this listing?', confirmText: 'Delete Listing', type: 'danger' })) return;
     await supabase.from('listings').delete().eq('id', id);
     fetchListings(tenantIdState);
   };
@@ -465,7 +468,7 @@ function SettingsInner() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (e: any) {
-      alert('Save failed: ' + e.message);
+      showAlert({ title: 'Save Failed', message: 'Save failed: ' + e.message, type: 'danger' });
     }
     setEcomSaving(false);
   };
@@ -524,7 +527,7 @@ function SettingsInner() {
             .eq('id', profile.tenant_id);
 
           if (tenantErr) {
-            alert('Failed to save tenant settings: ' + tenantErr.message);
+            showAlert({ title: 'Save Failed', message: 'Failed to save tenant settings: ' + tenantErr.message, type: 'danger' });
             return;
           }
 
@@ -558,7 +561,7 @@ function SettingsInner() {
       }
     } catch (err: any) {
       console.error('Error saving settings to Supabase:', err);
-      alert('Save failed: ' + err.message);
+      showAlert({ title: 'Save Failed', message: 'Save failed: ' + err.message, type: 'danger' });
       return;
     }
     
@@ -598,7 +601,7 @@ function SettingsInner() {
       window.location.href = '/onboarding';
     } catch (err) {
       console.error('Error changing niche:', err);
-      alert('Failed to change business niche. Please try again.');
+      showAlert({ title: 'Niche Change Error', message: 'Failed to change business niche. Please try again.', type: 'danger' });
       setIsChangingNiche(false);
       setPendingNicheChange(null);
     }
