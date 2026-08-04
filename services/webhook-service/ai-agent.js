@@ -305,72 +305,46 @@ export async function processAIAgent(ctx) {
         createRecord = true;
         recordType = 'order';
 
-        let extractedItems = [];
-        const cleanName = s => s.trim().replace(/\s+/g, ' ').replace(/^(i want|mujhe|muje|mjhe|chahiye|chahie|chaie|order|to order|buy|to buy|please|kindly|for|packs of|pack of|pieces of|piece of)\s+/gi, '').trim();
+        // Multi-item cart parser: extract ALL items from AI cart block
+        const cartBlockMatch = ai_reply.match(/(?:🛒\s*\*?YOUR\s*CART\*?|\*?Product\(s\)\*?)\s*\n((?:[•\-\*\d].*\n?)+)/i);
+        if (cartBlockMatch) {
+          const lines = cartBlockMatch[1].split('\n');
+          for (const rawLine of lines) {
+            const line = rawLine.replace(/^[•\-\*\s]+/, '').trim();
+            if (!line || /^(💰|📬|✨|PAYMENT|DELIVERY)/i.test(line)) continue;
+            
+            // Pattern: "2x Truffle Mushroom Burger (PKR 18.50 each)"
+            const match = line.match(/^(?:(\d+)\s*[xX]\s*)?([^(:\n]+?)(?:\s*\((?:PKR|USD|\$|Rs\.?)\s*([\d,.]+)[^)]*\))?$/i);
+            if (match) {
+              let qty = parseInt(match[1]) || 1;
+              let name = cleanName(match[2]);
+              let itemPrice = match[3] ? parseFloat(match[3].replace(/,/g, '')) : 0;
 
-        const aiProductMatch = ai_reply.match(/(?:\*[Pp]roduct(?:s|\(s\))?\*\s*[:\-]\s*|🛒\s*\*YOUR\s*CART\*\s*\n\s*•\s*)([^\n]+)/i);
-        const aiQtyMatch = ai_reply.match(/\*[Qq]uantity\*\s*[:\-]\s*(\d+)/);
-        
-        const combinedForPrice = ai_reply + ' ' + msg;
-        const unitPriceMatches = [...combinedForPrice.matchAll(/(?:USD|\\$|PKR|Rs\\.?|pkr|AED|SAR|[A-Z]{3})\s*([\d,.]+)\s*(?:per\s+pack|per\s+piece|each|\/pack|\/piece|\/pcs)|(?:price|costs)[\s\w]{0,15}(?:USD|\\$|PKR|Rs\\.?|pkr|AED|SAR|[A-Z]{3})\s*([\d,.]+)/gi)];
-        let unitPrice = 0;
-        if (unitPriceMatches.length > 0) {
-           unitPrice = parseFloat((unitPriceMatches[0][1] || unitPriceMatches[0][2]).replace(/,/g, ''));
+              if (itemPrice === 0 && productDocs.length > 0) {
+                const prodMatch = productDocs.find(p => p.name.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(p.name.toLowerCase()));
+                if (prodMatch) itemPrice = parseFloat(prodMatch.price) || 0;
+              }
+
+              if (name && name.length > 2 && !/specify|which|unknown|missing|pending/i.test(name)) {
+                extractedItems.push({
+                  name: name.replace(/[.,]$/, ''),
+                  qty: qty,
+                  price: itemPrice
+                });
+              }
+            }
+          }
         }
 
-        const totalMatches = [...ai_reply.matchAll(/(?:total(?:[_\s]*amount)?|amount|bill|total\s*due)\s*[:\-]?\s*(?:USD|\\$|PKR|Rs\\.?|pkr|AED|SAR|[A-Z]{3})\s*([\d,.]+)/gi)];
-        let orderTotal = 0;
-        if (totalMatches.length > 0) {
-          orderTotal = parseFloat(totalMatches[totalMatches.length - 1][1].replace(/,/g, ''));
-        }
-
-        const isAiValid = aiProductMatch && !/specify|which|unknown|missing|\?/i.test(aiProductMatch[1]);
-
-        if (isAiValid) {
-          let rawName = aiProductMatch[1];
-          let parsedQty = 1;
-          
-          const inlinePriceMatch = rawName.match(/(?:@|\()\s*(?:USD|\\$|PKR|Rs\\.?|pkr|AED|SAR|[A-Z]{3})\s*([\d,.]+)/i);
-          if (inlinePriceMatch) {
-            unitPrice = parseFloat(inlinePriceMatch[1].replace(/,/g, ''));
-            rawName = rawName.replace(/(?:@|\()\s*(?:USD|\\$|PKR|Rs\\.?|pkr|AED|SAR|[A-Z]{3})\s*([\d,.]+)[^)]*\)?/i, '').trim();
-          }
-
-          const inlineQtyMatch = rawName.match(/^(\d+)\s*[xX]\s*(.*)/);
-          if (inlineQtyMatch) {
-            parsedQty = parseInt(inlineQtyMatch[1]);
-            rawName = inlineQtyMatch[2];
-          } else if (aiQtyMatch) {
-            parsedQty = parseInt(aiQtyMatch[1]);
-          }
-          
-          extractedItems = [{ 
-            name: cleanName(rawName).replace(/[.,]$/, ''),
-            qty: parsedQty, 
-            price: unitPrice 
-          }];
-        } else {
+        // Fallback for single item or prompt regex matches if cart block wasn't present
+        if (extractedItems.length === 0) {
           const patA = /(\d+)\s*(?:pack|packs|piece|pieces|pcs|pc|item|items|x)\s+(?:of\s+)?([a-zA-Z0-9][a-zA-Z0-9\s\-\.\s]{2,50}?)(?=\s*(?:chaie|chahiye|chahie|order|deliver|pkr|rs|\.|,|$|\n))/gi;
-          const patC = /(?:i\s+want(?:\s+to)?(?:\s+order)?|i\s+need(?:\s+to)?(?:\s+order)?|i\s+would\s+like|send\s+me|give\s+me|order)\s+([a-zA-Z0-9][a-zA-Z0-9\s\-\.\s]{1,50}?)\s+(\d+)\s*(?:pack|packs|piece|pieces|pcs)/gi;
           const patD = /(?:mujhe|muje|mjhe|mjhay)\s+([a-zA-Z0-9][a-zA-Z0-9\s\-\.\s]{2,50}?)(?:\s+chaie|\s+chahiye|\s+chahie|\s+chahiyen|\s+lena|\s+order)/gi;
-          const patE = /(?:product|item)\s*[:\-]?\s*([a-zA-Z0-9][a-zA-Z0-9\s\-\.\s]{2,50}?)\s+(\d+)\s*(?:pack|packs|piece|pieces|pcs)/gi;
 
-          patE.lastIndex = 0;
-          const matchesE = [...msg.matchAll(patE)];
-          if (matchesE.length > 0) extractedItems = matchesE.map(m => ({ name: cleanName(m[1] || ''), qty: parseInt(m[2]) || 1, price: 0 }));
+          patA.lastIndex = 0;
+          const matchesA = [...msg.matchAll(patA)];
+          if (matchesA.length > 0) extractedItems = matchesA.map(m => ({ name: cleanName(m[2] || ''), qty: parseInt(m[1]) || 1, price: 0 }));
 
-          if (extractedItems.length === 0) {
-            patA.lastIndex = 0;
-            const matchesA = [...msg.matchAll(patA)];
-            if (matchesA.length > 0) extractedItems = matchesA.map(m => ({ name: cleanName(m[2] || ''), qty: parseInt(m[1]) || 1, price: 0 }));
-          }
-
-          if (extractedItems.length === 0) {
-            patC.lastIndex = 0;
-            const matchesC = [...msg.matchAll(patC)];
-            if (matchesC.length > 0) extractedItems = matchesC.map(m => ({ name: cleanName(m[1] || ''), qty: parseInt(m[2]) || 1, price: 0 }));
-          }
-          
           if (extractedItems.length === 0) {
             patD.lastIndex = 0;
             const matchesD = [...msg.matchAll(patD)];
@@ -378,23 +352,16 @@ export async function processAIAgent(ctx) {
           }
         }
 
-        const previousUnitPrice = (Array.isArray(previousInfo.items) && previousInfo.items[0] && previousInfo.items[0].price > 0)
-          ? previousInfo.items[0].price
-          : 0;
-
-        if (extractedItems.length > 0) {
-          if (unitPrice > 0) {
-            extractedItems[0].price = unitPrice;
-          } else if (orderTotal > 0 && extractedItems[0].qty > 0) {
-            extractedItems[0].price = Math.round(orderTotal / extractedItems[0].qty);
-          } else if (previousUnitPrice > 0) {
-            extractedItems[0].price = previousUnitPrice;
-          }
+        // Extract total order amount from AI reply
+        const totalMatches = [...ai_reply.matchAll(/(?:total(?:[_\s]*amount|[_\s]*due)?|total\s*due|subtotal)\*?\s*[:\-]\s*\*?\s*(?:USD|\\$|PKR|Rs\\.?|pkr|AED|SAR|[A-Z]{3})\s*([\d,.]+)/gi)];
+        let orderTotal = 0;
+        if (totalMatches.length > 0) {
+          orderTotal = parseFloat(totalMatches[totalMatches.length - 1][1].replace(/,/g, ''));
         }
 
-        const previousOrderTotal = previousInfo.order_amount || 0;
-        if (orderTotal === 0 && previousOrderTotal > 0) {
-          orderTotal = previousOrderTotal;
+        const calculatedSum = extractedItems.reduce((sum, item) => sum + (item.qty * item.price), 0);
+        if (orderTotal === 0 || calculatedSum > orderTotal) {
+          orderTotal = calculatedSum;
         }
 
         let currentItems = [];

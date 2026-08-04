@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useNiche } from '@/context/NicheContext';
+import { notifyOrderStatusUpdate } from '@/lib/notify-status';
 import { 
   Search, Loader2, Download, Filter, FileSpreadsheet, X,
   ShoppingBag, Calendar, Home, UtensilsCrossed, Check,
@@ -111,6 +112,10 @@ export default function OrdersPage() {
         .eq('id', recordId);
 
       if (error) throw error;
+
+      if (tableName === 'orders') {
+        notifyOrderStatusUpdate(recordId, newStatus);
+      }
     } catch (err) {
       console.error('Error updating status:', err);
       alert('Failed to update status. Please try again.');

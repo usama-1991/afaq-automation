@@ -18,6 +18,7 @@ import { supabase } from '@/lib/supabase/client';
 import { useNiche } from '@/context/NicheContext';
 import { usePlan } from '@/context/PlanContext';
 import { useRouter } from 'next/navigation';
+import { notifyOrderStatusUpdate } from '@/lib/notify-status';
 
 // ── Design Tokens ─────────────────────────────────────────────
 const RED = '#A8253F';
@@ -704,6 +705,7 @@ export default function DashboardPage() {
                           <button
                             onClick={async () => {
                               await supabase.from('orders').update({ status: 'delivered' }).eq('id', order.id);
+                              notifyOrderStatusUpdate(order.id, 'delivered');
                             }}
                             style={{ padding: '6px 12px', background: BLUE, color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                           >
