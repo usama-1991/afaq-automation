@@ -126,7 +126,7 @@ export async function seedStagingTenants() {
   for (const t of TEST_NICHES) {
     console.log(`📌 Seeding tenant [${t.niche}]: ${t.name}...`);
 
-    // 1. Upsert Tenant
+    // 1. Upsert Tenant with Enterprise Plan
     const { error: tenantErr } = await supabase
       .from('tenants')
       .upsert({
@@ -135,6 +135,8 @@ export async function seedStagingTenants() {
         business_name: t.business_name,
         niche: t.niche,
         wa_phone_number_id: t.phone_id,
+        plan: 'enterprise',
+        plan_status: 'active',
         created_at: new Date().toISOString()
       });
 
