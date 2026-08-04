@@ -12,7 +12,7 @@ import {
   Calendar, CheckCircle2, ChevronRight, AlertTriangle,
   Scissors, HeartPulse, Building, Eye, Target, Sparkles,
   Search, ShieldCheck, Smile, HelpCircle, Truck, Package,
-  AlertCircle, ChevronDown, Check, UserPlus, PhoneCall, Trash, FileText
+  AlertCircle, ChevronDown, Check, UserPlus, PhoneCall, Trash, FileText, UtensilsCrossed
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { useNiche } from '@/context/NicheContext';
@@ -682,34 +682,72 @@ export default function DashboardPage() {
                           <span style={{ fontSize: 14, fontWeight: 800, color: '#111827' }}>{order.name}</span>
                           <span style={{
                             fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, textTransform: 'uppercase',
-                            background: order.status === 'pending' ? AMBER_LIGHT : '#ecfdf5',
-                            color: order.status === 'pending' ? AMBER : GREEN
+                            background: order.status === 'pending' ? AMBER_LIGHT : (order.status === 'confirmed' ? BLUE_LIGHT : (order.status === 'preparing' ? '#ffedd5' : (order.status === 'dispatched' ? '#f3e8ff' : '#ecfdf5'))),
+                            color: order.status === 'pending' ? AMBER : (order.status === 'confirmed' ? BLUE : (order.status === 'preparing' ? '#c2410c' : (order.status === 'dispatched' ? '#6b21a8' : GREEN)))
                           }}>{order.status}</span>
                         </div>
                         <div style={{ fontSize: 13, color: '#4b5563', marginTop: 4, fontWeight: 500 }}>{order.items}</div>
                         <div style={{ fontSize: 11.5, color: '#9ca3af', marginTop: 3 }}>{order.area} · Placed {order.time}</div>
                       </div>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        {order.status === 'pending' && (
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                        {/* Order Placed / Pending -> Confirm */}
+                        {(order.status === 'pending' || order.status === 'pending_address') && (
                           <button
                             onClick={async () => {
-                              await supabase.from('orders').update({ status: 'confirmed' }).eq('id', order.id);
-                              // Realtime subscription will fetch changes
+                              await supabase.from('orders').update({ status: 'confirmed', confirmed_at: new Date().toISOString() }).eq('id', order.id);
+                              notifyOrderStatusUpdate(order.id, 'confirmed');
                             }}
-                            style={{ padding: '6px 12px', background: GREEN, color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                            style={{ padding: '6px 12px', background: GREEN, color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                           >
-                            Confirm
+                            <CheckCircle2 size={13} /> Confirm
                           </button>
                         )}
+                        {/* Confirmed -> Prepare */}
                         {order.status === 'confirmed' && (
                           <button
                             onClick={async () => {
-                              await supabase.from('orders').update({ status: 'delivered' }).eq('id', order.id);
+                              await supabase.from('orders').update({ status: 'preparing' }).eq('id', order.id);
+                              notifyOrderStatusUpdate(order.id, 'preparing');
+                            }}
+                            style={{ padding: '6px 12px', background: AMBER, color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                          >
+                            <UtensilsCrossed size={13} /> Prepare
+                          </button>
+                        )}
+                        {/* Preparing -> Dispatch */}
+                        {order.status === 'preparing' && (
+                          <button
+                            onClick={async () => {
+                              await supabase.from('orders').update({ status: 'dispatched', dispatched_at: new Date().toISOString() }).eq('id', order.id);
+                              notifyOrderStatusUpdate(order.id, 'dispatched');
+                            }}
+                            style={{ padding: '6px 12px', background: BLUE, color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                          >
+                            <Truck size={13} /> Dispatch
+                          </button>
+                        )}
+                        {/* Dispatched -> Deliver */}
+                        {order.status === 'dispatched' && (
+                          <button
+                            onClick={async () => {
+                              await supabase.from('orders').update({ status: 'delivered', delivered_at: new Date().toISOString() }).eq('id', order.id);
                               notifyOrderStatusUpdate(order.id, 'delivered');
                             }}
-                            style={{ padding: '6px 12px', background: BLUE, color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                            style={{ padding: '6px 12px', background: GREEN, color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                           >
-                            Deliver
+                            <Check size={13} /> Deliver
+                          </button>
+                        )}
+                        {/* Cancel option */}
+                        {order.status !== 'delivered' && order.status !== 'cancelled' && (
+                          <button
+                            onClick={async () => {
+                              await supabase.from('orders').update({ status: 'cancelled' }).eq('id', order.id);
+                              notifyOrderStatusUpdate(order.id, 'cancelled');
+                            }}
+                            style={{ padding: '6px 10px', background: '#f3f4f6', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                          >
+                            Cancel
                           </button>
                         )}
                       </div>
