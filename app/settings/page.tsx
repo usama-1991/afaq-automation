@@ -507,6 +507,13 @@ function SettingsInner() {
           if (waPhoneId && !waPhoneId.includes('•')) {
             updatePayload.wa_phone_number_id = waPhoneId;
             updatePayload.meta_connected = true;
+
+            // Unbind phone number ID from any other tenant to prevent unique constraint violation (idx_tenants_wa_phone_unique)
+            await supabase
+              .from('tenants')
+              .update({ wa_phone_number_id: null, meta_connected: false })
+              .eq('wa_phone_number_id', waPhoneId)
+              .neq('id', profile.tenant_id);
           }
           if (waAccountId && !waAccountId.includes('•')) updatePayload.wa_account_id = waAccountId;
           if (waToken && !waToken.includes('•')) updatePayload.wa_token_enc = waToken;
