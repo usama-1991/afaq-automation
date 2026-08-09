@@ -7,6 +7,9 @@ import {
   ShoppingBag,
   Building2,
   Scissors,
+  Truck,
+  GraduationCap,
+  Dumbbell,
 } from "lucide-react";
 
 const verticals = [
@@ -14,68 +17,70 @@ const verticals = [
     icon: UtensilsCrossed,
     name: "Restaurants & Food",
     detail: "Menu inquiries, order taking, delivery updates — answered before your customer finishes typing.",
-    color: "#D98E1F",
-    bgColor: "rgba(217, 142, 31, 0.08)",
+    color: "#F2A93B",
+    gradient: "linear-gradient(135deg, rgba(242, 169, 59, 0.15), rgba(242, 169, 59, 0.05))",
   },
   {
     icon: Stethoscope,
-    name: "Clinics & Labs",
+    name: "Clinics & Healthcare",
     detail: "Books appointments, sends test reports, reminds patients before their slots — no receptionist needed.",
     color: "#1B9E96",
-    bgColor: "rgba(27, 158, 150, 0.08)",
+    gradient: "linear-gradient(135deg, rgba(27, 158, 150, 0.15), rgba(27, 158, 150, 0.05))",
   },
   {
     icon: ShoppingBag,
     name: "Fashion & eCommerce",
     detail: "Checks stock, quotes prices and sizes, takes orders, and confirms delivery — like your best salesperson.",
     color: "#C42B33",
-    bgColor: "rgba(196, 43, 51, 0.08)",
+    gradient: "linear-gradient(135deg, rgba(196, 43, 51, 0.15), rgba(196, 43, 51, 0.05))",
   },
   {
     icon: Building2,
     name: "Real Estate",
     detail: "Qualifies leads, shares property listings, and schedules site visits while you focus on closings.",
     color: "#6366F1",
-    bgColor: "rgba(99, 102, 241, 0.08)",
+    gradient: "linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(99, 102, 241, 0.05))",
   },
   {
     icon: Scissors,
     name: "Salons & Studios",
     detail: "Manages bookings by stylist and time slot, handles cancellations, and fills last-minute openings.",
     color: "#EC4899",
-    bgColor: "rgba(236, 72, 153, 0.08)",
+    gradient: "linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(236, 72, 153, 0.05))",
+  },
+  {
+    icon: Truck,
+    name: "Logistics & Delivery",
+    detail: "Real-time order tracking, delivery confirmations, and automated customer notifications on WhatsApp.",
+    color: "#06B6D4",
+    gradient: "linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(6, 182, 212, 0.05))",
   },
 ];
 
 export default function Verticals() {
   return (
-    <section id="verticals" className="relative landing-section">
-      <div className="bg-mesh absolute inset-0" />
-      <div className="relative mx-auto max-w-7xl px-6 lg:px-10">
+    <section className="landing-section-light" id="industries">
+      <div className="landing-container">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.6 }}
-          className="text-center max-w-2xl mx-auto"
+          className="landing-section-header"
         >
-          <span className="inline-flex items-center gap-2 rounded-full bg-maroon/[0.06] px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-maroon">
-            Who It&apos;s For
-          </span>
-          <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight text-ink sm:text-4xl lg:text-[2.75rem]">
+          <span className="landing-label landing-label--teal">INDUSTRIES</span>
+          <h2 className="landing-section-title">
             One AI, trained for{" "}
-            <span className="bg-gradient-to-r from-maroon to-teal bg-clip-text text-transparent">
-              your industry
-            </span>
+            <span className="landing-gradient-text-warm">your industry</span>
           </h2>
-          <p className="mt-4 text-balance text-ink/50 text-lg">
+          <p className="landing-section-subtitle">
             Ittisalo isn&apos;t a generic chatbot. Each business gets a custom AI
             trained on its own products, prices, and services — so every answer
             sounds like it came from your best employee.
           </p>
         </motion.div>
 
-        <div className="mt-16 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="landing-verticals-grid">
           {verticals.map((v, i) => (
             <motion.div
               key={v.name}
@@ -83,24 +88,23 @@ export default function Verticals() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.5, delay: i * 0.08 }}
-              className="glass-card group rounded-2xl p-7"
+              className="landing-vertical-card"
             >
               <div
-                className="feature-icon-wrap mb-5"
-                style={{ backgroundColor: v.bgColor }}
+                className="landing-vertical-icon"
+                style={{ background: v.gradient }}
               >
                 <v.icon
-                  className="h-5 w-5 transition-transform duration-300 group-hover:scale-110"
+                  size={22}
                   style={{ color: v.color }}
                   strokeWidth={1.8}
                 />
               </div>
-              <h3 className="text-base font-semibold text-ink">
-                {v.name}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-ink/50">
-                {v.detail}
-              </p>
+              <h3 className="landing-vertical-name">{v.name}</h3>
+              <p className="landing-vertical-detail">{v.detail}</p>
+              <div className="landing-vertical-arrow" style={{ color: v.color }}>
+                Learn more →
+              </div>
             </motion.div>
           ))}
         </div>

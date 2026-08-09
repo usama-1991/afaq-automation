@@ -1,119 +1,100 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { X, Check, Clock, MessageCircleOff, TrendingDown, Zap, Shield, ShoppingCart, Users } from "lucide-react";
+import { X, Check, ArrowRight } from "lucide-react";
 
 const withoutItems = [
-  { icon: Clock, text: "Customers wait hours for a reply", color: "#EF4444" },
-  { icon: MessageCircleOff, text: "Missed messages during busy hours", color: "#EF4444" },
-  { icon: TrendingDown, text: "Lost sales from slow responses", color: "#EF4444" },
-  { icon: X, text: "No coverage after business hours", color: "#EF4444" },
+  "Missed messages after hours",
+  "Slow response times frustrate customers",
+  "Manual order tracking via notes",
+  "Forgetting appointment reminders",
+  "No visibility into customer data",
+  "Team confusion on who replied",
 ];
 
 const withItems = [
-  { icon: Zap, text: "Instant response under 3 seconds", color: "#1B9E96" },
-  { icon: Shield, text: "24/7 availability, never misses a message", color: "#1B9E96" },
-  { icon: ShoppingCart, text: "Automated order & booking handling", color: "#1B9E96" },
-  { icon: Users, text: "Seamless human handoff when needed", color: "#1B9E96" },
+  "Every message answered instantly, 24/7",
+  "< 3 second AI response time",
+  "Automated order management & tracking",
+  "Smart appointment booking with reminders",
+  "Full analytics dashboard & insights",
+  "Shared inbox with clear assignment",
 ];
 
 export default function Comparison() {
   return (
-    <section className="relative bg-ink overflow-hidden py-24 lg:py-32">
-      {/* Background */}
-      <div className="absolute inset-0 opacity-[0.03]" style={{
-        backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px)",
-        backgroundSize: "32px 32px",
-      }} />
-      <div className="absolute top-[20%] left-[10%] w-96 h-96 rounded-full bg-maroon/[0.04] blur-[120px]" />
-      <div className="absolute bottom-[20%] right-[10%] w-96 h-96 rounded-full bg-teal/[0.04] blur-[120px]" />
-
-      <div className="relative mx-auto max-w-6xl px-6 lg:px-10">
+    <section className="landing-section-dark" id="comparison">
+      <div className="landing-dark-grid" />
+      <div className="landing-container" style={{ position: "relative" }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.6 }}
-          className="text-center max-w-2xl mx-auto mb-16"
+          className="landing-section-header"
         >
-          <span className="inline-flex items-center gap-2 rounded-full bg-white/[0.06] px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-saffron">
-            The Difference
-          </span>
-          <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight text-paper sm:text-4xl lg:text-[2.75rem]">
-            See what changes when AI handles your{" "}
-            <span className="bg-gradient-to-r from-saffron to-maroon-light bg-clip-text text-transparent">
-              WhatsApp conversations
-            </span>
+          <span className="landing-label landing-label--amber">THE DIFFERENCE</span>
+          <h2 className="landing-section-title" style={{ color: "white" }}>
+            Before Ittisalo vs.{" "}
+            <span className="landing-gradient-text-warm">After Ittisalo</span>
           </h2>
         </motion.div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {/* Without Ittisalo */}
+        <div className="landing-comparison-grid">
+          {/* Without */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, margin: "-60px" }}
+            viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="rounded-2xl border border-red-500/10 bg-red-500/[0.03] p-8 backdrop-blur-sm"
+            className="landing-comparison-card landing-comparison-card--without"
           >
-            <div className="mb-6 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10">
-                <X className="h-5 w-5 text-red-400" strokeWidth={2.5} />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-paper">Without Ittisalo</h3>
-                <p className="text-sm text-paper/40">Manual WhatsApp management</p>
-              </div>
+            <div className="landing-comparison-header landing-comparison-header--without">
+              <X size={18} />
+              <span>Without Ittisalo</span>
             </div>
-            <div className="space-y-4">
-              {withoutItems.map((item, i) => (
-                <motion.div
-                  key={item.text}
-                  initial={{ opacity: 0, x: -10 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: i * 0.08 }}
-                  className="flex items-center gap-3 rounded-xl bg-white/[0.03] px-4 py-3"
-                >
-                  <item.icon className="h-4 w-4 flex-shrink-0 text-red-400/70" strokeWidth={1.8} />
-                  <span className="text-sm text-paper/60">{item.text}</span>
-                </motion.div>
+            <ul className="landing-comparison-list">
+              {withoutItems.map((item) => (
+                <li key={item} className="landing-comparison-item">
+                  <div className="landing-comparison-icon landing-comparison-icon--red">
+                    <X size={12} strokeWidth={3} />
+                  </div>
+                  <span>{item}</span>
+                </li>
               ))}
-            </div>
+            </ul>
           </motion.div>
 
-          {/* With Ittisalo */}
+          {/* With */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, margin: "-60px" }}
+            viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="rounded-2xl border border-teal/15 bg-teal/[0.04] p-8 backdrop-blur-sm"
+            className="landing-comparison-card landing-comparison-card--with"
           >
-            <div className="mb-6 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal/15">
-                <Check className="h-5 w-5 text-teal" strokeWidth={2.5} />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-paper">With Ittisalo</h3>
-                <p className="text-sm text-paper/40">AI-powered automation</p>
-              </div>
+            <div className="landing-comparison-header landing-comparison-header--with">
+              <Check size={18} />
+              <span>With Ittisalo</span>
             </div>
-            <div className="space-y-4">
-              {withItems.map((item, i) => (
-                <motion.div
-                  key={item.text}
-                  initial={{ opacity: 0, x: 10 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: i * 0.08 + 0.2 }}
-                  className="flex items-center gap-3 rounded-xl bg-white/[0.04] px-4 py-3"
-                >
-                  <item.icon className="h-4 w-4 flex-shrink-0 text-teal" strokeWidth={1.8} />
-                  <span className="text-sm text-paper/70">{item.text}</span>
-                </motion.div>
+            <ul className="landing-comparison-list">
+              {withItems.map((item) => (
+                <li key={item} className="landing-comparison-item">
+                  <div className="landing-comparison-icon landing-comparison-icon--green">
+                    <Check size={12} strokeWidth={3} />
+                  </div>
+                  <span>{item}</span>
+                </li>
               ))}
-            </div>
+            </ul>
+            <a
+              href="https://wa.me/923360479649"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="landing-comparison-cta"
+            >
+              Start Today <ArrowRight size={14} />
+            </a>
           </motion.div>
         </div>
       </div>

@@ -1,231 +1,252 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Bot, User, ShoppingCart, Clock, MessageSquare } from "lucide-react";
+import { useState } from "react";
+import { 
+  MessageSquare, 
+  Bot, 
+  Users, 
+  BarChart3, 
+  ShoppingCart,
+  ArrowRight 
+} from "lucide-react";
+import Link from "next/link";
 
-const conversations = [
+const tabs = [
   {
-    name: "Sarah Ahmed",
-    avatar: "SA",
-    avatarColor: "#C42B33",
-    lastMessage: "Yes, please place the order!",
-    time: "2 min ago",
-    status: "ai",
-    unread: 0,
-    orderTag: "Order #1247",
+    id: "inbox",
+    icon: MessageSquare,
+    label: "Smart Inbox",
+    title: "All conversations in one place",
+    description: "See every WhatsApp conversation, AI-handled and human, in a unified dashboard. Filter by status, assign to team members, and never lose track of a customer.",
+    features: ["Real-time message sync", "Team assignment", "Priority inbox", "Search & filter"],
   },
   {
-    name: "Ali Hassan",
-    avatar: "AH",
-    avatarColor: "#1B9E96",
-    lastMessage: "What time slots are available tomorrow?",
-    time: "5 min ago",
-    status: "ai",
-    unread: 1,
-    orderTag: null,
+    id: "ai",
+    icon: Bot,
+    label: "AI Agent",
+    title: "Your AI that sounds like you",
+    description: "Train your AI on your business data — products, prices, policies, FAQs. It responds in your brand voice, in English and Urdu, handling everything from product questions to order placement.",
+    features: ["Custom AI training", "Multi-language support", "Context-aware responses", "Continuous learning"],
   },
   {
-    name: "Fatima Khan",
-    avatar: "FK",
-    avatarColor: "#D98E1F",
-    lastMessage: "I need to speak with a manager",
-    time: "8 min ago",
-    status: "human",
-    unread: 2,
-    orderTag: null,
+    id: "orders",
+    icon: ShoppingCart,
+    label: "Order Management",
+    title: "Orders, automated end-to-end",
+    description: "Customers place orders via WhatsApp, and Ittisalo handles the rest — confirmation, tracking updates, and delivery notifications. All visible in your dashboard.",
+    features: ["Auto order capture", "Status tracking", "Payment integration", "Delivery updates"],
   },
   {
-    name: "Usman Malik",
-    avatar: "UM",
-    avatarColor: "#6366F1",
-    lastMessage: "Thanks! Got the confirmation 👍",
-    time: "15 min ago",
-    status: "resolved",
-    unread: 0,
-    orderTag: "Order #1246",
+    id: "team",
+    icon: Users,
+    label: "Team Collaboration",
+    title: "Seamless human handoff",
+    description: "When AI detects a complex query, it smoothly hands off to your team with full context. Your agents see the entire conversation history and can jump in instantly.",
+    features: ["Smart escalation", "Full context transfer", "Team notes", "SLA tracking"],
   },
-];
-
-const chatMessages = [
-  { from: "customer", text: "Hi! I'd like to order the blue kurta in size L" },
-  { from: "bot", text: "Great choice! The Blue Embroidered Kurta in Large is Rs. 2,800 and currently in stock. Would you like to proceed?" },
-  { from: "customer", text: "Yes, please place the order!" },
-  { from: "bot", text: "Order confirmed ✅\n\n📦 Blue Embroidered Kurta (L)\n💰 Rs. 2,800 — COD\n📍 Delivering to your saved address\n\nYou'll receive tracking details shortly!" },
+  {
+    id: "analytics",
+    icon: BarChart3,
+    label: "Analytics",
+    title: "Insights that drive growth",
+    description: "Track response times, customer satisfaction, order volumes, and AI performance. Get actionable insights to improve your business operations.",
+    features: ["Performance metrics", "Customer insights", "Revenue tracking", "AI accuracy reports"],
+  },
 ];
 
 export default function InboxDemo() {
+  const [activeTab, setActiveTab] = useState("inbox");
+  const active = tabs.find((t) => t.id === activeTab) || tabs[0];
+
   return (
-    <section className="relative landing-section overflow-hidden">
-      <div className="bg-mesh absolute inset-0" />
-      <div className="relative mx-auto max-w-7xl px-6 lg:px-10">
+    <section className="landing-section-light" id="platform">
+      <div className="landing-container">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.6 }}
-          className="text-center max-w-2xl mx-auto mb-16"
+          className="landing-section-header"
         >
-          <span className="inline-flex items-center gap-2 rounded-full bg-ink/[0.04] px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-ink/60">
-            Smart Inbox
-          </span>
-          <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight text-ink sm:text-4xl lg:text-[2.75rem]">
-            See every conversation,{" "}
-            <span className="text-ink/40">let AI handle the rest.</span>
+          <span className="landing-label landing-label--teal">PLATFORM</span>
+          <h2 className="landing-section-title">
+            A complete platform for{" "}
+            <span className="landing-gradient-text-cool">conversational commerce</span>
           </h2>
-          <p className="mt-4 text-balance text-ink/50 text-lg">
-            A unified dashboard where you can monitor AI-handled conversations, take over when needed, and track orders — all in one place.
+          <p className="landing-section-subtitle">
+            Everything you need to manage customer conversations, automate sales,
+            and grow your business — all from one dashboard.
           </p>
         </motion.div>
 
-        {/* Dashboard Mockup */}
+        {/* Tab Selector */}
+        <div className="landing-platform-tabs">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`landing-platform-tab ${activeTab === tab.id ? "landing-platform-tab--active" : ""}`}
+            >
+              <tab.icon size={16} />
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Content Area */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="inbox-mockup mx-auto max-w-5xl"
+          key={activeTab}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="landing-platform-content"
         >
-          {/* Dashboard Header */}
-          <div className="flex items-center justify-between border-b border-ink/[0.06] px-6 py-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2L13.4 8.6L20 12L13.4 15.4L12 22L10.6 15.4L4 12L10.6 8.6L12 2Z" fill="#C42B33" />
-                </svg>
-              </div>
-              <span className="text-sm font-semibold text-ink">Ittisalo Dashboard</span>
-            </div>
-            <div className="hidden sm:flex items-center gap-4">
-              <div className="flex items-center gap-2 rounded-full bg-teal/8 px-3 py-1.5">
-                <span className="h-2 w-2 rounded-full bg-teal animate-pulse-soft" />
-                <span className="text-[11px] font-semibold text-teal">AI Active</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-ink/40">
-                <MessageSquare className="h-3.5 w-3.5" />
-                <span>4 conversations</span>
-              </div>
-            </div>
+          <div className="landing-platform-info">
+            <h3 className="landing-platform-title">{active.title}</h3>
+            <p className="landing-platform-desc">{active.description}</p>
+            <ul className="landing-platform-features">
+              {active.features.map((f) => (
+                <li key={f} className="landing-platform-feature">
+                  <div className="landing-platform-feature-dot" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <Link href="/book-demo" className="landing-platform-cta">
+              See it in action <ArrowRight size={14} />
+            </Link>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr]">
-            {/* Conversation List */}
-            <div className="border-b lg:border-b-0 lg:border-r border-ink/[0.06]">
-              <div className="p-3">
-                <div className="rounded-lg bg-ink/[0.03] px-3 py-2 text-xs text-ink/30">
-                  Search conversations...
+          {/* Mockup visualization */}
+          <div className="landing-platform-mockup">
+            <div className="landing-mockup-window">
+              <div className="landing-mockup-titlebar">
+                <div className="landing-mockup-dots">
+                  <span style={{ background: "#ff5f57" }} />
+                  <span style={{ background: "#ffbd2e" }} />
+                  <span style={{ background: "#28ca41" }} />
                 </div>
+                <div className="landing-mockup-title">Ittisalo Dashboard</div>
               </div>
-              <div className="divide-y divide-ink/[0.04]">
-                {conversations.map((c, i) => (
-                  <motion.div
-                    key={c.name}
-                    initial={{ opacity: 0, x: -10 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.4, delay: i * 0.06 }}
-                    className={`flex items-start gap-3 px-4 py-3.5 cursor-pointer transition-colors hover:bg-ink/[0.02] ${
-                      i === 0 ? "bg-maroon/[0.03]" : ""
-                    }`}
-                  >
-                    <div
-                      className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                      style={{ backgroundColor: c.avatarColor }}
+              <div className="landing-mockup-body">
+                {/* Sidebar mockup */}
+                <div className="landing-mockup-sidebar">
+                  {["💬", "🤖", "📦", "👥", "📊"].map((emoji, i) => (
+                    <div 
+                      key={i} 
+                      className={`landing-mockup-sidebar-item ${i === tabs.findIndex(t => t.id === activeTab) ? "active" : ""}`}
                     >
-                      {c.avatar}
+                      {emoji}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-semibold text-ink truncate">{c.name}</span>
-                        <span className="text-[10px] text-ink/35 flex-shrink-0">{c.time}</span>
-                      </div>
-                      <p className="mt-0.5 text-xs text-ink/45 truncate">{c.lastMessage}</p>
-                      <div className="mt-1.5 flex items-center gap-2">
-                        {c.status === "ai" && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-teal/8 px-2 py-0.5 text-[9px] font-semibold text-teal">
-                            <Bot className="h-2.5 w-2.5" /> AI Handled
-                          </span>
-                        )}
-                        {c.status === "human" && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-saffron/10 px-2 py-0.5 text-[9px] font-semibold text-saffron-dark">
-                            <User className="h-2.5 w-2.5" /> Needs Human
-                          </span>
-                        )}
-                        {c.status === "resolved" && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-ink/[0.04] px-2 py-0.5 text-[9px] font-semibold text-ink/35">
-                            ✓ Resolved
-                          </span>
-                        )}
-                        {c.orderTag && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-maroon/[0.06] px-2 py-0.5 text-[9px] font-semibold text-maroon">
-                            <ShoppingCart className="h-2.5 w-2.5" /> {c.orderTag}
-                          </span>
-                        )}
-                        {c.unread > 0 && (
-                          <span className="ml-auto flex h-4 w-4 items-center justify-center rounded-full bg-maroon text-[8px] font-bold text-white">
-                            {c.unread}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-
-            {/* Chat View */}
-            <div className="flex flex-col" style={{ minHeight: "380px" }}>
-              {/* Chat header */}
-              <div className="flex items-center justify-between border-b border-ink/[0.06] px-5 py-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-maroon text-xs font-bold text-white">
-                    SA
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-ink">Sarah Ahmed</p>
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="h-3 w-3 text-ink/30" />
-                      <p className="text-[11px] text-ink/40">Last active 2 min ago</p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
-                <div className="hidden sm:flex items-center gap-2">
-                  <button className="rounded-lg border border-ink/10 px-3 py-1.5 text-[11px] font-semibold text-ink/60 transition-colors hover:bg-ink/[0.03]">
-                    Take Over
-                  </button>
-                  <button className="rounded-lg bg-ink/[0.03] px-3 py-1.5 text-[11px] font-semibold text-ink/60 transition-colors hover:bg-ink/[0.06]">
-                    View Order
-                  </button>
-                </div>
-              </div>
-
-              {/* Chat Messages */}
-              <div className="flex-1 space-y-3 p-5 overflow-y-auto">
-                {chatMessages.map((m, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 8 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.4, delay: i * 0.08 }}
-                    className={`flex ${m.from === "customer" ? "justify-start" : "justify-end"}`}
-                  >
-                    <div
-                      className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-[13px] leading-relaxed ${
-                        m.from === "customer"
-                          ? "rounded-tl-sm bg-ink/[0.04] text-ink"
-                          : "rounded-tr-sm bg-maroon/[0.08] text-ink"
-                      }`}
-                    >
-                      {m.from === "bot" && (
-                        <div className="mb-1 flex items-center gap-1">
-                          <Bot className="h-3 w-3 text-maroon" />
-                          <span className="text-[10px] font-semibold text-maroon">Ittisalo AI</span>
-                        </div>
-                      )}
-                      <span className="whitespace-pre-line">{m.text}</span>
+                {/* Content area */}
+                <div className="landing-mockup-content">
+                  {activeTab === "inbox" && (
+                    <div className="landing-mockup-inbox">
+                      {[
+                        { name: "Ahmed Khan", msg: "What's the price of XL?", time: "2m", ai: true },
+                        { name: "Fatima Shah", msg: "Order #1234 status?", time: "5m", ai: true },
+                        { name: "Ali Raza", msg: "I need to speak to someone", time: "12m", ai: false },
+                      ].map((chat, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.15 }}
+                          className="landing-mockup-chat-item"
+                        >
+                          <div className="landing-mockup-avatar" style={{ background: ["#C42B33", "#1B9E96", "#6366F1"][i] }}>
+                            {chat.name[0]}
+                          </div>
+                          <div className="landing-mockup-chat-info">
+                            <div className="landing-mockup-chat-name">{chat.name}</div>
+                            <div className="landing-mockup-chat-msg">{chat.msg}</div>
+                          </div>
+                          <div className="landing-mockup-chat-meta">
+                            <span className="landing-mockup-chat-time">{chat.time}</span>
+                            <span className={`landing-mockup-chat-badge ${chat.ai ? "ai" : "human"}`}>
+                              {chat.ai ? "AI" : "Human"}
+                            </span>
+                          </div>
+                        </motion.div>
+                      ))}
                     </div>
-                  </motion.div>
-                ))}
+                  )}
+                  {activeTab === "ai" && (
+                    <div className="landing-mockup-ai">
+                      <div className="landing-mockup-ai-status">
+                        <div className="landing-mockup-ai-pulse" />
+                        AI Agent Active
+                      </div>
+                      <div className="landing-mockup-ai-stat">
+                        <span>Conversations Today</span><strong>247</strong>
+                      </div>
+                      <div className="landing-mockup-ai-stat">
+                        <span>Resolution Rate</span><strong>94%</strong>
+                      </div>
+                      <div className="landing-mockup-ai-stat">
+                        <span>Avg Response Time</span><strong>1.8s</strong>
+                      </div>
+                    </div>
+                  )}
+                  {activeTab === "orders" && (
+                    <div className="landing-mockup-orders">
+                      {[
+                        { id: "#1847", status: "Shipped", amount: "Rs. 3,500", color: "#1B9E96" },
+                        { id: "#1846", status: "Processing", amount: "Rs. 1,200", color: "#F2A93B" },
+                        { id: "#1845", status: "Delivered", amount: "Rs. 5,800", color: "#6366F1" },
+                      ].map((order, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.12 }}
+                          className="landing-mockup-order-row"
+                        >
+                          <span className="landing-mockup-order-id">{order.id}</span>
+                          <span className="landing-mockup-order-status" style={{ color: order.color }}>{order.status}</span>
+                          <span className="landing-mockup-order-amount">{order.amount}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                  {activeTab === "team" && (
+                    <div className="landing-mockup-team">
+                      {["Online", "Online", "Away", "Offline"].map((status, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: i * 0.1 }}
+                          className="landing-mockup-team-member"
+                        >
+                          <div className="landing-mockup-team-avatar" style={{ background: ["#C42B33", "#1B9E96", "#F2A93B", "#64748B"][i] }}>
+                            {["U", "A", "S", "M"][i]}
+                          </div>
+                          <span className={`landing-mockup-team-status ${status.toLowerCase()}`}>{status}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                  {activeTab === "analytics" && (
+                    <div className="landing-mockup-analytics">
+                      <div className="landing-mockup-chart-bars">
+                        {[65, 80, 45, 90, 70, 85, 55].map((height, i) => (
+                          <motion.div
+                            key={i}
+                            initial={{ height: 0 }}
+                            animate={{ height: `${height}%` }}
+                            transition={{ delay: i * 0.08, duration: 0.5 }}
+                            className="landing-mockup-chart-bar"
+                            style={{ background: `linear-gradient(to top, #C42B33, #E04850)` }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
