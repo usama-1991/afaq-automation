@@ -223,7 +223,7 @@ function ActionCenterDashboard({ userName }: { userName: string }) {
               : 'You don\'t have an active plan. Subscribe to unlock messaging, leads, and more.'}
           </div>
           <button 
-            onClick={() => router.push('/pricing')}
+            onClick={() => router.push('/upgrade')}
             style={{ background: '#111827', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
           >
             <Sparkles size={14} /> View Plans & Subscribe

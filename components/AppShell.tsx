@@ -141,9 +141,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
     const isMainDomain = hostname === 'ittisalo.com' || hostname === 'www.ittisalo.com';
     const isLandingPage = isMainDomain && pathname === '/';
+    
+    // Define all public paths that don't require auth
+    const publicPaths = ['/landing', '/features', '/pricing', '/industries', '/how-it-works', '/book-demo', '/contact-us', '/about'];
+    const isPublicPath = isLandingPage || publicPaths.includes(pathname);
 
     if (!session) {
-      if (!isLogin && pathname !== '/update-password' && !isLandingPage && pathname !== '/landing') {
+      if (!isLogin && pathname !== '/update-password' && !isPublicPath) {
         router.replace('/login');
       }
       return;
@@ -230,13 +234,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const isBrowser = typeof window !== 'undefined';
   const currentHost = isBrowser ? window.location.hostname : '';
+  const publicPaths = ['/landing', '/features', '/pricing', '/industries', '/how-it-works', '/book-demo', '/contact-us', '/about'];
   const isLandingRender = (currentHost === 'ittisalo.com' || currentHost === 'www.ittisalo.com') && pathname === '/';
+  const isPublicRender = isLandingRender || publicPaths.includes(pathname);
 
   // Root '/' is a redirect gateway
   if (pathname === '/' && !isLandingRender) return <Spinner />;
 
   // Full screen pages — no sidebar/banner
-  if (isOnboarding || isLogin || pathname === '/update-password' || pathname === '/landing' || isLandingRender) return <>{children}</>;
+  if (isOnboarding || isLogin || pathname === '/update-password' || isPublicRender) return <>{children}</>;
 
   const initials = userName.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase() || 'U';
 

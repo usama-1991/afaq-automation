@@ -1,28 +1,30 @@
 import Nav from "@/components/landing/Nav";
 import Footer from "@/components/landing/Footer";
 import CTA from "@/components/landing/CTA";
-import Pricing from "@/components/landing/Pricing";
+import Verticals from "@/components/landing/Verticals";
+import Trust from "@/components/landing/Trust";
 
 export const metadata = {
-  title: "Pricing — Ittisalo",
-  description: "Simple, transparent plans designed for your scale.",
+  title: "Industries — Ittisalo",
+  description: "See how Ittisalo transforms customer communication across different industries.",
 };
 
-export default function PricingPage() {
+export default function IndustriesPage() {
   return (
     <main className="relative min-h-screen bg-[#F6F5F2]">
       <Nav />
       <div className="pt-32 pb-8 bg-[#F6F5F2]">
         <div className="landing-container text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-[#14161A] mb-6 mt-8 font-heading tracking-tight">
-            Transparent <span className="text-[#C42B33]">Pricing</span>
+            Tailored for your <span className="text-[#C42B33]">Industry</span>
           </h1>
           <p className="text-lg text-[#6B6F76] max-w-2xl mx-auto">
-            Book a demo to see the platform in action, and we'll tailor a plan that fits your exact business needs.
+            Whether you run a restaurant, clinic, or eCommerce store, our AI understands your specific business needs.
           </p>
         </div>
       </div>
-      <Pricing />
+      <Verticals />
+      <Trust />
       <CTA />
       <Footer />
     </main>
