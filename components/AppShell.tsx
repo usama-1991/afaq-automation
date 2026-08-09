@@ -144,7 +144,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     
     // Define all public paths that don't require auth
     const publicPaths = ['/landing', '/features', '/pricing', '/industries', '/how-it-works', '/book-demo', '/contact-us', '/about'];
-    const isPublicPath = isLandingPage || publicPaths.includes(pathname);
+    const isPublicPath = isLandingPage || publicPaths.some(p => pathname === p || pathname.startsWith(p + '/'));
 
     if (!session) {
       if (!isLogin && pathname !== '/update-password' && !isPublicPath) {
@@ -236,7 +236,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const currentHost = isBrowser ? window.location.hostname : '';
   const publicPaths = ['/landing', '/features', '/pricing', '/industries', '/how-it-works', '/book-demo', '/contact-us', '/about'];
   const isLandingRender = (currentHost === 'ittisalo.com' || currentHost === 'www.ittisalo.com') && pathname === '/';
-  const isPublicRender = isLandingRender || publicPaths.includes(pathname);
+  const isPublicRender = isLandingRender || publicPaths.some(p => pathname === p || pathname.startsWith(p + '/'));
 
   // Root '/' is a redirect gateway
   if (pathname === '/' && !isLandingRender) return <Spinner />;

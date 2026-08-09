@@ -23,20 +23,20 @@ import {
 } from "lucide-react";
 
 const productLinks = [
-  { icon: Bot, label: "AI Chatbot", desc: "24/7 intelligent customer conversations", href: "/features#ai-chatbot" },
-  { icon: MessageSquare, label: "Shared Inbox", desc: "Human + AI collaboration in one inbox", href: "/features#inbox" },
-  { icon: ShoppingCart, label: "Order Management", desc: "Take orders directly via WhatsApp", href: "/features#orders" },
-  { icon: CalendarCheck, label: "Appointment Booking", desc: "Smart scheduling with reminders", href: "/features#appointments" },
-  { icon: BarChart3, label: "Analytics Dashboard", desc: "Track performance and insights", href: "/features#analytics" },
-  { icon: Headphones, label: "Campaign Manager", desc: "Broadcast to thousands instantly", href: "/features#campaigns" },
+  { icon: Bot, label: "AI Chatbot", desc: "24/7 intelligent customer conversations", href: "/features/ai-chatbot" },
+  { icon: MessageSquare, label: "Shared Inbox", desc: "Human + AI collaboration in one inbox", href: "/features/shared-inbox" },
+  { icon: ShoppingCart, label: "Order Management", desc: "Take orders directly via WhatsApp", href: "/features/order-management" },
+  { icon: CalendarCheck, label: "Appointment Booking", desc: "Smart scheduling with reminders", href: "/features/appointment-booking" },
+  { icon: BarChart3, label: "Analytics Dashboard", desc: "Track performance and insights", href: "/features/analytics" },
+  { icon: Headphones, label: "Campaign Manager", desc: "Broadcast to thousands instantly", href: "/features/campaigns" },
 ];
 
 const industryLinks = [
-  { icon: UtensilsCrossed, label: "Restaurants & Food", href: "/industries#restaurants" },
-  { icon: Stethoscope, label: "Clinics & Healthcare", href: "/industries#clinics" },
-  { icon: ShoppingBag, label: "Fashion & eCommerce", href: "/industries#ecommerce" },
-  { icon: Building2, label: "Real Estate", href: "/industries#real-estate" },
-  { icon: Scissors, label: "Salons & Studios", href: "/industries#salons" },
+  { icon: UtensilsCrossed, label: "Restaurants & Food", href: "/industries/restaurants" },
+  { icon: Stethoscope, label: "Clinics & Healthcare", href: "/industries/clinics" },
+  { icon: ShoppingBag, label: "Fashion & eCommerce", href: "/industries/ecommerce" },
+  { icon: Building2, label: "Real Estate", href: "/industries/real-estate" },
+  { icon: Scissors, label: "Salons & Studios", href: "/industries/salons" },
 ];
 
 export default function Nav() {
