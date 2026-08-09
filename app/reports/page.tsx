@@ -260,6 +260,7 @@ export default function ReportsPage() {
           <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>
             No team data available yet. Team metrics populate as conversations are handled.
           </div>
+        ) : (
           <div style={{ overflowX: 'auto', width: '100%' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
