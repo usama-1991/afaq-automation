@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useMemo, memo } from "react";
 import { 
   MessageSquare, 
   Bot, 
@@ -55,9 +55,9 @@ const tabs = [
   },
 ];
 
-export default function InboxDemo() {
+function InboxDemo() {
   const [activeTab, setActiveTab] = useState("inbox");
-  const active = tabs.find((t) => t.id === activeTab) || tabs[0];
+  const active = useMemo(() => tabs.find((t) => t.id === activeTab) || tabs[0], [activeTab]);
 
   return (
     <section className="landing-section-light" id="platform">
@@ -255,3 +255,5 @@ export default function InboxDemo() {
     </section>
   );
 }
+
+export default memo(InboxDemo);

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { memo } from "react";
 import {
   Clock,
   ShieldCheck,
@@ -91,7 +92,7 @@ const features = [
   },
 ];
 
-export default function Features() {
+function Features() {
   return (
     <section id="features" className="landing-section-light">
       <div className="landing-dot-pattern" />
@@ -142,3 +143,5 @@ export default function Features() {
     </section>
   );
 }
+
+export default memo(Features);

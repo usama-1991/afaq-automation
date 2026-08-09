@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
@@ -36,10 +36,9 @@ const industryLinks = [
   { icon: Stethoscope, label: "Clinics & Healthcare", href: "/industries/clinics" },
   { icon: ShoppingBag, label: "Fashion & eCommerce", href: "/industries/ecommerce" },
   { icon: Building2, label: "Real Estate", href: "/industries/real-estate" },
-  { icon: Scissors, label: "Salons & Studios", href: "/industries/salons" },
 ];
 
-export default function Nav() {
+function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -269,3 +268,5 @@ export default function Nav() {
     </>
   );
 }
+
+export default memo(Nav);

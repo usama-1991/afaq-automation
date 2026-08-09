@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { memo } from "react";
 
 const steps = [
   {
@@ -53,7 +54,7 @@ const steps = [
   },
 ];
 
-export default function HowItWorks() {
+function HowItWorks() {
   return (
     <section id="how" className="landing-section-dark">
       {/* Background effects */}
@@ -133,3 +134,5 @@ export default function HowItWorks() {
     </section>
   );
 }
+
+export default memo(HowItWorks);

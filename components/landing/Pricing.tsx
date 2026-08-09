@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { memo } from "react";
 import { Check, ArrowRight, Sparkles, Building2, Rocket } from "lucide-react";
 import Link from "next/link";
 
@@ -61,7 +62,7 @@ const plans = [
   },
 ];
 
-export default function Pricing() {
+function Pricing() {
   return (
     <section id="pricing" className="landing-section-light">
       <div className="landing-dot-pattern" />
@@ -155,3 +156,5 @@ export default function Pricing() {
     </section>
   );
 }
+
+export default memo(Pricing);

@@ -1,17 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles, X } from 'lucide-react';
 import { usePlan } from '@/context/PlanContext';
 
-export default function TopBanner({ onClose }: { onClose: () => void }) {
+function TopBanner({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const { trialDaysLeft, tenantInfo } = usePlan();
   
-  const trialEndsDate = tenantInfo?.trial_ends_at 
-    ? new Date(tenantInfo.trial_ends_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    : '';
+  const trialEndsDate = useMemo(() => {
+    return tenantInfo?.trial_ends_at 
+      ? new Date(tenantInfo.trial_ends_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : '';
+  }, [tenantInfo?.trial_ends_at]);
 
   return (
     <div style={{
@@ -78,3 +80,5 @@ export default function TopBanner({ onClose }: { onClose: () => void }) {
     </div>
   );
 }
+
+export default memo(TopBanner);

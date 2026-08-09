@@ -1,14 +1,14 @@
 'use client';
 
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Star, LayoutDashboard, MessageSquare, Users, Bot, Plug, Settings, LogOut, FileText, Megaphone, Folder, BarChart3, Menu, X, ShoppingBag, Crown } from 'lucide-react';
 import { useNiche } from '@/context/NicheContext';
-import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 
-// Desktop icon-only nav item with CSS tokens
-function NavItem({ href, icon: Icon, label, active, count }: { href: string; icon: any; label: string; active: boolean; count?: number }) {
+// Desktop icon-only nav item with CSS tokens - Memoized to prevent re-renders on route/state changes
+const NavItem = memo(function NavItem({ href, icon: Icon, label, active, count }: { href: string; icon: any; label: string; active: boolean; count?: number }) {
   const [hovered, setHovered] = useState(false);
   return (
     <Link href={href} title={label} style={{ textDecoration: 'none', position: 'relative' }}>
@@ -67,9 +67,9 @@ function NavItem({ href, icon: Icon, label, active, count }: { href: string; ico
       </div>
     </Link>
   );
-}
+});
 
-export default function Sidebar() {
+function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { niche, nicheId } = useNiche();
@@ -79,35 +79,35 @@ export default function Sidebar() {
   const [pendingOrders, setPendingOrders] = useState(0);
 
   // Cluster 1: Core
-  const clusterCore = [
+  const clusterCore = useMemo(() => [
     { href: '/dashboard',     icon: LayoutDashboard, label: 'Overview' },
     { href: '/conversations', icon: MessageSquare,   label: 'Chats', count: unreadChats },
     { href: '/contacts',      icon: Users,           label: 'Contacts' },
-  ];
+  ], [unreadChats]);
 
   // Cluster 2: Commerce & Ops
-  const clusterCommerce = [
+  const clusterCommerce = useMemo(() => [
     { href: '/orders',        icon: ShoppingBag,     label: 'Orders', count: pendingOrders },
     ...(nicheId === 'ecommerce' ? [{ href: '/reviews', icon: Star, label: 'Reviews' }] : []),
     { href: '/campaigns',     icon: Megaphone,       label: 'Campaigns' },
     { href: '/templates',     icon: FileText,        label: 'Templates' },
     { href: '/media',         icon: Folder,          label: 'Media' },
-  ];
+  ], [pendingOrders, nicheId]);
 
   // Cluster 3: Intelligence
-  const clusterIntelligence = [
+  const clusterIntelligence = useMemo(() => [
     { href: '/agents',        icon: Bot,             label: 'AI Agents' },
     { href: '/reports',       icon: BarChart3,       label: 'Reports' },
-  ];
+  ], []);
 
   // Cluster 4: Team & Settings
-  const clusterSettings = [
+  const clusterSettings = useMemo(() => [
     { href: '/team',          icon: Users,           label: 'Team' },
     { href: '/settings',      icon: Settings,        label: 'Settings' },
-  ];
+  ], []);
 
-  const allNav = [...clusterCore, ...clusterCommerce, ...clusterIntelligence, ...clusterSettings];
-  const MOBILE_NAV = allNav.slice(0, 5);
+  const allNav = useMemo(() => [...clusterCore, ...clusterCommerce, ...clusterIntelligence, ...clusterSettings], [clusterCore, clusterCommerce, clusterIntelligence, clusterSettings]);
+  const MOBILE_NAV = useMemo(() => allNav.slice(0, 5), [allNav]);
 
   useEffect(() => {
     const fetchRole = async () => {
@@ -437,3 +437,5 @@ export default function Sidebar() {
     </>
   );
 }
+
+export default memo(Sidebar);

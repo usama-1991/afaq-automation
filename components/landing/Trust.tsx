@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { memo } from "react";
 import { Store, Utensils, Scissors, Building, Stethoscope, MessageSquare, Star, TrendingUp, Shield } from "lucide-react";
 
 const stats = [
@@ -18,7 +19,7 @@ const industries = [
   { icon: Stethoscope, label: "Clinics" },
 ];
 
-export default function Trust() {
+function Trust() {
   return (
     <section className="landing-section-dark" id="trust">
       <div className="landing-dark-grid" />
@@ -117,3 +118,5 @@ export default function Trust() {
     </section>
   );
 }
+
+export default memo(Trust);

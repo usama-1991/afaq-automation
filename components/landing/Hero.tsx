@@ -3,11 +3,13 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import Link from "next/link";
 
+import { memo } from "react";
+
 const floatingWords = [
   "WhatsApp", "AI", "Chatbot", "Orders", "Support", "24/7", "Conversations", "Growth",
 ];
 
-export default function Hero() {
+function Hero() {
   return (
     <section className="landing-hero">
       {/* Gradient Background */}
@@ -227,3 +229,5 @@ export default function Hero() {
     </section>
   );
 }
+
+export default memo(Hero);

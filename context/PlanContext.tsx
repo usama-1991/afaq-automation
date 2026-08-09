@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase/client';
 
 // ── Plan limits shape ──────────────────────────────────────
@@ -75,7 +75,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   const [usage, setUsage] = useState<UsageMetrics | null>(null);
   const [planLoaded, setPlanLoaded] = useState(false);
 
-  const loadPlan = async () => {
+  const loadPlan = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -128,15 +128,15 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     } finally {
       setPlanLoaded(true);
     }
-  };
+  }, []);
 
-  useEffect(() => { loadPlan(); }, []);
+  useEffect(() => { loadPlan(); }, [loadPlan]);
 
-  const isFeatureEnabled = (feature: keyof Pick<PlanLimits, 'instagram_enabled' | 'messenger_enabled' | 'analytics_enabled' | 'priority_support' | 'custom_branding'>): boolean => {
+  const isFeatureEnabled = useCallback((feature: keyof Pick<PlanLimits, 'instagram_enabled' | 'messenger_enabled' | 'analytics_enabled' | 'priority_support' | 'custom_branding'>): boolean => {
     return limits?.[feature] === true;
-  };
+  }, [limits]);
 
-  const getLimit = (metric: 'conversations' | 'campaigns' | 'templates' | 'kb_entries' | 'team_members'): number => {
+  const getLimit = useCallback((metric: 'conversations' | 'campaigns' | 'templates' | 'kb_entries' | 'team_members'): number => {
     if (!limits) return 0;
     const map: Record<string, number> = {
       conversations: limits.max_conversations,
@@ -146,9 +146,9 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       team_members:  limits.max_team_members,
     };
     return map[metric] ?? 0;
-  };
+  }, [limits]);
 
-  const getUsageCount = (metric: 'conversations' | 'campaigns' | 'templates' | 'kb_entries' | 'team_members', currentCount?: number): number => {
+  const getUsageCount = useCallback((metric: 'conversations' | 'campaigns' | 'templates' | 'kb_entries' | 'team_members', currentCount?: number): number => {
     if (currentCount !== undefined) return currentCount;
     if (!usage) return 0;
     const map: Record<string, number> = {
@@ -156,34 +156,46 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       campaigns:     usage.campaigns_sent,
       templates:     usage.templates_submitted,
       kb_entries:    usage.kb_entries_count,
-      team_members:  0, // We would fetch team members count in reality
+      team_members:  0,
     };
     return map[metric] ?? 0;
-  };
+  }, [usage]);
 
-  const usagePercent = (metric: 'conversations' | 'campaigns' | 'templates' | 'kb_entries' | 'team_members', currentCount?: number): number => {
+  const usagePercent = useCallback((metric: 'conversations' | 'campaigns' | 'templates' | 'kb_entries' | 'team_members', currentCount?: number): number => {
     const limit = getLimit(metric);
-    if (limit === -1) return 0; // unlimited
+    if (limit === -1) return 0;
     if (limit === 0) return 100;
     const count = getUsageCount(metric, currentCount);
     return Math.min(100, Math.round((count / limit) * 100));
-  };
+  }, [getLimit, getUsageCount]);
 
-  const isWithinLimit = (metric: 'conversations' | 'campaigns' | 'templates' | 'kb_entries' | 'team_members', currentCount?: number): boolean => {
+  const isWithinLimit = useCallback((metric: 'conversations' | 'campaigns' | 'templates' | 'kb_entries' | 'team_members', currentCount?: number): boolean => {
     const limit = getLimit(metric);
-    if (limit === -1) return true; // unlimited
+    if (limit === -1) return true;
     const count = getUsageCount(metric, currentCount);
     return count < limit;
-  };
+  }, [getLimit, getUsageCount]);
 
-  const trialDaysLeft: number | null = (() => {
+  const trialDaysLeft: number | null = useMemo(() => {
     if (tenantInfo?.plan !== 'trial' || !tenantInfo?.trial_ends_at) return null;
     const diff = new Date(tenantInfo.trial_ends_at).getTime() - Date.now();
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
-  })();
+  }, [tenantInfo?.plan, tenantInfo?.trial_ends_at]);
+
+  const value = useMemo(() => ({
+    tenantInfo,
+    limits,
+    usage,
+    planLoaded,
+    isFeatureEnabled,
+    usagePercent,
+    isWithinLimit,
+    trialDaysLeft,
+    refreshPlan: loadPlan
+  }), [tenantInfo, limits, usage, planLoaded, isFeatureEnabled, usagePercent, isWithinLimit, trialDaysLeft, loadPlan]);
 
   return (
-    <PlanCtx.Provider value={{ tenantInfo, limits, usage, planLoaded, isFeatureEnabled, usagePercent, isWithinLimit, trialDaysLeft, refreshPlan: loadPlan }}>
+    <PlanCtx.Provider value={value}>
       {children}
     </PlanCtx.Provider>
   );

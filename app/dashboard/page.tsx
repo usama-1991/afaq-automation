@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar
@@ -50,7 +50,7 @@ interface StatCardProps {
   trendUp?: boolean;
 }
 
-function StatCard({
+const StatCard = memo(function StatCard({
   label, value, sub, icon: Icon, color, bg, trend, trendUp,
 }: StatCardProps) {
   const isEmpty = value === '—' || value === undefined || value === null || value === 'No orders' || value === 'Loading…';
@@ -113,9 +113,9 @@ function StatCard({
       </div>
     </div>
   );
-}
+});
 
-function SectionCard({ title, subtitle, children, action, fullHeight }: {
+const SectionCard = memo(function SectionCard({ title, subtitle, children, action, fullHeight }: {
   title: string; subtitle?: string; children: React.ReactNode; action?: React.ReactNode; fullHeight?: boolean;
 }) {
   return (
@@ -134,10 +134,10 @@ function SectionCard({ title, subtitle, children, action, fullHeight }: {
       <div>{children}</div>
     </div>
   );
-}
+});
 
 // ── Custom Tooltip ────────────────────────────────────────────
-function ChartTooltip({ active, payload, label }: any) {
+const ChartTooltip = memo(function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div style={{
@@ -155,7 +155,7 @@ function ChartTooltip({ active, payload, label }: any) {
       ))}
     </div>
   );
-}
+});
 
 // ── Action Center Dashboard (Fallback when not set up) ──────────
 function ActionCenterDashboard({ userName }: { userName: string }) {

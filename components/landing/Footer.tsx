@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { memo } from "react";
 
 const footerLinks = {
   Product: [
@@ -27,7 +28,7 @@ const footerLinks = {
   ],
 };
 
-export default function Footer() {
+function Footer() {
   return (
     <footer className="landing-footer">
       <div className="landing-container">
@@ -97,3 +98,5 @@ export default function Footer() {
     </footer>
   );
 }
+
+export default memo(Footer);

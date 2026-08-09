@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { memo } from "react";
 import {
   UtensilsCrossed,
   Stethoscope,
@@ -57,7 +58,7 @@ const verticals = [
   },
 ];
 
-export default function Verticals() {
+function Verticals() {
   return (
     <section className="landing-section-light" id="industries">
       <div className="landing-container">
@@ -112,3 +113,5 @@ export default function Verticals() {
     </section>
   );
 }
+
+export default memo(Verticals);

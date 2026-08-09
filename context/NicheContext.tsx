@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { getNiche, NicheConfig } from '@/lib/niches';
 
 interface NicheCtx {
@@ -30,18 +30,29 @@ export function NicheProvider({ children }: { children: ReactNode }) {
     setHydrated(true); // signal: localStorage has been read
   }, []);
 
-  const setNicheId = (id: string) => {
+  const setNicheId = useCallback((id: string) => {
     setNicheIdState(id);
     try { localStorage.setItem('ittisalo_niche', id); } catch (_) {}
-  };
+  }, []);
 
-  const setOnboarded = (v: boolean) => {
+  const setOnboarded = useCallback((v: boolean) => {
     setOnboardedState(v);
     try { localStorage.setItem('ittisalo_onboarded', String(v)); } catch (_) {}
-  };
+  }, []);
+
+  const niche = useMemo(() => getNiche(nicheId), [nicheId]);
+
+  const value = useMemo(() => ({
+    nicheId,
+    niche,
+    setNicheId,
+    onboarded,
+    setOnboarded,
+    hydrated
+  }), [nicheId, niche, setNicheId, onboarded, setOnboarded, hydrated]);
 
   return (
-    <Ctx.Provider value={{ nicheId, niche: getNiche(nicheId), setNicheId, onboarded, setOnboarded, hydrated }}>
+    <Ctx.Provider value={value}>
       {children}
     </Ctx.Provider>
   );

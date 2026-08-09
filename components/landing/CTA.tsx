@@ -1,9 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { memo } from "react";
 import Link from "next/link";
 
-export default function CTA() {
+function CTA() {
   return (
     <section id="demo" className="landing-cta-section">
       {/* Complex gradient background */}
@@ -79,3 +80,5 @@ export default function CTA() {
     </section>
   );
 }
+
+export default memo(CTA);

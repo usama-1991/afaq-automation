@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { memo } from "react";
 import { X, Check, ArrowRight } from "lucide-react";
 
 const withoutItems = [
@@ -21,7 +22,7 @@ const withItems = [
   "Shared inbox with clear assignment",
 ];
 
-export default function Comparison() {
+function Comparison() {
   return (
     <section className="landing-section-dark" id="comparison">
       <div className="landing-dark-grid" />
@@ -101,3 +102,5 @@ export default function Comparison() {
     </section>
   );
 }
+
+export default memo(Comparison);

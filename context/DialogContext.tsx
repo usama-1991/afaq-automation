@@ -116,8 +116,10 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const value = React.useMemo(() => ({ confirm, showAlert }), [confirm, showAlert]);
+
   return (
-    <DialogContext.Provider value={{ confirm, showAlert }}>
+    <DialogContext.Provider value={value}>
       {children}
       <AnimatePresence>
         {dialog.isOpen && (
