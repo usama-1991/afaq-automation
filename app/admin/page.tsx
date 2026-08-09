@@ -128,7 +128,8 @@ export default function SuperAdminPage() {
               </div>
             </div>
 
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <div style={{ overflowX: 'auto', width: '100%' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
                 <tr style={{ background: '#111827', borderBottom: '1px solid #374151' }}>
                   <th style={{ padding: '14px 24px', fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase' }}>Workspace</th>
@@ -182,6 +183,7 @@ export default function SuperAdminPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
 

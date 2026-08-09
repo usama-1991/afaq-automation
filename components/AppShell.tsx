@@ -242,7 +242,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   if (pathname === '/' && !isLandingRender) return <Spinner />;
 
   // Full screen pages — no sidebar/banner
-  if (isOnboarding || isLogin || pathname === '/update-password' || isPublicRender) return <>{children}</>;
+  if (isOnboarding || isLogin || pathname === '/update-password' || isPublicRender) return <div style={{ overflowX: 'hidden', width: '100%', maxWidth: '100vw' }}>{children}</div>;
 
   const initials = userName.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase() || 'U';
 
@@ -250,7 +250,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const showBanner = planLoaded && isTrial && trialDaysLeft !== 0 && bannerVisible;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
       {showBanner && <TopBanner onClose={() => setBannerVisible(false)} />}
       {planLoaded && tenantInfo && tenantInfo.plan_status !== 'active' && (!isTrial || trialDaysLeft === 0) && !isAdminRoute && (
         <div style={{ background: '#fef2f2', borderBottom: '1px solid #fecaca', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
@@ -399,8 +399,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </header>
           
           {/* Main Content Area */}
-          <main style={{ flex: 1, overflowY: 'auto', background: '#faf9f9', position: 'relative' }}>
-            <div style={{ padding: '24px' }}>
+          <main className="main-content-area" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', width: '100%', maxWidth: '100%', background: '#faf9f9', position: 'relative' }}>
+            <div style={{ padding: '24px', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
               {!isAdminRoute && <MetaGateBanner />}
               {children}
             </div>

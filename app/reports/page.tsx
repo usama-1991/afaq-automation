@@ -260,8 +260,8 @@ export default function ReportsPage() {
           <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>
             No team data available yet. Team metrics populate as conversations are handled.
           </div>
-        ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ overflowX: 'auto', width: '100%' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f8fafc' }}>
                 {['Team Member', 'Role', 'Chats Resolved', 'Avg Response', 'CSAT', 'Workload'].map(h => (
@@ -301,6 +301,7 @@ export default function ReportsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
