@@ -47,6 +47,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [bannerVisible, setBannerVisible] = useState(true);
 
+  const [userRole, setUserRole] = useState<string | null>(null);
+
   const isOnboarding = pathname === '/onboarding';
   const isLogin = pathname === '/login';
   const isAdminRoute = pathname.startsWith('/admin');
@@ -55,9 +57,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     try {
       const { data: profile } = await supabase
         .from('users')
-        .select('tenant_id')
+        .select('tenant_id, role')
         .eq('id', user.id)
         .single();
+
+      if (profile?.role) {
+        setUserRole(profile.role);
+      }
 
       if (profile?.tenant_id) {
         const { data: tenant } = await supabase
@@ -153,18 +159,35 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const isAdminUser = session.user?.email === 'admin@ittisalo.io';
+    const isSuperAdmin =
+      userRole === 'super_admin' ||
+      session.user?.email === 'usamahabib1991@gmail.com' ||
+      session.user?.email === 'admin@ittisalo.io';
+
+    if (isSuperAdmin) {
+      if (isOnboarding) {
+        router.replace('/admin');
+        return;
+      }
+      if (pathname === '/' && !isLandingPage) {
+        router.replace('/admin');
+        return;
+      }
+      if (isLogin) {
+        router.replace('/admin');
+        return;
+      }
+      return;
+    }
 
     if (pathname === '/') {
       if (isLandingPage) return;
-      if (isAdminUser) router.replace('/admin');
-      else router.replace(onboarded ? '/dashboard' : '/onboarding');
+      router.replace(onboarded ? '/dashboard' : '/onboarding');
       return;
     }
 
     if (isLogin) {
-      if (isAdminUser) router.replace('/admin');
-      else router.replace(onboarded ? '/dashboard' : '/onboarding');
+      router.replace(onboarded ? '/dashboard' : '/onboarding');
       return;
     }
 
@@ -172,17 +195,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (!isAdminUser && !onboarded && !isOnboarding && !isAdminRoute) {
+    if (!onboarded && !isOnboarding && !isAdminRoute) {
       router.replace('/onboarding');
       return;
     }
 
-    if (!isAdminUser && onboarded && isOnboarding) {
+    if (onboarded && isOnboarding) {
       router.replace('/dashboard');
       return;
     }
 
-  }, [onboarded, hydrated, isOnboarding, isLogin, isAdminRoute, pathname, router, session, sessionChecked]);
+  }, [onboarded, hydrated, isOnboarding, isLogin, isAdminRoute, pathname, router, session, sessionChecked, userRole]);
 
   const handleLogout = async () => {
     try {

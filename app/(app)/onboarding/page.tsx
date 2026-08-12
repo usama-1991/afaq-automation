@@ -14,6 +14,29 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  useEffect(() => {
+    const checkSuperAdmin = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        const isSuperAdmin =
+          profile?.role === 'super_admin' ||
+          session.user.email === 'usamahabib1991@gmail.com' ||
+          session.user.email === 'admin@ittisalo.io';
+
+        if (isSuperAdmin) {
+          router.replace('/admin');
+        }
+      }
+    };
+    checkSuperAdmin();
+  }, [router]);
+
   // Step 1: Business Identity
   const [niche, setNiche] = useState('');
   const [businessName, setBusinessName] = useState('');
