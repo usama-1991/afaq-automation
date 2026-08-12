@@ -100,7 +100,7 @@ export default function Navbar() {
 
           <div className="hidden md:flex items-center gap-4">
             <Link
-              href="/login"
+              href="https://app.ittisalo.com/login"
               className="text-sm font-medium hover:text-[var(--color-mktg-cta)] transition-colors"
             >
               Log in
@@ -169,7 +169,7 @@ export default function Navbar() {
               <Link href="/blog" className="block px-4 py-2 font-medium" onClick={() => setIsOpen(false)}>Blog</Link>
               
               <div className="pt-4 border-t border-gray-100 grid gap-4">
-                <Link href="/login" className="block text-center px-4 py-3 font-medium bg-gray-50 rounded-lg" onClick={() => setIsOpen(false)}>Log in</Link>
+                <a href="https://app.ittisalo.com/login" className="block text-center px-4 py-3 font-medium bg-gray-50 rounded-lg" onClick={() => setIsOpen(false)}>Log in</a>
                 <Link href="/contact" className="block text-center px-4 py-3 font-medium bg-[var(--color-mktg-cta)] text-white rounded-lg" onClick={() => setIsOpen(false)}>Book a Demo</Link>
               </div>
             </div>
