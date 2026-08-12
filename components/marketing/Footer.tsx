@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MessageCircle, Instagram, Facebook, Twitter } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 
 const FOOTER_LINKS = {
   Product: [
@@ -45,17 +45,6 @@ export default function Footer() {
             <p className="text-sm text-gray-500 mb-6 max-w-xs">
               One AI inbox for every DM your business gets. Automate responses, take orders, and book appointments across WhatsApp, Instagram, and Messenger.
             </p>
-            <div className="flex items-center gap-4">
-              <a href="#" className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-[var(--color-mktg-cta)] hover:bg-orange-50 transition-colors">
-                <Twitter size={18} />
-              </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-[var(--color-mktg-cta)] hover:bg-orange-50 transition-colors">
-                <Instagram size={18} />
-              </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-[var(--color-mktg-cta)] hover:bg-orange-50 transition-colors">
-                <Facebook size={18} />
-              </a>
-            </div>
           </div>
 
           <div>

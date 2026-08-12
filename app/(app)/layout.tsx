@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
-import './globals.css';
+import '../globals.css';
 import { NicheProvider } from '@/context/NicheContext';
 import { PlanProvider } from '@/context/PlanContext';
 import AppShell from '@/components/AppShell';
