@@ -57,28 +57,66 @@ export default function MediaPage() {
     localStorage.setItem('ittisalo_media_library', JSON.stringify(updated));
   };
 
-  const handleUploadSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!uploadName) return;
+  const processEarlyUpload = (file: File) => {
+    const name = file.name;
+    let category: 'Images' | 'Documents' | 'Videos' | 'Audio' = 'Images';
+    const ext = name.split('.').pop()?.toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext || '')) {
+      category = 'Images';
+    } else if (['mp4', 'mov', 'webm', 'avi'].includes(ext || '')) {
+      category = 'Videos';
+    } else if (['mp3', 'wav', 'ogg', 'aac'].includes(ext || '')) {
+      category = 'Audio';
+    } else {
+      category = 'Documents';
+    }
 
-    // Generate beautiful public URL mock
-    const cleanName = uploadName.toLowerCase().replace(/[^a-z0-9_.]/g, '_');
+    const sizeMb = file.size / (1024 * 1024);
+    const sizeStr = sizeMb >= 1 ? `${sizeMb.toFixed(1)} MB` : `${(file.size / 1024).toFixed(0)} KB`;
+
+    setUploadName(name);
+    setUploadCategory(category);
+    setUploadSize(sizeStr);
+
+    // Early Execution: Create asset record immediately in background
+    const cleanName = name.toLowerCase().replace(/[^a-z0-9_.]/g, '_');
     const mockUrl = `https://app.ittisalo.io/media/${cleanName}`;
-
     const newFile: MediaFile = {
       id: Math.random().toString(36).substr(2, 9),
-      name: uploadName,
-      category: uploadCategory,
-      size: uploadSize,
+      name: name,
+      category: category,
+      size: sizeStr,
       url: mockUrl,
       addedAt: new Date().toISOString().split('T')[0]
     };
 
+    // Immediate state insert so work is already done
     const updated = [newFile, ...mediaList];
     setMediaList(updated);
     localStorage.setItem('ittisalo_media_library', JSON.stringify(updated));
+    setShowAddModal(true);
+  };
+
+  const handleUploadSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Final confirming action: simply acknowledges work already completed & re-saves any name/category edits
+    if (mediaList.length > 0 && uploadName) {
+      const updated = mediaList.map((item, idx) => {
+        if (idx === 0) {
+          const cleanName = uploadName.toLowerCase().replace(/[^a-z0-9_.]/g, '_');
+          return {
+            ...item,
+            name: uploadName,
+            category: uploadCategory,
+            url: `https://app.ittisalo.io/media/${cleanName}`
+          };
+        }
+        return item;
+      });
+      setMediaList(updated);
+      localStorage.setItem('ittisalo_media_library', JSON.stringify(updated));
+    }
     setShowAddModal(false);
-    setUploadName('');
   };
 
   const triggerFileInput = () => {
@@ -90,30 +128,7 @@ export default function MediaPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Auto-populate form details
-      setUploadName(file.name);
-      
-      // Auto-detect category
-      const ext = file.name.split('.').pop()?.toLowerCase();
-      if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext || '')) {
-        setUploadCategory('Images');
-      } else if (['mp4', 'mov', 'webm', 'avi'].includes(ext || '')) {
-        setUploadCategory('Videos');
-      } else if (['mp3', 'wav', 'ogg', 'aac'].includes(ext || '')) {
-        setUploadCategory('Audio');
-      } else {
-        setUploadCategory('Documents');
-      }
-
-      // Format size
-      const sizeMb = file.size / (1024 * 1024);
-      if (sizeMb >= 1) {
-        setUploadSize(`${sizeMb.toFixed(1)} MB`);
-      } else {
-        setUploadSize(`${(file.size / 1024).toFixed(0)} KB`);
-      }
-
-      setShowAddModal(true);
+      processEarlyUpload(file);
     }
   };
 
@@ -132,22 +147,7 @@ export default function MediaPage() {
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (file) {
-      setUploadName(file.name);
-      const ext = file.name.split('.').pop()?.toLowerCase();
-      if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext || '')) {
-        setUploadCategory('Images');
-      } else if (['mp4', 'mov', 'webm', 'avi'].includes(ext || '')) {
-        setUploadCategory('Videos');
-      } else if (['mp3', 'wav', 'ogg', 'aac'].includes(ext || '')) {
-        setUploadCategory('Audio');
-      } else {
-        setUploadCategory('Documents');
-      }
-      const sizeMb = file.size / (1024 * 1024);
-      if (sizeMb >= 1) setUploadSize(`${sizeMb.toFixed(1)} MB`);
-      else setUploadSize(`${(file.size / 1024).toFixed(0)} KB`);
-      
-      setShowAddModal(true);
+      processEarlyUpload(file);
     }
   };
 
@@ -383,8 +383,8 @@ export default function MediaPage() {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h3 style={{ fontSize: 14.5, fontWeight: 800, color: '#111827', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Globe size={16} color="#dc2626" />
-                Register Uploaded Asset
+                <Check size={16} color="#16a34a" />
+                Upload Complete — Asset Registered
               </h3>
               <button onClick={() => setShowAddModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
                 <X size={16} color="#6b7280" />

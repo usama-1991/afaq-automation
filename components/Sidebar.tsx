@@ -8,10 +8,17 @@ import { useNiche } from '@/context/NicheContext';
 import { supabase } from '@/lib/supabase/client';
 
 // Desktop icon-only nav item with CSS tokens - Memoized to prevent re-renders on route/state changes
-const NavItem = memo(function NavItem({ href, icon: Icon, label, active, count }: { href: string; icon: any; label: string; active: boolean; count?: number }) {
+const NavItem = memo(function NavItem({ href, icon: Icon, label, active, count, onPrefetch }: { href: string; icon: any; label: string; active: boolean; count?: number; onPrefetch?: (href: string) => void }) {
   const [hovered, setHovered] = useState(false);
+  const handleMouseEnter = () => {
+    setHovered(true);
+    if (onPrefetch) onPrefetch(href);
+  };
+  const handleFocus = () => {
+    if (onPrefetch) onPrefetch(href);
+  };
   return (
-    <Link href={href} title={label} style={{ textDecoration: 'none', position: 'relative' }}>
+    <Link href={href} title={label} style={{ textDecoration: 'none', position: 'relative' }} onFocus={handleFocus}>
       <div
         style={{
           width: 44, height: 44, borderRadius: 12,
@@ -20,7 +27,7 @@ const NavItem = memo(function NavItem({ href, icon: Icon, label, active, count }
           color: active ? '#fff' : '#9ca3af',
           transition: 'all 0.15s ease', cursor: 'pointer', position: 'relative',
         }}
-        onMouseEnter={() => setHovered(true)}
+        onMouseEnter={handleMouseEnter}
         onMouseLeave={() => setHovered(false)}
       >
         {active && (
@@ -166,6 +173,12 @@ function Sidebar() {
     };
   }, [nicheId]);
 
+  const handlePrefetch = useCallback((href: string) => {
+    if (href && href.startsWith('/')) {
+      router.prefetch(href);
+    }
+  }, [router]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/login');
@@ -198,7 +211,7 @@ function Sidebar() {
           {/* Cluster 1: Core */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
             {clusterCore.map(item => (
-              <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} count={(item as any).count} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
+              <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} count={(item as any).count} active={pathname === item.href || pathname.startsWith(item.href + '/')} onPrefetch={handlePrefetch} />
             ))}
           </div>
 
@@ -207,7 +220,7 @@ function Sidebar() {
           {/* Cluster 2: Commerce & Ops */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
             {clusterCommerce.map(item => (
-              <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} count={(item as any).count} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
+              <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} count={(item as any).count} active={pathname === item.href || pathname.startsWith(item.href + '/')} onPrefetch={handlePrefetch} />
             ))}
           </div>
 
@@ -216,7 +229,7 @@ function Sidebar() {
           {/* Cluster 3: Intelligence */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
             {clusterIntelligence.map(item => (
-              <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} count={(item as any).count} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
+              <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} count={(item as any).count} active={pathname === item.href || pathname.startsWith(item.href + '/')} onPrefetch={handlePrefetch} />
             ))}
           </div>
 
@@ -225,10 +238,10 @@ function Sidebar() {
           {/* Cluster 4: Team & Settings */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
             {clusterSettings.map(item => (
-              <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} count={(item as any).count} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
+              <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} count={(item as any).count} active={pathname === item.href || pathname.startsWith(item.href + '/')} onPrefetch={handlePrefetch} />
             ))}
             {userRole === 'super_admin' && (
-              <NavItem href="/admin" icon={Crown} label="Super Admin" active={pathname.startsWith('/admin')} />
+              <NavItem href="/admin" icon={Crown} label="Super Admin" active={pathname.startsWith('/admin')} onPrefetch={handlePrefetch} />
             )}
           </div>
         </nav>
@@ -272,6 +285,8 @@ function Sidebar() {
               key={href}
               href={href}
               style={{ textDecoration: 'none', flex: 1 }}
+              onMouseEnter={() => handlePrefetch(href)}
+              onFocus={() => handlePrefetch(href)}
             >
               <div style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center',

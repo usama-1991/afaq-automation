@@ -95,6 +95,38 @@ export default function OrdersPage() {
 
   const handleStatusUpdate = async (recordId: string, newStatus: string) => {
     setActionLoading(newStatus);
+
+    // Save previous state for optimistic rollback if network fails
+    const previousData = [...data];
+    const previousSelected = selectedRecord ? { ...selectedRecord } : null;
+
+    // 1. Optimistic UI Update: update UI state instantly (< 5ms response)
+    const updatedData = data.map(item => {
+      if (item.id === recordId) {
+        const copy = { ...item };
+        if (tableName === 'leads') {
+          copy.stage = newStatus;
+        } else {
+          copy.status = newStatus;
+        }
+        if (tableName === 'orders') {
+          if (newStatus === 'confirmed') copy.confirmed_at = new Date().toISOString();
+          if (newStatus === 'dispatched') copy.dispatched_at = new Date().toISOString();
+          if (newStatus === 'delivered') copy.delivered_at = new Date().toISOString();
+        }
+        return copy;
+      }
+      return item;
+    });
+    setData(updatedData);
+
+    if (selectedRecord && selectedRecord.id === recordId) {
+      const copySelected = { ...selectedRecord };
+      if (tableName === 'leads') copySelected.stage = newStatus;
+      else copySelected.status = newStatus;
+      setSelectedRecord(copySelected);
+    }
+
     try {
       const updatePayload: any = {};
       
@@ -122,7 +154,10 @@ export default function OrdersPage() {
       }
     } catch (err) {
       console.error('Error updating status:', err);
-      showAlert({ title: 'Update Failed', message: 'Failed to update status. Please try again.', type: 'danger' });
+      // Revert optimistic update on failure
+      setData(previousData);
+      setSelectedRecord(previousSelected);
+      showAlert({ title: 'Update Failed', message: 'Failed to update status. Reverting changes.', type: 'danger' });
     } finally {
       setActionLoading(null);
     }

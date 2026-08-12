@@ -339,7 +339,19 @@ function ConversationsInner() {
     const content = reply.trim();
     setReply('');
     
-    // Insert and select ID for direct dispatch trigger
+    // 1. Optimistic Message Insertion (instant UI rendering)
+    const tempId = `temp_${Date.now()}`;
+    const optimisticMsg = {
+      id: tempId,
+      conversation_id: selected.id,
+      sender_type: 'agent',
+      content,
+      created_at: new Date().toISOString(),
+      status: 'sending'
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
+    
+    // 2. Background DB Insert & API Dispatch
     const { data, error } = await supabase
       .from('messages')
       .insert([{ conversation_id: selected.id, sender_type: 'agent', content }])
@@ -348,7 +360,12 @@ function ConversationsInner() {
 
     if (error) {
       console.error('Failed to save agent message:', error.message);
+      // Revert optimistic message on failure
+      setMessages(prev => prev.filter(m => m.id !== tempId));
     } else if (data?.id) {
+      // Reconcile optimistic ID with real database ID
+      setMessages(prev => prev.map(m => m.id === tempId ? { ...m, id: data.id, status: 'sent' } : m));
+
       // Trigger direct dispatch via secure API route proxy
       fetch('/api/chat/send', {
         method: 'POST',
@@ -452,6 +469,19 @@ function ConversationsInner() {
 
       const formattedContent = `[Media: ${category}] ${file.name}|${fileUrl}`;
       
+      // 1. Optimistic media insertion
+      const tempId = `temp_media_${Date.now()}`;
+      const optimisticMediaMsg = {
+        id: tempId,
+        conversation_id: selected.id,
+        sender_type: 'agent',
+        content: formattedContent,
+        created_at: new Date().toISOString(),
+        status: 'sending'
+      };
+      setMessages(prev => [...prev, optimisticMediaMsg]);
+
+      // 2. Background DB Insert & API Dispatch
       const { data, error } = await supabase
         .from('messages')
         .insert([{
@@ -464,7 +494,9 @@ function ConversationsInner() {
 
       if (error) {
         console.error('Failed to save media agent message:', error.message);
+        setMessages(prev => prev.filter(m => m.id !== tempId));
       } else if (data?.id) {
+        setMessages(prev => prev.map(m => m.id === tempId ? { ...m, id: data.id, status: 'sent' } : m));
         // Trigger direct dispatch via secure API route proxy
         fetch('/api/chat/send', {
           method: 'POST',

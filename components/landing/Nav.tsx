@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, memo } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ChevronDown,
   Bot,
@@ -42,6 +43,13 @@ function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const router = useRouter();
+
+  const handlePrefetch = useCallback((href: string) => {
+    if (href && href.startsWith('/')) {
+      router.prefetch(href);
+    }
+  }, [router]);
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
@@ -115,7 +123,13 @@ function Nav() {
                   >
                     <div className="landing-dropdown-grid">
                       {productLinks.map((item) => (
-                        <Link key={item.label} href={item.href} className="landing-dropdown-item">
+                        <Link
+                          key={item.label}
+                          href={item.href}
+                          className="landing-dropdown-item"
+                          onMouseEnter={() => handlePrefetch(item.href)}
+                          onFocus={() => handlePrefetch(item.href)}
+                        >
                           <div className="landing-dropdown-icon">
                             <item.icon size={18} />
                           </div>
@@ -151,7 +165,13 @@ function Nav() {
                   >
                     <div className="landing-dropdown-list">
                       {industryLinks.map((item) => (
-                        <Link key={item.label} href={item.href} className="landing-dropdown-item">
+                        <Link
+                          key={item.label}
+                          href={item.href}
+                          className="landing-dropdown-item"
+                          onMouseEnter={() => handlePrefetch(item.href)}
+                          onFocus={() => handlePrefetch(item.href)}
+                        >
                           <div className="landing-dropdown-icon">
                             <item.icon size={18} />
                           </div>
@@ -164,8 +184,8 @@ function Nav() {
               </AnimatePresence>
             </div>
 
-            <Link href="/features" className="landing-nav-link">Features</Link>
-            <Link href="/how-it-works" className="landing-nav-link">How It Works</Link>
+            <Link href="/features" className="landing-nav-link" onMouseEnter={() => handlePrefetch("/features")} onFocus={() => handlePrefetch("/features")}>Features</Link>
+            <Link href="/how-it-works" className="landing-nav-link" onMouseEnter={() => handlePrefetch("/how-it-works")} onFocus={() => handlePrefetch("/how-it-works")}>How It Works</Link>
           </nav>
 
           {/* Desktop CTAs */}
@@ -179,6 +199,8 @@ function Nav() {
             <Link
               href="/book-demo"
               className="landing-btn-ghost"
+              onMouseEnter={() => handlePrefetch("/book-demo")}
+              onFocus={() => handlePrefetch("/book-demo")}
             >
               Book a Demo
             </Link>
