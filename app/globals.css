@@ -376,6 +376,15 @@ h1, h2, h3, .display, .font-heading {
   --color-navy-light: #141F3A;
   --color-slate: #64748B;
   
+  /* Marketing Site Tokens */
+  --color-mktg-base: #0F172A;
+  --color-mktg-surface: #1E293B;
+  --color-mktg-bg: #F8FAFC;
+  --color-mktg-cta: #F97316;
+  --color-mktg-wa: #25D366;
+  --color-mktg-ig: #E1306C;
+  --color-mktg-ms: #0084FF;
+  
   --font-display: 'Inter', sans-serif;
   --font-body: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;

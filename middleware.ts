@@ -23,25 +23,12 @@ export function middleware(req: NextRequest) {
   // Remove port if exists (for localhost)
   hostname = hostname.split(':')[0];
 
-  // Define our allowed domains
   const isAppSubdomain = hostname === 'app.ittisalo.com';
-  const isMainDomain = hostname === 'ittisalo.com' || hostname === 'www.ittisalo.com';
   
-  // For local development
-  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-
-  // If we are on the main domain (ittisalo.com) AND accessing the root path (/)
-  if (isMainDomain && url.pathname === '/') {
-    // Rewrite the request to our hidden /landing route
-    return NextResponse.rewrite(new URL('/landing', req.url));
+  // If accessing the root of the app subdomain, redirect to dashboard
+  if (isAppSubdomain && url.pathname === '/') {
+    return NextResponse.redirect(new URL('/dashboard', req.url));
   }
   
-  // (Optional) If you want all traffic on ittisalo.com to stay on the landing page routes, 
-  // you can rewrite all of them:
-  // if (isMainDomain) {
-  //   return NextResponse.rewrite(new URL(`/landing${url.pathname}`, req.url));
-  // }
-
-  // Otherwise, let the request proceed normally (which means the portal works)
   return NextResponse.next();
 }
