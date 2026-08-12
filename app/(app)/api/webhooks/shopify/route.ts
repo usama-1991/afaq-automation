@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+const getSupabase = () => createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
 
 export async function POST(req: Request) {
@@ -55,6 +55,7 @@ export async function POST(req: Request) {
         ? `${payload.shipping_address.address1 || ''} ${payload.shipping_address.city || ''}`.trim() 
         : '';
         
+      const supabase = getSupabase();
       const { error } = await supabase
         .from('orders')
         .upsert(
@@ -85,6 +86,7 @@ export async function POST(req: Request) {
 
       console.log(`[Shopify Webhook] ✅ Successfully synced Shopify order ${payload.name} to db`);
     } else if (topic === 'orders/delete') {
+      const supabase = getSupabase();
       const { error } = await supabase
         .from('orders')
         .delete()

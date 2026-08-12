@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+const getSupabase = () => createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
 
 export async function POST(req: Request) {
@@ -51,6 +51,7 @@ export async function POST(req: Request) {
 
     if (event === 'created' || event === 'updated') {
       // Upsert the order into the database
+      const supabase = getSupabase();
       const { error } = await supabase
         .from('orders')
         .upsert(
@@ -81,6 +82,7 @@ export async function POST(req: Request) {
 
       console.log(`[WooCommerce Webhook] ✅ Successfully synced WooCommerce order #${payload.number} to db`);
     } else if (event === 'deleted') {
+      const supabase = getSupabase();
       const { error } = await supabase
         .from('orders')
         .delete()
