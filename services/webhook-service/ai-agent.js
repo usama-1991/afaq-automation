@@ -166,7 +166,7 @@ export async function processAIAgent(ctx) {
 
       const generateSlots = (dateStr) => {
         const slots = [];
-        for (let h = 9; h < 17; h++) {
+        for (let h = 9; h < 24; h++) {
           for (let m = 0; m < 60; m += 30) {
             const slotTimeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:00`;
             const slotStart = new Date(`${dateStr}T${slotTimeStr}Z`);

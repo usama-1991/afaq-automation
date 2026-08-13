@@ -26,9 +26,9 @@ export async function GET(req: NextRequest) {
   }
 
   // 2. Define Business Hours (Hardcoded for now, can be fetched from DB later)
-  // Let's assume 09:00 to 17:00
+  // Let's assume 09:00 to 24:00 for testing
   const workingHourStart = 9; // 9 AM
-  const workingHourEnd = 17; // 5 PM
+  const workingHourEnd = 24; // 12 AM
   const slotDurationMinutes = 30;
 
   const availableSlots: string[] = [];
