@@ -153,6 +153,48 @@ export async function processAIAgent(ctx) {
       }
     }
 
+    let availabilityBlock = '';
+    if (['dental', 'salon', 'medical', 'real_estate'].includes(ctx.niche)) {
+      const today = new Date().toISOString().split('T')[0];
+      const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+      
+      const { data: appointments } = await supabase
+        .from('appointments')
+        .select('start_time, end_time, appointment_date, appointment_time, status')
+        .eq('tenant_id', ctx.tenant_id)
+        .neq('status', 'canceled');
+
+      const generateSlots = (dateStr) => {
+        const slots = [];
+        for (let h = 9; h < 17; h++) {
+          for (let m = 0; m < 60; m += 30) {
+            const slotTimeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:00`;
+            const slotStart = new Date(`${dateStr}T${slotTimeStr}Z`);
+            const slotEnd = new Date(slotStart.getTime() + 30 * 60000);
+            let isAvailable = true;
+            for (const appt of appointments || []) {
+              if (appt.start_time && appt.end_time) {
+                if (slotStart < new Date(appt.end_time) && slotEnd > new Date(appt.start_time)) isAvailable = false;
+              } else if (appt.appointment_date === dateStr && appt.appointment_time) {
+                const apptStart = new Date(`${appt.appointment_date}T${appt.appointment_time}Z`);
+                const apptEnd = new Date(apptStart.getTime() + 30 * 60000);
+                if (slotStart < apptEnd && slotEnd > apptStart) isAvailable = false;
+              }
+            }
+            if (isAvailable && slotStart > new Date()) { 
+              slots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+            }
+          }
+        }
+        return slots;
+      };
+
+      const todaySlots = generateSlots(today);
+      const tomorrowSlots = generateSlots(tomorrow);
+
+      availabilityBlock = `\n--- AVAILABLE APPOINTMENT SLOTS ---\nToday (${today}): ${todaySlots.length > 0 ? todaySlots.join(', ') : 'Fully booked'}\nTomorrow (${tomorrow}): ${tomorrowSlots.length > 0 ? tomorrowSlots.join(', ') : 'Fully booked'}\n\nUse this exact availability when the user asks for open times. Do NOT offer slots that are not in this list.`;
+    }
+
     const systemPrompt = [
       `You are the AI assistant for ${ctx.business_name}.`,
       `Business type: ${ctx.niche || 'general'}`,
@@ -188,6 +230,8 @@ export async function processAIAgent(ctx) {
       orderStateBlock,
       '',
       kbSection,
+      '',
+      availabilityBlock,
       '',
       ...( ['ecommerce', 'restaurant', 'food_delivery'].includes(ctx.niche) ? [
         '--- MANDATORY ORDER SUMMARY ---',
