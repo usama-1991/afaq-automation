@@ -164,9 +164,24 @@ export async function processAIAgent(ctx) {
         .eq('tenant_id', ctx.tenant_id)
         .neq('status', 'canceled');
 
+      const { data: tenantData } = await supabase
+        .from('tenants')
+        .select('business_hours_start, business_hours_end')
+        .eq('id', ctx.tenant_id)
+        .single();
+
+      const parseTime = (timeStr, defaultHour) => {
+        if (!timeStr) return defaultHour;
+        const [h] = timeStr.split(':');
+        return parseInt(h, 10) || defaultHour;
+      };
+
+      const workingHourStart = parseTime(tenantData?.business_hours_start, 9);
+      const workingHourEnd = parseTime(tenantData?.business_hours_end, 18);
+
       const generateSlots = (dateStr) => {
         const slots = [];
-        for (let h = 9; h < 24; h++) {
+        for (let h = workingHourStart; h < workingHourEnd; h++) {
           for (let m = 0; m < 60; m += 30) {
             const slotTimeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:00`;
             const slotStart = new Date(`${dateStr}T${slotTimeStr}Z`);

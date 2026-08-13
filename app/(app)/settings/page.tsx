@@ -83,6 +83,8 @@ function SettingsInner() {
   const [aiTone, setAiTone] = useState('Friendly and professional');
   const [aiLanguage, setAiLanguage] = useState('English');
   const [humanHandoffNumber, setHumanHandoffNumber] = useState('');
+  const [businessHoursStart, setBusinessHoursStart] = useState('09:00:00');
+  const [businessHoursEnd, setBusinessHoursEnd] = useState('18:00:00');
 
   // Dynamic niche fields — start empty
   const [menuLink, setMenuLink] = useState('');
@@ -208,6 +210,8 @@ function SettingsInner() {
               if (tenant.delivery_days) setDeliveryDays(String(tenant.delivery_days));
               if (tenant.min_order) setMinOrder(String(tenant.min_order));
               if (tenant.cod_enabled !== undefined) setCodEnabled(tenant.cod_enabled);
+              if (tenant.business_hours_start) setBusinessHoursStart(tenant.business_hours_start);
+              if (tenant.business_hours_end) setBusinessHoursEnd(tenant.business_hours_end);
               // Load per-tenant Meta API tokens
               if (tenant.wa_token_enc) setWaToken('••••••••••••••••');
               if (tenant.wa_phone_number_id) setWaPhoneId(tenant.wa_phone_number_id);
@@ -505,6 +509,8 @@ function SettingsInner() {
             delivery_days: parseInt(deliveryDays) || 3,
             min_order: parseInt(minOrder) || 0,
             cod_enabled: codEnabled,
+            business_hours_start: businessHoursStart,
+            business_hours_end: businessHoursEnd,
             niche_settings: nicheSettings,
           };
           // Only update Meta tokens if user typed something new (not the masked placeholder)
@@ -748,8 +754,21 @@ function SettingsInner() {
                   <span style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block' }}>24/7 Availability</span>
                   <span style={{ fontSize: 11, color: '#9ca3af' }}>AI will handle messages anytime</span>
                 </div>
-                <Toggle checked={is247} onChange={() => setIs247(!is247)} />
+                <Toggle checked={is247} onChange={setIs247} />
               </div>
+
+              {!is247 && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16, maxWidth: 480 }}>
+                  <div>
+                    <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Opening Time</label>
+                    <input type="time" value={businessHoursStart} onChange={e => setBusinessHoursStart(e.target.value)} style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fff', outline: 'none' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Closing Time</label>
+                    <input type="time" value={businessHoursEnd} onChange={e => setBusinessHoursEnd(e.target.value)} style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fff', outline: 'none' }} />
+                  </div>
+                </div>
+              )}
               {!is247 && (
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Off-hours Auto-reply</label>

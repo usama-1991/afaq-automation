@@ -60,19 +60,20 @@ async function unbindAndAssign() {
     .delete()
     .eq('external_account_id', REAL_PHONE_ID);
 
-  // 3. Find Gourmet Bites Bistro (restaurant@test.com)
-  const { data: restaurantTenant, error: fetchErr } = await supabase
+  // 3. Find Smilecare Dental (dental)
+  const { data: dentalTenant, error: fetchErr } = await supabase
     .from('tenants')
     .select('id, name')
-    .eq('niche', 'restaurant')
+    .ilike('name', '%Smilecare%')
+    .limit(1)
     .single();
 
-  if (fetchErr || !restaurantTenant) {
-    console.error('❌ Could not find Gourmet Bites Bistro tenant:', fetchErr?.message);
+  if (fetchErr || !dentalTenant) {
+    console.error('❌ Could not find Smilecare Dental tenant:', fetchErr?.message);
     process.exit(1);
   }
 
-  // 4. Assign exclusively to Gourmet Bites Bistro
+  // 4. Assign exclusively to Smilecare Dental
   const { error: assignErr } = await supabase
     .from('tenants')
     .update({
@@ -80,7 +81,7 @@ async function unbindAndAssign() {
       wa_account_id: REAL_WABA_ID,
       meta_connected: true
     })
-    .eq('id', restaurantTenant.id);
+    .eq('id', dentalTenant.id);
 
   if (assignErr) {
     console.error('❌ Assignment error:', assignErr.message);
@@ -91,13 +92,13 @@ async function unbindAndAssign() {
   await supabase
     .from('integrations')
     .insert({
-      tenant_id: restaurantTenant.id,
+      tenant_id: dentalTenant.id,
       platform: 'whatsapp',
       external_account_id: REAL_PHONE_ID,
       credentials: { phone_number_id: REAL_PHONE_ID, waba_id: REAL_WABA_ID }
     });
 
-  console.log(`\n🎉 SUCCESS! Connected Meta Phone Number ID ${REAL_PHONE_ID} exclusively to Gourmet Bites Bistro (${restaurantTenant.id})!`);
+  console.log(`\n🎉 SUCCESS! Connected Meta Phone Number ID ${REAL_PHONE_ID} exclusively to Smilecare Dental (${dentalTenant.id})!`);
 }
 
 unbindAndAssign().catch(err => {

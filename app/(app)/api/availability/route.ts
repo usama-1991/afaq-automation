@@ -25,10 +25,21 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // 2. Define Business Hours (Hardcoded for now, can be fetched from DB later)
-  // Let's assume 09:00 to 24:00 for testing
-  const workingHourStart = 9; // 9 AM
-  const workingHourEnd = 24; // 12 AM
+  // 2. Fetch Tenant Business Hours
+  const { data: tenant } = await supabase
+    .from('tenants')
+    .select('business_hours_start, business_hours_end')
+    .eq('id', tenantId)
+    .single();
+
+  const parseTime = (timeStr: string | null, defaultHour: number) => {
+    if (!timeStr) return defaultHour;
+    const [h] = timeStr.split(':');
+    return parseInt(h, 10) || defaultHour;
+  };
+
+  const workingHourStart = parseTime(tenant?.business_hours_start, 9);
+  const workingHourEnd = parseTime(tenant?.business_hours_end, 18);
   const slotDurationMinutes = 30;
 
   const availableSlots: string[] = [];
