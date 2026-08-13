@@ -604,9 +604,10 @@ export async function processAIAgent(ctx) {
         }
 
         if (!apptDate) {
-          const specificDateMatch = (msg + ' ' + ai_reply).match(/(\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*)\b/i);
+          // Matches: "16th August" OR "August 16th"
+          const specificDateMatch = (msg + ' ' + ai_reply).match(/(\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2}(?:st|nd|rd|th)?)\b/i);
           if (specificDateMatch) {
-            const cleanDateStr = specificDateMatch[1].replace(/(st|nd|rd|th)/i, '');
+            const cleanDateStr = specificDateMatch[1].replace(/(st|nd|rd|th)/ig, '');
             const d2 = new Date(cleanDateStr + ' ' + new Date().getFullYear());
             if (!isNaN(d2.getTime())) apptDate = d2.toISOString().split('T')[0];
           }
@@ -721,6 +722,48 @@ export async function processAIAgent(ctx) {
           .eq('id', ctx.conversation_id);
         console.log(`[AI-Agent] Updated conversation ${ctx.conversation_id} with email: ${recordData.customer_email}`);
       }
+
+      // ── Direct Google Calendar Sync ──
+      if (recordType === 'appointment' && recordData.status === 'confirmed' && recordData.appointment_date && recordData.appointment_time) {
+        (async () => {
+          try {
+            console.log(`[AI-Agent] Appointment confirmed! Syncing to Google Calendar...`);
+            // Get Google integration
+            const { data: gcalInt } = await supabase.from('calendar_integrations').select('*').eq('tenant_id', ctx.tenant_id).eq('provider', 'google').eq('is_active', true).single();
+            if (gcalInt) {
+              const { getValidGoogleToken } = require('@/lib/calendar/google');
+              const gToken = await getValidGoogleToken(gcalInt.id);
+              
+              const startDateTime = new Date(`${recordData.appointment_date}T${recordData.appointment_time}Z`);
+              const endDateTime = new Date(startDateTime.getTime() + 60 * 60000); // 1 hour duration
+              
+              const eventBody = {
+                summary: `${recordData.treatment_type || 'Appointment'} - ${recordData.patient_name}`,
+                description: `Phone: ${recordData.patient_phone}\nConversation ID: ${ctx.conversation_id}`,
+                start: { dateTime: startDateTime.toISOString() },
+                end: { dateTime: endDateTime.toISOString() },
+              };
+              
+              const gRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${gcalInt.primary_calendar_id}/events`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${gToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(eventBody),
+              });
+              
+              if (gRes.ok) {
+                const gData = await gRes.json();
+                await supabase.from('appointments').update({ google_event_id: gData.id, source: 'google' }).eq('conversation_id', ctx.conversation_id);
+                console.log(`[AI-Agent] ✅ Successfully pushed to Google Calendar (Event ID: ${gData.id})`);
+              } else {
+                console.error(`[AI-Agent] Google Calendar sync failed:`, await gRes.text());
+              }
+            }
+          } catch (e) {
+            console.error('[AI-Agent] Google Calendar push error:', e.message);
+          }
+        })();
+      }
+
       
       // ── Direct WooCommerce Sync + Email (no cross-service HTTP needed) ──
       if (recordType === 'order' && recordData.status === 'confirmed' && upsertedOrderId) {
