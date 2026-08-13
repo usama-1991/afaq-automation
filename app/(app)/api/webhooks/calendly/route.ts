@@ -63,7 +63,6 @@ export async function POST(req: NextRequest) {
           calendly_invitee_uri: invitee.uri,
           source: 'calendly',
           patient_name: invitee.name,
-          patient_email: invitee.email,
           start_time: new Date(invitee.scheduled_event.start_time).toISOString(),
           end_time: new Date(invitee.scheduled_event.end_time).toISOString(),
           status: 'scheduled',

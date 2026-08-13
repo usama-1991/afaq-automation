@@ -32,17 +32,21 @@ async function testFetch() {
   
   const eventsData = await eventsRes.json();
   if (eventsData.items) {
-    console.log('Found events:', eventsData.items.map(e => e.summary));
-    const event = eventsData.items[0];
-    const { error } = await supabase.from('appointments').upsert({
-        tenant_id: integration.tenant_id,
-        google_event_id: event.id,
-        source: 'google',
-        patient_name: event.summary,
-        start_time: new Date().toISOString(),
-        end_time: new Date().toISOString(),
-    }, { onConflict: 'google_event_id' });
-    console.log('Upsert Error:', error);
+    const event = eventsData.items.find(e => e.summary === 'test sync meeting');
+    if (event) {
+      const { error } = await supabase.from('appointments').upsert({
+          tenant_id: integration.tenant_id,
+          google_event_id: event.id,
+          source: 'google',
+          patient_name: event.summary,
+          patient_email: event.creator?.email,
+          start_time: new Date(event.start?.dateTime || event.start?.date).toISOString(),
+          end_time: new Date(event.end?.dateTime || event.end?.date).toISOString(),
+      }, { onConflict: 'google_event_id' });
+      console.log('Upsert Error:', error);
+    } else {
+      console.log('Event not found');
+    }
   } else {
     console.log('Error/No Items:', eventsData);
   }

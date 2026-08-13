@@ -60,7 +60,6 @@ export async function POST(req: NextRequest) {
               google_event_id: event.id,
               source: 'google',
               patient_name: event.summary || 'Busy',
-              patient_email: event.creator?.email,
               start_time: new Date(start).toISOString(),
               end_time: new Date(end).toISOString(),
               status: 'scheduled',
