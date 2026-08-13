@@ -24,13 +24,13 @@ export function CalendarIntegrationsSettings() {
         .eq('tenant_id', userData.tenant_id);
         
       if (integrations) {
-        const google = integrations.find(i => i.provider === 'google');
+        const google = integrations.find((i: any) => i.provider === 'google');
         if (google) {
           setGoogleConnected(true);
           setGoogleEmail(google.external_user_id || 'Connected');
         }
         
-        const calendly = integrations.find(i => i.provider === 'calendly');
+        const calendly = integrations.find((i: any) => i.provider === 'calendly');
         if (calendly) {
           setCalendlyConnected(true);
         }
