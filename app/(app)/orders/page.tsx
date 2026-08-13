@@ -636,11 +636,11 @@ export default function OrdersPage() {
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6', paddingBottom: 10 }}>
                         <span style={{ fontSize: 13, color: '#6b7280' }}>Date</span>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{selectedRecord.appointment_date || 'TBD'}</span>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{selectedRecord.start_time ? new Date(selectedRecord.start_time).toLocaleDateString() : (selectedRecord.appointment_date || 'TBD')}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6', paddingBottom: 10 }}>
                         <span style={{ fontSize: 13, color: '#6b7280' }}>Time</span>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{selectedRecord.appointment_time || 'TBD'}</span>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{selectedRecord.start_time ? new Date(selectedRecord.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : (selectedRecord.appointment_time || 'TBD')}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6', paddingBottom: 10 }}>
                         <span style={{ fontSize: 13, color: '#6b7280' }}>Patient Name</span>
