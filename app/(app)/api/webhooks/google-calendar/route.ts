@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
     
     const eventsRes = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/${integration.primary_calendar_id}/events?updatedMin=${fifteenMinsAgo}&singleEvents=true`,
+      `https://www.googleapis.com/calendar/v3/calendars/${integration.primary_calendar_id}/events?updatedMin=${encodeURIComponent(fifteenMinsAgo)}&singleEvents=true`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
       }
