@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState, useEffect, useCallback } from 'react';
+import { CalendarIntegrationsSettings } from '@/components/settings/CalendarIntegrations';
 import { useSearchParams } from 'next/navigation';
 import { 
   Check, RefreshCw, Bot, Plug, Settings, Sparkles, 
@@ -14,7 +15,7 @@ import { useConfirm, useAlert } from '@/context/DialogContext';
 import { niches } from '@/lib/niches';
 import { supabase } from '@/lib/supabase/client';
 
-const tabs = ['Business Profile', 'Channels & APIs', 'AI Knowledge', 'eCommerce Platform', 'Property Listings', 'Voice & Opt-Outs', 'Usage Quotas'] as const;
+const tabs = ['Business Profile', 'Channels & APIs', 'Integrations', 'AI Knowledge', 'eCommerce Platform', 'Property Listings', 'Voice & Opt-Outs', 'Usage Quotas'] as const;
 type Tab = typeof tabs[number];
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
@@ -906,6 +907,11 @@ function SettingsInner() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* ── Integrations Tab ── */}
+        {tab === 'Integrations' && (
+          <CalendarIntegrationsSettings />
         )}
 
         {/* ── AI Knowledge Tab ── */}
