@@ -446,7 +446,14 @@ export default function OrdersPage() {
                   let col3 = '';
                   if (tableName === 'orders') col3 = `${item.currency || 'USD'} ${item.order_amount || 0}`;
                   else if (tableName === 'leads') col3 = `${item.budget_min||0} - ${item.budget_max||'Any'}`;
-                  else col3 = `${item.appointment_date || ''} ${item.appointment_time || ''}`;
+                  else {
+                    if (item.start_time) {
+                      const d = new Date(item.start_time);
+                      col3 = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    } else {
+                      col3 = `${item.appointment_date || ''} ${item.appointment_time || ''}`;
+                    }
+                  }
 
                   return (
                     <tr 
