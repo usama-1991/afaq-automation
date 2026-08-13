@@ -731,8 +731,28 @@ export async function processAIAgent(ctx) {
             // Get Google integration
             const { data: gcalInt } = await supabase.from('calendar_integrations').select('*').eq('tenant_id', ctx.tenant_id).eq('provider', 'google').eq('is_active', true).single();
             if (gcalInt) {
-              const { getValidGoogleToken } = require('@/lib/calendar/google');
-              const gToken = await getValidGoogleToken(gcalInt.id);
+              let gToken = gcalInt.access_token;
+              const isExpired = new Date(gcalInt.token_expires_at).getTime() < Date.now() + 60000;
+              if (isExpired && gcalInt.refresh_token) {
+                const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                  body: new URLSearchParams({
+                    client_id: process.env.GOOGLE_CLIENT_ID,
+                    client_secret: process.env.GOOGLE_CLIENT_SECRET,
+                    refresh_token: gcalInt.refresh_token,
+                    grant_type: 'refresh_token',
+                  }),
+                });
+                if (tokenRes.ok) {
+                  const tData = await tokenRes.json();
+                  gToken = tData.access_token;
+                  await supabase.from('calendar_integrations').update({
+                    access_token: gToken,
+                    token_expires_at: new Date(Date.now() + tData.expires_in * 1000).toISOString()
+                  }).eq('id', gcalInt.id);
+                }
+              }
               
               const startDateTime = new Date(`${recordData.appointment_date}T${recordData.appointment_time}Z`);
               const endDateTime = new Date(startDateTime.getTime() + 60 * 60000); // 1 hour duration
