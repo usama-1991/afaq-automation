@@ -754,14 +754,22 @@ export async function processAIAgent(ctx) {
                 }
               }
               
-              const startDateTime = new Date(`${recordData.appointment_date}T${recordData.appointment_time}Z`);
-              const endDateTime = new Date(startDateTime.getTime() + 60 * 60000); // 1 hour duration
-              
+              const startDateTimeStr = `${recordData.appointment_date}T${recordData.appointment_time}`;
+              const [hour, minute] = recordData.appointment_time.split(':');
+              const endHour = String((parseInt(hour) + 1) % 24).padStart(2, '0');
+              const endDateTimeStr = `${recordData.appointment_date}T${endHour}:${minute}:00`;
+
               const eventBody = {
                 summary: `${recordData.treatment_type || 'Appointment'} - ${recordData.patient_name}`,
                 description: `Phone: ${recordData.patient_phone}\nConversation ID: ${ctx.conversation_id}`,
-                start: { dateTime: startDateTime.toISOString() },
-                end: { dateTime: endDateTime.toISOString() },
+                start: { 
+                  dateTime: startDateTimeStr,
+                  timeZone: 'Asia/Karachi'
+                },
+                end: { 
+                  dateTime: endDateTimeStr,
+                  timeZone: 'Asia/Karachi'
+                },
               };
               
               const gRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${gcalInt.primary_calendar_id}/events`, {
