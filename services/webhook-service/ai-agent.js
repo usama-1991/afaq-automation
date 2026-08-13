@@ -204,10 +204,22 @@ export async function processAIAgent(ctx) {
         return slots;
       };
 
-      const todaySlots = generateSlots(today);
-      const tomorrowSlots = generateSlots(tomorrow);
+      const availableDays = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date();
+        // Shift by i days, plus adjust to tenant timezone approximately (add 5 hours for testing, or rely on UTC dates)
+        // Since we don't have timezone offset easily available here, we'll just use UTC dates.
+        d.setDate(d.getDate() + i);
+        const dateStr = d.toISOString().split('T')[0];
+        const slots = generateSlots(dateStr);
+        if (slots.length > 0) {
+          availableDays.push(`${dateStr}: ${slots.join(', ')}`);
+        } else {
+          availableDays.push(`${dateStr}: Fully booked`);
+        }
+      }
 
-      availabilityBlock = `\n--- AVAILABLE APPOINTMENT SLOTS ---\nToday (${today}): ${todaySlots.length > 0 ? todaySlots.join(', ') : 'Fully booked'}\nTomorrow (${tomorrow}): ${tomorrowSlots.length > 0 ? tomorrowSlots.join(', ') : 'Fully booked'}\n\nUse this exact availability when the user asks for open times. Do NOT offer slots that are not in this list.`;
+      availabilityBlock = `\n--- AVAILABLE APPOINTMENT SLOTS (Next 7 Days) ---\n${availableDays.join('\n')}\n\nUse this exact availability when the user asks for open times. Do NOT offer slots that are not in this list.`;
     }
 
     const systemPrompt = [
