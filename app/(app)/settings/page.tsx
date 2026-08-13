@@ -754,7 +754,7 @@ function SettingsInner() {
                   <span style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block' }}>24/7 Availability</span>
                   <span style={{ fontSize: 11, color: '#9ca3af' }}>AI will handle messages anytime</span>
                 </div>
-                <Toggle checked={is247} onChange={setIs247} />
+                <Toggle checked={is247} onChange={() => setIs247(!is247)} />
               </div>
 
               {!is247 && (
