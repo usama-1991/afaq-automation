@@ -56,7 +56,7 @@ export default function About() {
         <p className="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
           We're a fast-growing team of engineers, designers, and operators building the future of local commerce.
         </p>
-        <Link href="/contact" className="inline-flex items-center justify-center gap-2 bg-[var(--color-mktg-cta)] text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/20">
+        <Link href="/contact" className="inline-flex items-center justify-center gap-2 bg-[var(--color-mktg-cta)] text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-[var(--color-mktg-cta-hover)] transition-colors shadow-lg shadow-red-500/20">
           Contact Us
         </Link>
       </section>

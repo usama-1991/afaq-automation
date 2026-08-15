@@ -86,7 +86,7 @@ export default function Contact() {
                 <textarea rows={4} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[var(--color-mktg-cta)] focus:border-transparent transition-shadow resize-none" placeholder="Tell us about your current communication challenges..."></textarea>
               </div>
               
-              <button type="button" className="w-full py-4 bg-[var(--color-mktg-cta)] text-white font-bold rounded-xl hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/20 mt-4">
+              <button type="button" className="w-full py-4 bg-[var(--color-mktg-cta)] text-white font-bold rounded-xl hover:bg-[var(--color-mktg-cta-hover)] transition-colors shadow-lg shadow-red-500/20 mt-4">
                 Submit Request
               </button>
             </form>

@@ -18,7 +18,7 @@ export default function InstagramChannel() {
             <p className="text-xl text-gray-600 mb-8">
               Turn story replies, post comments, and DMs into sales opportunities. The AI handles the engagement while you focus on content.
             </p>
-            <Link href="/contact" className="inline-flex items-center justify-center gap-2 bg-[var(--color-mktg-cta)] text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/20">
+            <Link href="/contact" className="inline-flex items-center justify-center gap-2 bg-[var(--color-mktg-cta)] text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-[var(--color-mktg-cta-hover)] transition-colors shadow-lg shadow-red-500/20">
               Start Automating
             </Link>
           </div>

@@ -92,7 +92,7 @@ export default function Product() {
 
       <section className="py-24 text-center">
         <h2 className="text-3xl font-bold mb-6">Experience the future of customer communication.</h2>
-        <Link href="/contact" className="inline-flex items-center justify-center gap-2 bg-[var(--color-mktg-cta)] text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-orange-600 transition-colors">
+        <Link href="/contact" className="inline-flex items-center justify-center gap-2 bg-[var(--color-mktg-cta)] text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-[var(--color-mktg-cta-hover)] transition-colors">
           Book a Demo
         </Link>
       </section>

@@ -10,7 +10,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
             <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-50 border border-orange-100 text-[var(--color-mktg-cta)] text-sm font-semibold mb-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-50 border border-red-100 text-[var(--color-mktg-cta)] text-sm font-semibold mb-6">
                 <span className="w-2 h-2 rounded-full bg-[var(--color-mktg-cta)] animate-pulse" />
                 Ittisalo AI is now available globally
               </div>
@@ -21,7 +21,7 @@ export default function Home() {
                 Automate responses, take orders, book appointments, and manage conversations 24/7 across WhatsApp, Instagram, and Messenger. Stop losing customers to slow replies.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/contact" className="inline-flex items-center justify-center gap-2 bg-[var(--color-mktg-cta)] text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/20">
+                <Link href="/contact" className="inline-flex items-center justify-center gap-2 bg-[var(--color-mktg-cta)] text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-[var(--color-mktg-cta-hover)] transition-colors shadow-lg shadow-red-500/20">
                   Book a Demo <ArrowRight size={20} />
                 </Link>
                 <Link href="/product" className="inline-flex items-center justify-center gap-2 bg-white text-[var(--color-mktg-surface)] border border-gray-200 px-8 py-4 rounded-xl font-semibold text-lg hover:bg-gray-50 transition-colors">
@@ -190,7 +190,7 @@ export default function Home() {
           <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
             Join thousands of SMBs globally who are saving time and increasing sales with Ittisalo.
           </p>
-          <Link href="/contact" className="inline-flex items-center justify-center gap-2 bg-[var(--color-mktg-cta)] text-white px-10 py-5 rounded-2xl font-semibold text-xl hover:bg-orange-600 transition-colors shadow-xl shadow-orange-500/20">
+          <Link href="/contact" className="inline-flex items-center justify-center gap-2 bg-[var(--color-mktg-cta)] text-white px-10 py-5 rounded-2xl font-semibold text-xl hover:bg-[var(--color-mktg-cta-hover)] transition-colors shadow-xl shadow-red-500/20">
             Book a Demo
           </Link>
         </div>

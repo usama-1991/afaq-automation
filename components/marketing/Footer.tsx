@@ -34,9 +34,9 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 md:grid-cols-6 gap-8 mb-16">
           <div className="col-span-2">
-            <Link href="/" className="flex items-center gap-2.5 mb-4">
-              <img src="/logo.png" alt="Ittisalo Logo" className="w-8 h-8 rounded-lg object-contain" />
-              <span className="font-display font-bold text-xl tracking-tight text-[var(--color-mktg-base)]">
+            <Link href="/" className="flex items-center gap-3 mb-4">
+              <img src="/logo.png" alt="Ittisalo Logo" className="w-10 h-10 object-contain drop-shadow-sm" />
+              <span className="font-display font-bold text-2xl tracking-tight text-[var(--color-mktg-base)]">
                 Ittisalo
               </span>
             </Link>

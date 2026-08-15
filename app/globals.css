@@ -380,7 +380,9 @@ h1, h2, h3, .display, .font-heading {
   --color-mktg-base: #0F172A;
   --color-mktg-surface: #1E293B;
   --color-mktg-bg: #F8FAFC;
-  --color-mktg-cta: #F97316;
+  --color-mktg-cta: #C42B33;
+  --color-mktg-cta-hover: #A8253F;
+  --color-mktg-cta-light: #FEE2E2;
   --color-mktg-wa: #25D366;
   --color-mktg-ig: #E1306C;
   --color-mktg-ms: #0084FF;

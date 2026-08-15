@@ -31,9 +31,9 @@ export default function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-[var(--color-mktg-bg)]/80 backdrop-blur-md border-b border-[var(--color-mktg-surface)]/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
-          <Link href="/" className="flex items-center gap-2.5">
-            <img src="/logo.png" alt="Ittisalo Logo" className="w-8 h-8 rounded-lg object-contain" />
-            <span className="font-display font-bold text-xl tracking-tight text-[var(--color-mktg-base)]">
+          <Link href="/" className="flex items-center gap-3">
+            <img src="/logo.png" alt="Ittisalo Logo" className="w-10 h-10 sm:w-11 sm:h-11 object-contain drop-shadow-sm" />
+            <span className="font-display font-bold text-2xl tracking-tight text-[var(--color-mktg-base)]">
               Ittisalo
             </span>
           </Link>
@@ -57,8 +57,8 @@ export default function Navbar() {
                       href={channel.path}
                       className="px-4 py-3 rounded-lg hover:bg-gray-50 flex items-center gap-3 transition-colors"
                     >
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: channel.color }} />
-                      <span className="font-medium text-sm text-[var(--color-mktg-surface)]">{channel.name}</span>
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: channel.color }} />
+                      <span className="text-sm font-medium text-gray-700">{channel.name}</span>
                     </Link>
                   ))}
                 </div>
@@ -71,14 +71,14 @@ export default function Navbar() {
                 Solutions <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-200" />
               </button>
               <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-2 min-w-[240px] flex flex-col gap-1">
-                  {SOLUTIONS.map((sol) => (
+                <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-2 min-w-[220px] flex flex-col gap-1">
+                  {SOLUTIONS.map((solution) => (
                     <Link
-                      key={sol.name}
-                      href={sol.path}
-                      className="px-4 py-3 rounded-lg hover:bg-gray-50 flex items-center transition-colors font-medium text-sm text-[var(--color-mktg-surface)]"
+                      key={solution.name}
+                      href={solution.path}
+                      className="px-4 py-3 rounded-lg hover:bg-gray-50 flex items-center gap-3 transition-colors text-sm font-medium text-gray-700"
                     >
-                      {sol.name}
+                      {solution.name}
                     </Link>
                   ))}
                 </div>
@@ -105,7 +105,7 @@ export default function Navbar() {
             </Link>
             <Link
               href="/contact"
-              className="bg-[var(--color-mktg-cta)] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-orange-600 transition-colors shadow-sm"
+              className="bg-[var(--color-mktg-cta)] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[var(--color-mktg-cta-hover)] transition-colors shadow-sm shadow-red-500/20"
             >
               Book a Demo
             </Link>

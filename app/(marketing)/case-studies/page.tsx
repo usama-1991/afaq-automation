@@ -61,7 +61,7 @@ export default function CaseStudiesIndex() {
                     <div className="text-2xl font-bold text-[var(--color-mktg-base)]">{study.metric}</div>
                     <div className="text-xs text-gray-500 uppercase tracking-wide">{study.metricLabel}</div>
                   </div>
-                  <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-[var(--color-mktg-cta)]">
+                  <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-[var(--color-mktg-cta)]">
                     <ArrowRight size={18} />
                   </div>
                 </div>

@@ -103,7 +103,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ verti
             <p className="text-xl text-gray-600 mb-8">
               {data.description}
             </p>
-            <Link href="/contact" className="inline-flex items-center justify-center gap-2 bg-[var(--color-mktg-cta)] text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/20">
+            <Link href="/contact" className="inline-flex items-center justify-center gap-2 bg-[var(--color-mktg-cta)] text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-[var(--color-mktg-cta-hover)] transition-colors shadow-lg shadow-red-500/20">
               Get Started <ArrowRight size={20} />
             </Link>
           </div>
@@ -115,7 +115,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ verti
                 {data.example.customer}
               </div>
               <div className="flex justify-end">
-                <div className="bg-[var(--color-mktg-cta)] text-white p-4 rounded-2xl rounded-tr-none max-w-[85%] text-sm shadow-md shadow-orange-500/20">
+                <div className="bg-[var(--color-mktg-cta)] text-white p-4 rounded-2xl rounded-tr-none max-w-[85%] text-sm shadow-md shadow-red-500/20">
                   {data.example.ai}
                 </div>
               </div>

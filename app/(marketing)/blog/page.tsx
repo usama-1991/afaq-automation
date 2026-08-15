@@ -41,7 +41,7 @@ export default function BlogIndex() {
             <Link key={post.slug} href={`/blog/${post.slug}`} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow group flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
               <div>
                 <div className="flex items-center gap-4 mb-3">
-                  <span className="text-xs font-bold text-[var(--color-mktg-cta)] uppercase tracking-wider bg-orange-50 px-3 py-1 rounded-full">{post.category}</span>
+                  <span className="text-xs font-bold text-[var(--color-mktg-cta)] uppercase tracking-wider bg-red-50 px-3 py-1 rounded-full">{post.category}</span>
                   <span className="text-sm text-gray-400">{post.date}</span>
                 </div>
                 <h2 className="text-2xl font-bold text-[var(--color-mktg-base)] mb-2 group-hover:text-[var(--color-mktg-cta)] transition-colors">{post.title}</h2>

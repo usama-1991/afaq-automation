@@ -50,7 +50,7 @@ export default function Pricing() {
               <span className="text-4xl font-bold text-white">$149</span>
               <span className="text-gray-400">/mo</span>
             </div>
-            <Link href="/contact" className="block w-full py-3 px-4 bg-[var(--color-mktg-cta)] text-white font-medium text-center rounded-xl hover:bg-orange-600 transition-colors mb-8 shadow-lg shadow-orange-500/20">
+            <Link href="/contact" className="block w-full py-3 px-4 bg-[var(--color-mktg-cta)] text-white font-medium text-center rounded-xl hover:bg-[var(--color-mktg-cta-hover)] transition-colors mb-8 shadow-lg shadow-red-500/20">
               Get Started
             </Link>
             <ul className="space-y-4">

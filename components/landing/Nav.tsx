@@ -90,7 +90,7 @@ function Nav() {
           {/* Logo */}
           <Link href="/" className="landing-nav-logo">
             <div className="landing-nav-logo-icon">
-              <img src="/logo.png" alt="Ittisalo Logo" className="w-8 h-8 rounded-lg object-contain" />
+              <img src="/logo.png" alt="Ittisalo Logo" className="w-10 h-10 object-contain drop-shadow-sm" />
             </div>
             <span className="landing-nav-logo-text">Ittisalo</span>
           </Link>

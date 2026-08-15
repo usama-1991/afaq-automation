@@ -35,8 +35,8 @@ function Footer() {
         <div className="landing-footer-top">
           {/* Brand */}
           <div className="landing-footer-brand">
-            <div className="landing-footer-logo flex items-center gap-2">
-              <img src="/logo.png" alt="Ittisalo Logo" className="w-7 h-7 rounded-lg object-contain" />
+            <div className="landing-footer-logo flex items-center gap-3">
+              <img src="/logo.png" alt="Ittisalo Logo" className="w-9 h-9 object-contain drop-shadow-sm" />
               <span>Ittisalo</span>
             </div>
             <p className="landing-footer-desc">

@@ -18,7 +18,7 @@ export default function MessengerChannel() {
             <p className="text-xl text-gray-600 mb-8">
               Connect your Facebook Page and Ads to Ittisalo. Let the AI qualify leads, capture contact info, and drive sales instantly.
             </p>
-            <Link href="/contact" className="inline-flex items-center justify-center gap-2 bg-[var(--color-mktg-cta)] text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/20">
+            <Link href="/contact" className="inline-flex items-center justify-center gap-2 bg-[var(--color-mktg-cta)] text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-[var(--color-mktg-cta-hover)] transition-colors shadow-lg shadow-red-500/20">
               Start Automating
             </Link>
           </div>
