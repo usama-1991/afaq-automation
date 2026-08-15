@@ -198,4 +198,103 @@ export function startCronJobs(supabase) {
       }
     }
   });
+
+  // =========================================================================
+  // Phase 5: Google Calendar Watch Renewal (Runs daily at midnight)
+  // =========================================================================
+  cron.schedule('0 0 * * *', async () => {
+    console.log('[cron] Running Google Calendar Watch Renewal Check...');
+    
+    // Look for active google integrations expiring in less than 2 days
+    const twoDaysFromNow = new Date();
+    twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
+    const cutoffDate = twoDaysFromNow.toISOString();
+
+    const { data: integrations, error } = await supabase
+      .from('calendar_integrations')
+      .select('*')
+      .eq('provider', 'google')
+      .eq('is_active', true)
+      .lt('webhook_expires_at', cutoffDate);
+
+    if (error) {
+      console.error('[cron] Error fetching expiring Google integrations:', error.message);
+      return;
+    }
+
+    for (const int of integrations) {
+      try {
+        console.log(`[cron] Renewing Google Calendar watch for tenant ${int.tenant_id}...`);
+        
+        let gToken = int.access_token;
+        const isExpired = new Date(int.token_expires_at).getTime() < Date.now() + 60000;
+        if (isExpired && int.refresh_token) {
+          const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              client_id: process.env.GOOGLE_CLIENT_ID,
+              client_secret: process.env.GOOGLE_CLIENT_SECRET,
+              refresh_token: int.refresh_token,
+              grant_type: 'refresh_token',
+            }),
+          });
+          if (tokenRes.ok) {
+            const tData = await tokenRes.json();
+            gToken = tData.access_token;
+            await supabase.from('calendar_integrations').update({
+              access_token: gToken,
+              token_expires_at: new Date(Date.now() + tData.expires_in * 1000).toISOString()
+            }).eq('id', int.id);
+          }
+        }
+
+        const channelId = `ch-${int.tenant_id}-${Date.now()}`;
+        const watchRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${int.primary_calendar_id}/events/watch`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${gToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            id: channelId,
+            type: 'web_hook',
+            address: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/google-calendar`
+          })
+        });
+
+        if (watchRes.ok) {
+          const watchData = await watchRes.json();
+          // Stop old channel if we have resource ID
+          if (int.webhook_resource_id) {
+            await fetch('https://www.googleapis.com/calendar/v3/channels/stop', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${gToken}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                id: int.webhook_subscription_id,
+                resourceId: int.webhook_resource_id
+              })
+            }).catch(() => console.log('Old channel stop failed, ignoring'));
+          }
+
+          await supabase.from('calendar_integrations').update({
+            webhook_subscription_id: channelId,
+            webhook_resource_id: watchData.resourceId,
+            webhook_expires_at: new Date(parseInt(watchData.expiration)).toISOString(),
+            updated_at: new Date().toISOString()
+          }).eq('id', int.id);
+          
+          console.log(`[cron] Successfully renewed watch for tenant ${int.tenant_id}`);
+        } else {
+          console.error(`[cron] Failed to renew watch: ${await watchRes.text()}`);
+        }
+      } catch (err) {
+        console.error(`[cron] Error renewing watch for tenant ${int.tenant_id}:`, err.message);
+      }
+    }
+  });
 }
+
