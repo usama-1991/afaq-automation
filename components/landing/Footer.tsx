@@ -19,8 +19,8 @@ const footerLinks = {
   Company: [
     { label: "Contact Us", href: "https://wa.me/923360479649", external: true },
     { label: "Book a Demo", href: "/book-demo" },
-    { label: "Privacy Policy", href: "/privacy" },
-    { label: "Terms of Service", href: "/terms" },
+    { label: "Privacy Policy", href: "/legal/privacy" },
+    { label: "Terms of Service", href: "/legal/terms" },
   ],
   Portal: [
     { label: "Login", href: "https://app.ittisalo.com/login", external: true },
