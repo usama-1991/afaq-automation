@@ -31,10 +31,8 @@ export default function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-[var(--color-mktg-bg)]/80 backdrop-blur-md border-b border-[var(--color-mktg-surface)]/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[var(--color-mktg-cta)] flex items-center justify-center text-white font-bold text-xl">
-              I
-            </div>
+          <Link href="/" className="flex items-center gap-2.5">
+            <img src="/logo.png" alt="Ittisalo Logo" className="w-8 h-8 rounded-lg object-contain" />
             <span className="font-display font-bold text-xl tracking-tight text-[var(--color-mktg-base)]">
               Ittisalo
             </span>

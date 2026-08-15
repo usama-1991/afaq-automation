@@ -88,15 +88,9 @@ function Nav() {
       >
         <div className="landing-nav-inner">
           {/* Logo */}
-          <Link href="/landing" className="landing-nav-logo">
+          <Link href="/" className="landing-nav-logo">
             <div className="landing-nav-logo-icon">
-              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                <rect width="32" height="32" rx="9" fill="white" />
-                <path
-                  d="M16 7L17.6 13.4L24 16L17.6 18.6L16 25L14.4 18.6L8 16L14.4 13.4L16 7Z"
-                  fill="#C42B33"
-                />
-              </svg>
+              <img src="/logo.png" alt="Ittisalo Logo" className="w-8 h-8 rounded-lg object-contain" />
             </div>
             <span className="landing-nav-logo-text">Ittisalo</span>
           </Link>

@@ -201,7 +201,7 @@ function Sidebar() {
           width: 72, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center',
           borderBottom: '1px solid #1f2937', flexShrink: 0,
         }}>
-          <img src="/Code_Generated_Image.png" alt="Logo" style={{
+          <img src="/logo.png" alt="Ittisalo Logo" style={{
             width: 48, height: 48, borderRadius: 10, objectFit: 'contain'
           }} />
         </div>
@@ -359,7 +359,7 @@ function Sidebar() {
             {/* Logo + close */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <img src="/Code_Generated_Image.png" alt="Logo" style={{
+                <img src="/logo.png" alt="Ittisalo Logo" style={{
                   width: 34, height: 34, borderRadius: 10, objectFit: 'contain'
                 }} />
                 <span style={{ fontWeight: 700, fontSize: 16, color: '#111827', fontFamily: 'var(--font-jakarta)' }}>Ittisalo</span>

@@ -17,7 +17,7 @@ function Spinner() {
       background: 'linear-gradient(135deg, #fef2f2 0%, #fff5f5 100%)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16,
     }}>
-      <img src="/Code_Generated_Image.png" alt="Logo" style={{
+      <img src="/logo.png" alt="Ittisalo Logo" style={{
         width: 44, height: 44, borderRadius: 12, objectFit: 'contain',
         boxShadow: '0 4px 14px rgba(220,38,38,0.3)',
       }} />

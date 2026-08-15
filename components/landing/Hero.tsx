@@ -119,10 +119,8 @@ function Hero() {
           <div className="landing-chat-widget">
             {/* Chat header */}
             <div className="landing-chat-header">
-              <div className="landing-chat-avatar">
-                <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
-                  <path d="M16 7L17.6 13.4L24 16L17.6 18.6L16 25L14.4 18.6L8 16L14.4 13.4L16 7Z" fill="white" />
-                </svg>
+              <div className="landing-chat-avatar overflow-hidden">
+                <img src="/logo.png" alt="Ittisalo AI" className="w-full h-full object-cover" />
               </div>
               <div>
                 <div className="landing-chat-name">Ittisalo AI</div>
@@ -150,10 +148,8 @@ function Hero() {
                 transition={{ delay: 1.8, duration: 0.5 }}
                 className="landing-chat-msg landing-chat-msg--bot"
               >
-                <div className="landing-chat-bot-icon">
-                  <svg width="12" height="12" viewBox="0 0 32 32" fill="none">
-                    <path d="M16 7L17.6 13.4L24 16L17.6 18.6L16 25L14.4 18.6L8 16L14.4 13.4L16 7Z" fill="#C42B33" />
-                  </svg>
+                <div className="landing-chat-bot-icon overflow-hidden">
+                  <img src="/logo.png" alt="Ittisalo AI" className="w-full h-full object-contain" />
                 </div>
                 Of course! Your order #1847 was shipped yesterday. Expected delivery is tomorrow by 6 PM. Would you like the tracking link? 📦
               </motion.div>
@@ -173,10 +169,8 @@ function Hero() {
                 transition={{ delay: 3.4, duration: 0.5 }}
                 className="landing-chat-msg landing-chat-msg--bot"
               >
-                <div className="landing-chat-bot-icon">
-                  <svg width="12" height="12" viewBox="0 0 32 32" fill="none">
-                    <path d="M16 7L17.6 13.4L24 16L17.6 18.6L16 25L14.4 18.6L8 16L14.4 13.4L16 7Z" fill="#C42B33" />
-                  </svg>
+                <div className="landing-chat-bot-icon overflow-hidden">
+                  <img src="/logo.png" alt="Ittisalo AI" className="w-full h-full object-contain" />
                 </div>
                 Here you go: track.ittisalo.com/1847 🔗<br />
                 Is there anything else I can help you with?

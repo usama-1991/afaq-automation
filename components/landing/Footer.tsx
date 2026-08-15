@@ -35,14 +35,8 @@ function Footer() {
         <div className="landing-footer-top">
           {/* Brand */}
           <div className="landing-footer-brand">
-            <div className="landing-footer-logo">
-              <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-                <rect width="32" height="32" rx="9" fill="white" />
-                <path
-                  d="M16 7L17.6 13.4L24 16L17.6 18.6L16 25L14.4 18.6L8 16L14.4 13.4L16 7Z"
-                  fill="#C42B33"
-                />
-              </svg>
+            <div className="landing-footer-logo flex items-center gap-2">
+              <img src="/logo.png" alt="Ittisalo Logo" className="w-7 h-7 rounded-lg object-contain" />
               <span>Ittisalo</span>
             </div>
             <p className="landing-footer-desc">
