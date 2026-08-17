@@ -50,7 +50,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [userRole, setUserRole] = useState<string | null>(null);
 
   const isOnboarding = pathname === '/onboarding';
-  const isLogin = pathname === '/login';
+  const isLogin = pathname === '/login' || pathname === '/signup';
   const isAdminRoute = pathname.startsWith('/admin');
 
   const bootstrapTenantNiche = async (user: any) => {
@@ -149,7 +149,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     const isLandingPage = isMainDomain && pathname === '/';
     
     // Define all public paths that don't require auth
-    const publicPaths = ['/landing', '/features', '/pricing', '/industries', '/how-it-works', '/book-demo', '/contact-us', '/about'];
+    const publicPaths = ['/landing', '/features', '/pricing', '/industries', '/how-it-works', '/book-demo', '/contact-us', '/about', '/signup'];
     const isPublicPath = isLandingPage || publicPaths.some(p => pathname === p || pathname.startsWith(p + '/'));
 
     if (!session) {
@@ -257,7 +257,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const isBrowser = typeof window !== 'undefined';
   const currentHost = isBrowser ? window.location.hostname : '';
-  const publicPaths = ['/landing', '/features', '/pricing', '/industries', '/how-it-works', '/book-demo', '/contact-us', '/about'];
+  const publicPaths = ['/landing', '/features', '/pricing', '/industries', '/how-it-works', '/book-demo', '/contact-us', '/about', '/signup'];
   const isLandingRender = (currentHost === 'ittisalo.com' || currentHost === 'www.ittisalo.com') && pathname === '/';
   const isPublicRender = isLandingRender || publicPaths.some(p => pathname === p || pathname.startsWith(p + '/'));
 

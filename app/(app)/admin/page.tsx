@@ -145,6 +145,7 @@ export default function SuperAdminPage() {
   const [editPlan, setEditPlan] = useState('');
   const [editStatus, setEditStatus] = useState('');
   const [editNotes, setEditNotes] = useState('');
+  const [editTrialEndsAt, setEditTrialEndsAt] = useState('');
 
   // Hydration safety for recharts
   const [mounted, setMounted] = useState(false);
@@ -402,22 +403,29 @@ export default function SuperAdminPage() {
     setEditPlan(t.plan || 'trial');
     setEditStatus(t.plan_status || 'active');
     setEditNotes(t.admin_notes || '');
+    setEditTrialEndsAt(t.trial_ends_at ? t.trial_ends_at.slice(0, 10) : '');
   };
 
   const handleSaveTenant = async () => {
     if (!selectedTenant) return;
     setSaving(true);
 
+    const updatePayload: any = {
+      plan: editPlan,
+      plan_status: editStatus,
+      admin_notes: editNotes,
+      plan_changed_at: new Date().toISOString()
+    };
+
+    if (editTrialEndsAt) {
+      updatePayload.trial_ends_at = new Date(editTrialEndsAt + 'T23:59:59Z').toISOString();
+    }
+
     // If it's a real DB tenant, update in Supabase
     if (!selectedTenant.id.startsWith('tenant_ref_')) {
       const { error } = await supabase
         .from('tenants')
-        .update({
-          plan: editPlan,
-          plan_status: editStatus,
-          admin_notes: editNotes,
-          plan_changed_at: new Date().toISOString()
-        })
+        .update(updatePayload)
         .eq('id', selectedTenant.id);
 
       if (error) {
@@ -438,13 +446,14 @@ export default function SuperAdminPage() {
         ...prev[selectedTenant.id],
         plan: editPlan,
         plan_status: editStatus,
-        admin_notes: editNotes
+        admin_notes: editNotes,
+        trial_ends_at: updatePayload.trial_ends_at || prev[selectedTenant.id]?.trial_ends_at
       }
     }));
 
     setSelectedTenant(null);
     setSaving(false);
-    showAlert({ title: 'Workspace Saved', message: 'Workspace details updated successfully.', type: 'success' });
+    showAlert({ title: 'Workspace Saved', message: 'Workspace details and subscription updated successfully.', type: 'success' });
   };
 
   // Generate LinkedIn Post Caption text dynamically
@@ -1324,9 +1333,41 @@ The journey has just begun. 🚀`;
                     onChange={(e) => setEditStatus(e.target.value)}
                     style={{ width: '100%', padding: '12px', background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none' }}
                   >
-                    <option value="active">Active (Good Standing)</option>
+                    <option value="active">Active (Good Standing / Paid)</option>
+                    <option value="trial">Trial Mode</option>
                     <option value="suspended">Suspended (Lock Access)</option>
                   </select>
+                </div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <label style={{ fontSize: 13, fontWeight: 700, color: '#cbd5e1' }}>Trial Expiration Date</label>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {[7, 14, 30].map(days => (
+                        <button
+                          key={days}
+                          type="button"
+                          onClick={() => {
+                            const d = new Date();
+                            d.setDate(d.getDate() + days);
+                            setEditTrialEndsAt(d.toISOString().slice(0, 10));
+                          }}
+                          style={{
+                            background: '#334155', color: '#93c5fd', border: 'none',
+                            borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer'
+                          }}
+                        >
+                          +{days}d
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <input
+                    type="date"
+                    value={editTrialEndsAt}
+                    onChange={(e) => setEditTrialEndsAt(e.target.value)}
+                    style={{ width: '100%', padding: '12px', background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none' }}
+                  />
                 </div>
 
                 <div style={{ marginBottom: 20 }}>
