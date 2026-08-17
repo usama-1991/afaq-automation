@@ -244,30 +244,11 @@ function AuthForm() {
             </div>
           </div>
         </div>
-
-        {/* Bottom Social Proof */}
-        <div className="relative z-10 pt-8 border-t border-white/10 flex items-center justify-between text-xs text-rose-200/70">
-          <span>Trusted by fast-growing e-commerce & retail brands</span>
-          <span className="font-semibold text-white">100% Cloud-Powered</span>
-        </div>
       </div>
 
       {/* ── RIGHT SIDE - LOGIN / SIGNUP CARD ───────────────────────────── */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10 lg:p-12 xl:p-16 overflow-y-auto">
         <div className="w-full max-w-[440px]">
-          {/* Brand Logo */}
-          <div className="mb-8 flex items-center justify-between">
-            <img
-              src="/my_logo.png"
-              alt="Ittisalo"
-              className="h-9 sm:h-10 w-auto object-contain"
-            />
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 border border-rose-100 text-[11px] font-semibold text-[#A8253F]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#A8253F] animate-pulse"></span>
-              v2.0 Secure
-            </div>
-          </div>
-
           {/* Heading */}
           <div className="mb-8">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight font-heading">
