@@ -63,6 +63,12 @@ interface PlanCtx {
   isWithinLimit: (metric: 'conversations' | 'campaigns' | 'templates' | 'kb_entries' | 'team_members', currentCount?: number) => boolean;
   /** Days remaining on trial, or null if not on trial */
   trialDaysLeft: number | null;
+  /** True if trial has expired and account is unpaid */
+  isTrialExpired: boolean;
+  /** True if app access is locked due to expired trial or suspension */
+  isLocked: boolean;
+  /** True if account has active paid plan or active trial */
+  isSubscriptionActive: boolean;
   /** Refresh plan data */
   refreshPlan: () => Promise<void>;
 }
@@ -182,6 +188,25 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   }, [tenantInfo?.plan, tenantInfo?.trial_ends_at]);
 
+  const isSubscriptionActive = useMemo(() => {
+    if (!tenantInfo) return false;
+    if (tenantInfo.plan_status === 'active' && tenantInfo.plan !== 'trial') return true;
+    if (tenantInfo.plan === 'trial' && trialDaysLeft !== null && trialDaysLeft > 0 && tenantInfo.plan_status !== 'suspended') return true;
+    return false;
+  }, [tenantInfo, trialDaysLeft]);
+
+  const isTrialExpired = useMemo(() => {
+    if (!tenantInfo) return false;
+    if (tenantInfo.plan === 'trial' && (trialDaysLeft === 0 || !trialDaysLeft) && tenantInfo.plan_status !== 'active') return true;
+    if (tenantInfo.plan_status === 'suspended' || tenantInfo.plan_status === 'cancelled') return true;
+    return false;
+  }, [tenantInfo, trialDaysLeft]);
+
+  const isLocked = useMemo(() => {
+    if (!tenantInfo) return false;
+    return isTrialExpired || tenantInfo.plan_status === 'suspended';
+  }, [tenantInfo, isTrialExpired]);
+
   const value = useMemo(() => ({
     tenantInfo,
     limits,
@@ -191,8 +216,11 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     usagePercent,
     isWithinLimit,
     trialDaysLeft,
+    isTrialExpired,
+    isLocked,
+    isSubscriptionActive,
     refreshPlan: loadPlan
-  }), [tenantInfo, limits, usage, planLoaded, isFeatureEnabled, usagePercent, isWithinLimit, trialDaysLeft, loadPlan]);
+  }), [tenantInfo, limits, usage, planLoaded, isFeatureEnabled, usagePercent, isWithinLimit, trialDaysLeft, isTrialExpired, isLocked, isSubscriptionActive, loadPlan]);
 
   return (
     <PlanCtx.Provider value={value}>

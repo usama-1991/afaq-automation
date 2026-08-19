@@ -99,15 +99,17 @@ export default function OnboardingPage() {
       const tenantId = profile.tenant_id;
 
       // Update tenant
-      const updatePayload = {
+      const updatePayload: any = {
         niche: niche || 'general',
         business_name: businessName || 'My Business',
         business_phone: waPhone || '',
         location: location || '',
         website: website || '',
         onboarding_completed: true,
-        plan: plan,
-        plan_status: 'active',
+        meta_connected: !!(waPhone || waToken),
+        plan: plan || 'trial',
+        plan_status: plan === 'trial' ? 'trial' : 'active',
+        trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
         wa_access_token: waToken || null,
         niche_settings: {
           timezone,

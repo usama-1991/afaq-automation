@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase/client';
 import Sidebar from './Sidebar';
 import TopBanner from './TopBanner';
 import MetaGateBanner from './MetaGateBanner';
+import TrialExpiredPaywall from './TrialExpiredPaywall';
 import { User, Bot, Plug, Settings, LogOut, ChevronDown, Building, ShieldAlert, AlertCircle } from 'lucide-react';
 
 function Spinner() {
@@ -38,7 +39,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { onboarded, hydrated, niche, setNicheId, setOnboarded } = useNiche();
-  const { tenantInfo, planLoaded, trialDaysLeft } = usePlan();
+  const { tenantInfo, planLoaded, trialDaysLeft, isLocked, isTrialExpired } = usePlan();
   const [session, setSession] = useState<any>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -270,16 +271,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const initials = userName.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase() || 'U';
 
   const isTrial = tenantInfo?.plan === 'trial';
-  const showBanner = planLoaded && isTrial && trialDaysLeft !== 0 && bannerVisible;
+  const showBanner = planLoaded && isTrial && !isTrialExpired && trialDaysLeft !== 0 && bannerVisible;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
       {showBanner && <TopBanner onClose={() => setBannerVisible(false)} />}
-      {planLoaded && tenantInfo && tenantInfo.plan_status !== 'active' && (!isTrial || trialDaysLeft === 0) && !isAdminRoute && (
-        <div style={{ background: '#fef2f2', borderBottom: '1px solid #fecaca', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+      {planLoaded && isLocked && !isAdminRoute && (
+        <div style={{ background: '#fef2f2', borderBottom: '1px solid #fecaca', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
           <AlertCircle size={16} color="#dc2626" />
           <span style={{ fontSize: 13, fontWeight: 600, color: '#b91c1c' }}>
-            (!) No Subscription Found. Please <a href="/dashboard" style={{ textDecoration: 'underline', color: '#b91c1c', cursor: 'pointer' }}>subscribe</a> to use the service.
+            ⚠️ <strong>14-Day Trial Expired:</strong> You need to pay to use our services. Please contact administration to activate your plan.
           </span>
         </div>
       )}
@@ -424,8 +425,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           {/* Main Content Area */}
           <main className="main-content-area" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', width: '100%', maxWidth: '100%', background: '#faf9f9', position: 'relative' }}>
             <div style={{ padding: '24px', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-              {!isAdminRoute && <MetaGateBanner />}
-              {children}
+              {!isAdminRoute && !isLocked && <MetaGateBanner />}
+              {!isAdminRoute && isLocked && pathname !== '/pricing' && !pathname.startsWith('/settings') ? (
+                <TrialExpiredPaywall />
+              ) : (
+                children
+              )}
             </div>
           </main>
         </div>
