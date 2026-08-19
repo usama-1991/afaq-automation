@@ -1036,6 +1036,11 @@ The journey has just begun. 🚀`;
                               }}>
                                 {(t.plan_status || 'ACTIVE').toUpperCase()}
                               </span>
+                              {t.trial_ends_at && (
+                                <span style={{ fontSize: 10, color: '#94a3b8' }}>
+                                  Exp: {new Date(t.trial_ends_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                </span>
+                              )}
                             </div>
                           </td>
                           <td style={{ padding: '16px 20px', fontSize: 14, fontWeight: 800, color: '#10b981' }}>
