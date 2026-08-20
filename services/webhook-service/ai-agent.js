@@ -577,81 +577,113 @@ export async function processAIAgent(ctx) {
       }
     }
 
-    if (['dental', 'salon', 'clinic'].includes(niche)) {
-      if (['booking_intent', 'appointment_confirmed'].includes(ai_intent)) {
+    if (['dental', 'salon', 'clinic', 'medical'].includes(niche) || /appointment|doctor|clinic|dentist|scaling|booking/i.test(msg + ' ' + ai_reply)) {
+      const isBookingIntent = ['booking_intent', 'appointment_confirmed', 'appointment_booked', 'booking_requested'].includes(ai_intent);
+      const msgHasBooking = /\b(appointment|book|booking|slot|timing|schedule|scaling|consultation|checkup|visit)\b/i.test(msg);
+      const aiConfirmed = /appointment.*?is confirmed|confirmed.*?appointment|all set for your|confirmed for|look forward to seeing you|scheduled for/i.test(ai_reply);
+      const userConfirmed = /^\s*(yes|confirm|confirmed|yes,?\s*confirm|sure|proceed|okay|ok|yep|yeah)\b/i.test(msg.trim());
+
+      if (isBookingIntent || msgHasBooking || aiConfirmed || userConfirmed) {
         createRecord = true;
         recordType = 'appointment';
 
-        const timeMatch = (msg + ' ' + ai_reply).match(/(\d{1,2})(:\d{2})?\s*(am|pm|AM|PM)/);
-        const dayMatch = (msg + ' ' + ai_reply).match(/(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|kal|parso)/i);
-
-        let apptDate = recordData.appointment_date || null;
-        let apptTime = recordData.appointment_time || null;
-
-        if (dayMatch && !apptDate) {
-          const dayMap = { tomorrow:1,kal:1,parso:2,monday:0,tuesday:1,wednesday:2,thursday:3,friday:4,saturday:5,sunday:6 };
-          const day = dayMatch[1].toLowerCase();
-          const d2 = new Date();
-          if (['tomorrow','kal','parso'].includes(day)) {
-            d2.setDate(d2.getDate() + (dayMap[day] || 1));
-          } else {
-            const target = dayMap[day];
-            const today = d2.getDay();
-            const diff = (target - today + 7) % 7 || 7;
-            d2.setDate(d2.getDate() + diff);
-          }
-          apptDate = d2.toISOString().split('T')[0];
-        }
-
-        if (!apptDate) {
-          // Matches: "16th August" OR "August 16th"
-          const specificDateMatch = (msg + ' ' + ai_reply).match(/(\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2}(?:st|nd|rd|th)?)\b/i);
-          if (specificDateMatch) {
-            const cleanDateStr = specificDateMatch[1].replace(/(st|nd|rd|th)/ig, '');
-            const d2 = new Date(cleanDateStr + ' ' + new Date().getFullYear());
-            if (!isNaN(d2.getTime())) apptDate = d2.toISOString().split('T')[0];
-          }
-        }
-
-        if (timeMatch && !apptTime) {
-          const hour = parseInt(timeMatch[1]);
+        // 1. Extract Time
+        const timeMatch = (msg + ' ' + ai_reply).match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm|AM|PM)/i);
+        let extractedTime = null;
+        if (timeMatch) {
+          const hour = parseInt(timeMatch[1], 10);
+          const mins = timeMatch[2] ? timeMatch[2] : '00';
           const isPM = timeMatch[3].toLowerCase() === 'pm';
           const hour24 = isPM && hour !== 12 ? hour + 12 : (!isPM && hour === 12 ? 0 : hour);
-          apptTime = `${String(hour24).padStart(2,'0')}:00:00`;
-        }
-
-        if (!apptTime) {
+          extractedTime = `${String(hour24).padStart(2, '0')}:${mins}:00`;
+        } else {
           const shiftMatch = (msg + ' ' + ai_reply).match(/(morning|afternoon|evening)/i);
           if (shiftMatch) {
             const shift = shiftMatch[1].toLowerCase();
-            apptTime = shift === 'morning' ? '10:00:00' : (shift === 'afternoon' ? '14:00:00' : '18:00:00');
+            extractedTime = shift === 'morning' ? '10:00:00' : (shift === 'afternoon' ? '14:00:00' : '18:00:00');
           }
         }
 
+        // 2. Extract Date
+        let extractedDate = null;
+        // Matches: "20th August", "August 20th", "20 August", "August 20"
+        const specificDateMatch = (msg + ' ' + ai_reply).match(/(\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2}(?:st|nd|rd|th)?)/i);
+        if (specificDateMatch) {
+          const cleanDateStr = specificDateMatch[1].replace(/(st|nd|rd|th)/ig, '').trim();
+          const d2 = new Date(`${cleanDateStr} ${new Date().getFullYear()}`);
+          if (!isNaN(d2.getTime())) {
+            const yr = d2.getFullYear();
+            const mo = String(d2.getMonth() + 1).padStart(2, '0');
+            const da = String(d2.getDate()).padStart(2, '0');
+            extractedDate = `${yr}-${mo}-${da}`;
+          }
+        }
+
+        if (!extractedDate) {
+          const dayMatch = (msg + ' ' + ai_reply).match(/(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|kal|parso|today|aaj)/i);
+          if (dayMatch) {
+            const dayMap = { today:0, aaj:0, tomorrow:1, kal:1, parso:2, monday:1, tuesday:2, wednesday:3, thursday:4, friday:5, saturday:6, sunday:0 };
+            const day = dayMatch[1].toLowerCase();
+            const d2 = new Date();
+            if (dayMap[day] !== undefined && ['today','aaj','tomorrow','kal','parso'].includes(day)) {
+              d2.setDate(d2.getDate() + dayMap[day]);
+            } else if (dayMap[day] !== undefined) {
+              const target = dayMap[day];
+              const current = d2.getDay();
+              const diff = (target - current + 7) % 7 || 7;
+              d2.setDate(d2.getDate() + diff);
+            }
+            const yr = d2.getFullYear();
+            const mo = String(d2.getMonth() + 1).padStart(2, '0');
+            const da = String(d2.getDate()).padStart(2, '0');
+            extractedDate = `${yr}-${mo}-${da}`;
+          }
+        }
+
+        let apptDate = extractedDate || recordData.appointment_date || null;
+        let apptTime = extractedTime || recordData.appointment_time || null;
+
+        // 3. Extract Treatment Type
         let treatmentType = recordData.treatment_type || recordData.service_type || null;
-        if (!treatmentType) {
-          const fullText = (history.map(h => h.content).join(' ') + ' ' + msg + ' ' + ai_reply).toLowerCase();
-          if (fullText.includes('braces') || fullText.includes('aligners')) treatmentType = 'Braces Consultation';
-          else if (fullText.includes('scaling') || fullText.includes('cleaning') || fullText.includes('polishing')) treatmentType = 'Scaling & Polishing';
-          else if (fullText.includes('root canal')) treatmentType = 'Root Canal';
-          else if (fullText.includes('filling') || fullText.includes('cavity')) treatmentType = 'Dental Filling';
-          else if (fullText.includes('whitening') || fullText.includes('bleaching')) treatmentType = 'Teeth Whitening';
-          else if (fullText.includes('extraction') || fullText.includes('removal')) treatmentType = 'Tooth Extraction';
-          else treatmentType = 'General Consultation';
+        const fullText = (history.map(h => h.content).join(' ') + ' ' + msg + ' ' + ai_reply).toLowerCase();
+        if (fullText.includes('scaling') || fullText.includes('cleaning') || fullText.includes('polishing')) treatmentType = 'Scaling & Polishing';
+        else if (fullText.includes('braces') || fullText.includes('aligners')) treatmentType = 'Braces Consultation';
+        else if (fullText.includes('root canal')) treatmentType = 'Root Canal';
+        else if (fullText.includes('filling') || fullText.includes('cavity')) treatmentType = 'Dental Filling';
+        else if (fullText.includes('whitening') || fullText.includes('bleaching')) treatmentType = 'Teeth Whitening';
+        else if (fullText.includes('extraction') || fullText.includes('removal')) treatmentType = 'Tooth Extraction';
+        else if (!treatmentType) treatmentType = 'General Consultation';
+
+        const isConfirmed = ai_intent === 'appointment_confirmed' || aiConfirmed || userConfirmed;
+
+        let startTimeIso = null;
+        let endTimeIso = null;
+        if (apptDate && apptTime) {
+          // Calculate start & end ISO timestamps assuming PKT (+05:00)
+          const startDt = new Date(`${apptDate}T${apptTime}+05:00`);
+          if (!isNaN(startDt.getTime())) {
+            startTimeIso = startDt.toISOString();
+            endTimeIso = new Date(startDt.getTime() + 60 * 60000).toISOString();
+          }
         }
 
         recordData = {
           ...recordData,
           tenant_id: ctx.tenant_id,
           conversation_id: ctx.conversation_id,
-          patient_name: ctx.customer_name,
+          patient_name: ctx.customer_name || 'Patient',
           patient_phone: ctx.customer_phone,
           niche: niche,
           treatment_type: treatmentType,
           appointment_date: apptDate,
           appointment_time: apptTime,
-          status: ai_intent === 'appointment_confirmed' ? 'confirmed' : 'pending',
+          start_time: startTimeIso || recordData.start_time,
+          end_time: endTimeIso || recordData.end_time,
+          timezone: 'Asia/Karachi',
+          status: isConfirmed ? 'scheduled' : 'pending',
           is_new_patient: ctx.is_new_conversation,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         };
       }
     }
@@ -724,7 +756,7 @@ export async function processAIAgent(ctx) {
       }
 
       // ── Direct Google Calendar Sync ──
-      if (recordType === 'appointment' && recordData.status === 'confirmed' && recordData.appointment_date && recordData.appointment_time) {
+      if (recordType === 'appointment' && ['confirmed', 'scheduled'].includes(recordData.status) && recordData.appointment_date && recordData.appointment_time) {
         (async () => {
           try {
             console.log(`[AI-Agent] Appointment confirmed! Syncing to Google Calendar...`);
