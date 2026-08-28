@@ -14,6 +14,7 @@ import { useNiche } from '@/context/NicheContext';
 import { useConfirm, useAlert } from '@/context/DialogContext';
 import { niches } from '@/lib/niches';
 import { supabase } from '@/lib/supabase/client';
+import { encrypt, decrypt } from '@/lib/crypto';
 
 const tabs = ['Business Profile', 'Channels & APIs', 'Integrations', 'AI Knowledge', 'eCommerce Platform', 'Property Listings', 'Voice & Opt-Outs', 'Usage Quotas'] as const;
 type Tab = typeof tabs[number];
@@ -452,14 +453,29 @@ function SettingsInner() {
     setEcomSaving(true);
     try {
       const platform = ecomPlatform.toLowerCase();
+      
+      const { data: existingCreds } = await supabase
+        .from('integration_credentials')
+        .select('credentials')
+        .eq('tenant_id', tenantIdState)
+        .eq('platform', platform)
+        .maybeSingle();
+
+      const prev = (existingCreds?.credentials as any) || {};
+
+      const resolveToken = (val: string, oldVal?: string) => {
+        if (!val || val.includes('•')) return oldVal || '';
+        return encrypt(val);
+      };
+
       const credentials = ecomPlatform === 'Shopify'
-        ? { store_url: shopifyUrl, access_token: shopifyToken }
+        ? { store_url: shopifyUrl, access_token: resolveToken(shopifyToken, prev.access_token) }
         : ecomPlatform === 'WooCommerce'
-        ? { site_url: wcUrl, consumer_key: wcKey, consumer_secret: wcSecret }
+        ? { site_url: wcUrl, consumer_key: resolveToken(wcKey, prev.consumer_key), consumer_secret: resolveToken(wcSecret, prev.consumer_secret) }
         : ecomPlatform === 'Salla'
-        ? { access_token: sallaMerchantToken }
+        ? { access_token: resolveToken(sallaMerchantToken, prev.access_token) }
         : ecomPlatform === 'Zid'
-        ? { store_id: zidStoreId, access_token: zidApiToken }
+        ? { store_id: zidStoreId, access_token: resolveToken(zidApiToken, prev.access_token) }
         : {};
 
       await supabase.from('integration_credentials').upsert({
@@ -526,7 +542,7 @@ function SettingsInner() {
               .neq('id', profile.tenant_id);
           }
           if (waAccountId && !waAccountId.includes('•')) updatePayload.wa_account_id = waAccountId;
-          if (waToken && !waToken.includes('•')) updatePayload.wa_token_enc = waToken;
+          if (waToken && !waToken.includes('•')) updatePayload.wa_token_enc = encrypt(waToken);
 
           const { error: tenantErr } = await supabase
             .from('tenants')

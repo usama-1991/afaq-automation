@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 import { sendTenantNotification } from './fcm.js';
+import { encrypt, decrypt } from './crypto.js';
 import ws from 'ws';
 
 const supabaseUrl = process.env.SUPABASE_URL || 'https://placeholder.supabase.co';
@@ -763,16 +764,17 @@ export async function processAIAgent(ctx) {
             // Get Google integration
             const { data: gcalInt } = await supabase.from('calendar_integrations').select('*').eq('tenant_id', ctx.tenant_id).eq('provider', 'google').eq('is_active', true).single();
             if (gcalInt) {
-              let gToken = gcalInt.access_token;
+              let gToken = decrypt(gcalInt.access_token);
               const isExpired = new Date(gcalInt.token_expires_at).getTime() < Date.now() + 60000;
               if (isExpired && gcalInt.refresh_token) {
+                const refreshToken = decrypt(gcalInt.refresh_token);
                 const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                   body: new URLSearchParams({
                     client_id: process.env.GOOGLE_CLIENT_ID,
                     client_secret: process.env.GOOGLE_CLIENT_SECRET,
-                    refresh_token: gcalInt.refresh_token,
+                    refresh_token: refreshToken,
                     grant_type: 'refresh_token',
                   }),
                 });
@@ -780,7 +782,7 @@ export async function processAIAgent(ctx) {
                   const tData = await tokenRes.json();
                   gToken = tData.access_token;
                   await supabase.from('calendar_integrations').update({
-                    access_token: gToken,
+                    access_token: encrypt(gToken),
                     token_expires_at: new Date(Date.now() + tData.expires_in * 1000).toISOString()
                   }).eq('id', gcalInt.id);
                 }
@@ -866,10 +868,12 @@ export async function processAIAgent(ctx) {
             if (platformCreds && platformCreds.platform === 'woocommerce') {
               const creds = platformCreds.credentials;
               const storeUrl = (creds.site_url || creds.store_url || '').replace(/\/+$/, '');
-              if (!storeUrl || !creds.consumer_key || !creds.consumer_secret) {
+              const consumerKey = decrypt(creds.consumer_key);
+              const consumerSecret = decrypt(creds.consumer_secret);
+              if (!storeUrl || !consumerKey || !consumerSecret) {
                 console.error(`[AI-Agent] WooCommerce credentials incomplete for tenant ${ctx.tenant_id}. site_url=${storeUrl}`);
               } else {
-                const authHeader = 'Basic ' + Buffer.from(`${creds.consumer_key}:${creds.consumer_secret}`).toString('base64');
+                const authHeader = 'Basic ' + Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
                 const nameParts = (recordData.customer_name || '').split(' ');
                 const firstName = nameParts[0] || '';
                 const lastName = nameParts.slice(1).join(' ') || '';
@@ -959,13 +963,14 @@ export async function processAIAgent(ctx) {
             } else if (platformCreds && platformCreds.platform === 'shopify') {
               // Shopify push
               const creds = platformCreds.credentials;
+              const accessToken = decrypt(creds.access_token);
               const nameParts = (recordData.customer_name || '').split(' ');
               const firstName = nameParts[0] || '';
               const lastName = nameParts.slice(1).join(' ') || '';
 
               const shopifyRes = await fetch(`https://${creds.store_domain}/admin/api/2024-10/orders.json`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': creds.access_token },
+                headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': accessToken },
                 body: JSON.stringify({
                   order: {
                     line_items: (recordData.items || []).map(item => ({ title: item.name || 'Product', quantity: item.qty || 1, price: String(item.price || 0) })),

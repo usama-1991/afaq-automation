@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service';
+import { encrypt, decrypt } from '@/lib/crypto';
 
 interface GoogleTokens {
   access_token: string;
@@ -21,9 +22,10 @@ export async function getValidGoogleToken(integrationId: string): Promise<string
 
   const isExpired = new Date(integration.token_expires_at).getTime() < Date.now() + 60000; // 1 min buffer
 
-  if (!isExpired) return integration.access_token;
+  if (!isExpired) return decrypt(integration.access_token) || '';
 
-  if (!integration.refresh_token) {
+  const refreshToken = decrypt(integration.refresh_token);
+  if (!refreshToken) {
     throw new Error('Refresh token missing. User must re-authenticate.');
   }
 
@@ -34,7 +36,7 @@ export async function getValidGoogleToken(integrationId: string): Promise<string
     body: new URLSearchParams({
       client_id: process.env.GOOGLE_CLIENT_ID!,
       client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      refresh_token: integration.refresh_token,
+      refresh_token: refreshToken,
       grant_type: 'refresh_token',
     }),
   });
@@ -47,7 +49,7 @@ export async function getValidGoogleToken(integrationId: string): Promise<string
   await supabase
     .from('calendar_integrations')
     .update({
-      access_token: data.access_token,
+      access_token: encrypt(data.access_token),
       token_expires_at: newExpiresAt,
       updated_at: new Date().toISOString(),
     })

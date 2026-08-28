@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import { createClient } from '@supabase/supabase-js';
 import ws from 'ws';
+import { decrypt } from './crypto.js';
 
 const fastify = Fastify({ logger: true });
 
@@ -107,14 +108,16 @@ async function dispatchOutboundMessage(message) {
 
   const externalPhoneId = integration.external_account_id?.trim();
   const customerPhone = conv.external_conversation_id?.trim();
-  let accessToken = (integration.access_token || process.env.META_ACCESS_TOKEN)?.trim();
+  let rawToken = integration.access_token || process.env.META_ACCESS_TOKEN || '';
 
   if (conv.platform === 'messenger') {
-    accessToken = (integration.access_token || process.env.MESSENGER_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN)?.trim();
+    rawToken = integration.access_token || process.env.MESSENGER_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN || '';
   }
   if (conv.platform === 'instagram') {
-    accessToken = (integration.access_token || process.env.INSTAGRAM_ACCESS_TOKEN || process.env.MESSENGER_ACCESS_TOKEN)?.trim();
+    rawToken = integration.access_token || process.env.INSTAGRAM_ACCESS_TOKEN || process.env.MESSENGER_ACCESS_TOKEN || '';
   }
+
+  let accessToken = (decrypt(rawToken) || rawToken)?.trim();
 
   if (!accessToken) throw new Error("No Meta access token found");
   if (!externalPhoneId) throw new Error("No External Account ID found for platform " + conv.platform);

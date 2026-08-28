@@ -26,8 +26,8 @@ export async function POST(request: Request) {
     // ── Auth ──────────────────────────────────────────────────────────────────
     const apiKey = request.headers.get('x-api-key');
     const expectedKey = process.env.ORDERS_SYNC_API_KEY || process.env.N8N_API_KEY;
-    if (expectedKey && apiKey !== expectedKey) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!expectedKey || !apiKey || apiKey !== expectedKey) {
+      return NextResponse.json({ error: 'Unauthorized: Missing or invalid API key' }, { status: 401 });
     }
 
     // ── Parse body ───────────────────────────────────────────────────────────

@@ -1,10 +1,42 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 
 export async function POST(request: Request) {
   try {
+    // 1. Authenticate caller session server-side
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized: Valid session required' }, { status: 401 });
+    }
+
+    // 2. Fetch caller's tenant membership
+    const { data: callerProfile, error: profileError } = await supabase
+      .from('users')
+      .select('tenant_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !callerProfile?.tenant_id) {
+      return NextResponse.json({ error: 'Tenant profile not found' }, { status: 404 });
+    }
+
     const { message_id } = await request.json();
     if (!message_id) {
       return NextResponse.json({ error: 'Missing message_id' }, { status: 400 });
+    }
+
+    // 3. Verify message ownership: Ensure message belongs to the caller's tenant
+    const { data: message, error: msgError } = await supabase
+      .from('messages')
+      .select('id, conversation_id, conversations!inner(tenant_id)')
+      .eq('id', message_id)
+      .eq('conversations.tenant_id', callerProfile.tenant_id)
+      .maybeSingle();
+
+    if (msgError || !message) {
+      return NextResponse.json({ error: 'Message not found or access denied' }, { status: 404 });
     }
 
     const urlsToTry: string[] = [];

@@ -5,6 +5,7 @@ import { processAIAgent } from './ai-agent.js';
 import { startCronJobs } from './cron.js';
 import { processCampaign } from './campaign.js';
 import { sendTenantNotification } from './fcm.js';
+import { decrypt } from './crypto.js';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -142,7 +143,7 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
       // wa_phone_number_id is stored directly on tenants (migration 20260626)
       waPhoneNumberId    = tenantRecord.wa_phone_number_id || '';
       // wa_token_enc is the encrypted access token stored on tenants (migration 20260626)
-      waAccessToken      = tenantRecord.wa_token_enc   || '';
+      waAccessToken      = decrypt(tenantRecord.wa_token_enc) || '';
     }
   } catch (e) {
     fastify.log.warn(`[${platform}] Could not fetch tenant record: ${e.message}`);
@@ -160,7 +161,7 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
 
       if (metaInteg?.credentials) {
         waPhoneNumberId = waPhoneNumberId || metaInteg.credentials.phone_number_id || metaInteg.external_account_id || '';
-        waAccessToken   = waAccessToken   || metaInteg.credentials.access_token    || '';
+        waAccessToken   = waAccessToken   || decrypt(metaInteg.credentials.access_token) || '';
       }
     } catch (e) {
       fastify.log.warn(`[${platform}] Could not fetch meta integration creds: ${e.message}`);

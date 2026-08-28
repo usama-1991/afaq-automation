@@ -6,6 +6,7 @@ import { useNiche } from '@/context/NicheContext';
 import { niches } from '@/lib/niches';
 import { Check, ArrowRight, ArrowLeft, Loader2, Upload, MessageSquare, MapPin, Clock, FileText, Settings, Bot, CreditCard, Sparkles } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import { encrypt } from '@/lib/crypto';
 
 export default function OnboardingPage() {
   const { setNicheId, setOnboarded } = useNiche();
@@ -110,7 +111,7 @@ export default function OnboardingPage() {
         plan: plan || 'trial',
         plan_status: plan === 'trial' ? 'trial' : 'active',
         trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-        wa_access_token: waToken || null,
+        wa_token_enc: waToken ? encrypt(waToken) : null,
         niche_settings: {
           timezone,
           legalName,

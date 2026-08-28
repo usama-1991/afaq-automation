@@ -1,3 +1,5 @@
+import { decrypt } from './crypto.js';
+
 export async function processCampaign(supabase, campaignId) {
   try {
     console.log(`[campaign] Starting processing for campaign: ${campaignId}`);
@@ -29,7 +31,7 @@ export async function processCampaign(supabase, campaignId) {
 
     if (tenant?.wa_phone_number_id && tenant?.wa_token_enc) {
       waPhoneNumberId = tenant.wa_phone_number_id;
-      waAccessToken = tenant.wa_token_enc;
+      waAccessToken = decrypt(tenant.wa_token_enc);
     } else {
       const { data: integration } = await supabase
         .from('integrations')
@@ -40,7 +42,7 @@ export async function processCampaign(supabase, campaignId) {
 
       if (integration?.credentials) {
         waPhoneNumberId = integration.credentials.phone_number_id || integration.external_account_id || '';
-        waAccessToken = integration.credentials.access_token || '';
+        waAccessToken = decrypt(integration.credentials.access_token) || '';
       }
     }
 

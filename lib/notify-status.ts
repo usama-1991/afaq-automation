@@ -2,6 +2,7 @@
 // Client & Server helper to send immediate WhatsApp status updates when dashboard buttons are clicked
 
 import { supabase } from '@/lib/supabase/client';
+import { decrypt } from '@/lib/crypto';
 
 export async function notifyOrderStatusUpdate(orderId: string, newStatus: string) {
   try {
@@ -21,6 +22,7 @@ export async function notifyOrderStatusUpdate(orderId: string, newStatus: string
       return;
     }
 
+    const waToken = decrypt(tenant.wa_token_enc);
     const businessName = tenant.business_name || 'Gourmet Bites Bistro';
     const customerName = order.customer_name || 'Customer';
     let messageText = '';
@@ -45,7 +47,7 @@ export async function notifyOrderStatusUpdate(orderId: string, newStatus: string
     const response = await fetch(metaUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${tenant.wa_token_enc}`,
+        'Authorization': `Bearer ${waToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

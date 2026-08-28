@@ -5,6 +5,8 @@
  * fetching the real platform order number back.
  */
 
+import { decrypt } from '@/lib/crypto';
+
 export interface OrderData {
   id: string;
   tenant_id: string;
@@ -58,7 +60,7 @@ export async function pushOrderToShopify(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Shopify-Access-Token': creds.access_token,
+          'X-Shopify-Access-Token': decrypt(creds.access_token) || '',
         },
         body: JSON.stringify({
           order: {
@@ -131,9 +133,11 @@ export async function pushOrderToWooCommerce(
     const lastName = nameParts.slice(1).join(' ') || '';
 
     // WooCommerce uses Basic Auth with consumer key/secret
+    const consumerKey = decrypt(creds.consumer_key) || '';
+    const consumerSecret = decrypt(creds.consumer_secret) || '';
     const authHeader =
       'Basic ' +
-      Buffer.from(`${creds.consumer_key}:${creds.consumer_secret}`).toString('base64');
+      Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
 
     // Normalize store URL — strip trailing slash
     const storeUrl = (creds.site_url || creds.store_url || '').replace(/\/+$/, '');

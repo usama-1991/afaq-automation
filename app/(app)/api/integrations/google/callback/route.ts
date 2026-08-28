@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { setupGoogleCalendarWatch } from '@/lib/calendar/google';
+import { encrypt } from '@/lib/crypto';
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
@@ -47,8 +48,8 @@ export async function GET(req: NextRequest) {
         {
           tenant_id,
           provider: 'google',
-          access_token: tokenData.access_token,
-          refresh_token: tokenData.refresh_token,
+          access_token: encrypt(tokenData.access_token),
+          refresh_token: encrypt(tokenData.refresh_token),
           token_expires_at: expiresAt,
           external_user_id: userInfo.email,
           primary_calendar_id: 'primary',

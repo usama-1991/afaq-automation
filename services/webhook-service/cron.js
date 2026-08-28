@@ -1,4 +1,5 @@
 import cron from 'node-cron';
+import { decrypt } from './crypto.js';
 
 // Helper to get Meta credentials
 async function getMetaCredentials(supabase, tenantId) {
@@ -12,7 +13,7 @@ async function getMetaCredentials(supabase, tenantId) {
     .single();
 
   if (tenant?.wa_phone_number_id && tenant?.wa_token_enc) {
-    return { waPhoneNumberId: tenant.wa_phone_number_id, waAccessToken: tenant.wa_token_enc };
+    return { waPhoneNumberId: tenant.wa_phone_number_id, waAccessToken: decrypt(tenant.wa_token_enc) };
   }
 
   const { data: integration } = await supabase
@@ -24,7 +25,7 @@ async function getMetaCredentials(supabase, tenantId) {
 
   if (integration?.credentials) {
     waPhoneNumberId = integration.credentials.phone_number_id || integration.external_account_id || '';
-    waAccessToken = integration.credentials.access_token || '';
+    waAccessToken = decrypt(integration.credentials.access_token) || '';
   }
 
   // Fallbacks

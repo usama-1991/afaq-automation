@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { decrypt } from '@/lib/crypto';
 
 export async function POST(req: Request) {
   try {
@@ -58,7 +59,7 @@ export async function POST(req: Request) {
       if (tenant.business_name) businessName = tenant.business_name;
       if (tenant.wa_phone_number_id && tenant.wa_token_enc) {
         waPhoneNumberId = tenant.wa_phone_number_id;
-        waAccessToken = tenant.wa_token_enc;
+        waAccessToken = decrypt(tenant.wa_token_enc) || '';
       }
     }
 
@@ -74,7 +75,7 @@ export async function POST(req: Request) {
       if (integration?.credentials) {
         const creds = integration.credentials as any;
         waPhoneNumberId = creds.phone_number_id || integration.external_account_id || '';
-        waAccessToken = creds.access_token || '';
+        waAccessToken = decrypt(creds.access_token) || '';
       }
     }
 
