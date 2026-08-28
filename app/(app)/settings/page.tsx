@@ -135,9 +135,13 @@ function SettingsInner() {
   const [ecomPlatform, setEcomPlatform] = useState<'Shopify' | 'WooCommerce' | 'Salla' | 'Zid' | 'None'>('None');
   const [shopifyUrl, setShopifyUrl] = useState('');
   const [shopifyToken, setShopifyToken] = useState('');
+  const [shopifyWebhookSecret, setShopifyWebhookSecret] = useState('');
   const [wcUrl, setWcUrl] = useState('');
   const [wcKey, setWcKey] = useState('');
   const [wcSecret, setWcSecret] = useState('');
+  const [wcWebhookSecret, setWcWebhookSecret] = useState('');
+  const [ecomWebhookStatus, setEcomWebhookStatus] = useState<string | null>(null);
+  const [ecomLastError, setEcomLastError] = useState<string | null>(null);
   const [sallaMerchantToken, setSallaMerchantToken] = useState('');
   const [zidStoreId, setZidStoreId] = useState('');
   const [zidApiToken, setZidApiToken] = useState('');
@@ -426,15 +430,19 @@ function SettingsInner() {
         .maybeSingle();
       if (data) {
         setEcomConnected(true);
+        setEcomWebhookStatus(data.credentials?.webhook_status || null);
+        setEcomLastError(data.credentials?.last_webhook_error || null);
         if (data.platform === 'shopify') {
           setEcomPlatform('Shopify');
           setShopifyUrl(data.credentials?.store_url || '');
           setShopifyToken(data.credentials?.access_token ? '••••••••••••' : '');
+          setShopifyWebhookSecret(data.credentials?.webhook_secret ? '••••••••••••' : '');
         } else if (data.platform === 'woocommerce') {
           setEcomPlatform('WooCommerce');
           setWcUrl(data.credentials?.site_url || '');
           setWcKey(data.credentials?.consumer_key ? '••••••••••••' : '');
           setWcSecret(data.credentials?.consumer_secret ? '••••••••••••' : '');
+          setWcWebhookSecret(data.credentials?.webhook_secret ? '••••••••••••' : '');
         } else if (data.platform === 'salla') {
           setEcomPlatform('Salla');
           setSallaMerchantToken(data.credentials?.access_token ? '••••••••••••' : '');
@@ -469,9 +477,22 @@ function SettingsInner() {
       };
 
       const credentials = ecomPlatform === 'Shopify'
-        ? { store_url: shopifyUrl, access_token: resolveToken(shopifyToken, prev.access_token) }
+        ? {
+            store_url: shopifyUrl,
+            access_token: resolveToken(shopifyToken, prev.access_token),
+            webhook_secret: resolveToken(shopifyWebhookSecret, prev.webhook_secret),
+            webhook_status: 'active',
+            last_webhook_error: null,
+          }
         : ecomPlatform === 'WooCommerce'
-        ? { site_url: wcUrl, consumer_key: resolveToken(wcKey, prev.consumer_key), consumer_secret: resolveToken(wcSecret, prev.consumer_secret) }
+        ? {
+            site_url: wcUrl,
+            consumer_key: resolveToken(wcKey, prev.consumer_key),
+            consumer_secret: resolveToken(wcSecret, prev.consumer_secret),
+            webhook_secret: resolveToken(wcWebhookSecret, prev.webhook_secret),
+            webhook_status: 'active',
+            last_webhook_error: null,
+          }
         : ecomPlatform === 'Salla'
         ? { access_token: resolveToken(sallaMerchantToken, prev.access_token) }
         : ecomPlatform === 'Zid'
@@ -1492,6 +1513,20 @@ function SettingsInner() {
                 </div>
               )}
 
+              {/* Urgent Warning Banner if Webhook Secret is Missing */}
+              {ecomWebhookStatus === 'secret_missing' && (
+                <div style={{
+                  background: '#fef2f2', border: '1.5px solid #f87171', borderRadius: 10,
+                  padding: '14px 16px', marginBottom: 18, display: 'flex', alignItems: 'flex-start', gap: 12
+                }}>
+                  <div style={{ fontSize: 20, lineHeight: 1 }}>🚨</div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#991b1b', marginBottom: 2 }}>Order Sync Paused: Webhook Secret Not Configured</div>
+                    <div style={{ fontSize: 12, color: '#7f1d1d', lineHeight: 1.4 }}>{ecomLastError || 'Incoming order webhooks are being rejected because your webhook signing secret is missing. Enter the secret below and save to resume order sync.'}</div>
+                  </div>
+                </div>
+              )}
+
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 20 }}>
                 {(['Shopify', 'WooCommerce', 'Salla', 'Zid', 'None'] as const).map(p => {
                   const active = ecomPlatform === p;
@@ -1524,6 +1559,13 @@ function SettingsInner() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <Field label="Shopify Store URL" value={shopifyUrl} onChange={setShopifyUrl} hint="e.g. mystorename.myshopify.com (no https://)" />
                   <Field label="Admin API Access Token" value={shopifyToken} onChange={setShopifyToken} type="password" hint="From Shopify Admin → Apps → Develop Apps → Install → Reveal token once" />
+                  <Field
+                    label="Webhook Signing Secret"
+                    value={shopifyWebhookSecret}
+                    onChange={setShopifyWebhookSecret}
+                    type="password"
+                    hint="Shopify Admin → Settings → Notifications → Webhooks → Scroll to the bottom to copy your Webhook Signing Secret."
+                  />
                   <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '12px 14px', fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>
                     <strong>How to get your token:</strong> Shopify Admin → Settings → Apps → Develop apps → Create an app → Configure Admin API scopes (enable <code>read_orders</code>, <code>write_orders</code>, <code>read_products</code>, <code>read_inventory</code>, <code>read_customers</code>) → Install app → Reveal token.
                   </div>
@@ -1536,6 +1578,13 @@ function SettingsInner() {
                   <Field label="WordPress Site URL" value={wcUrl} onChange={setWcUrl} hint="e.g. https://mystore.com" />
                   <Field label="Consumer Key" value={wcKey} onChange={setWcKey} type="password" hint="From WooCommerce → Settings → Advanced → REST API → Add Key" />
                   <Field label="Consumer Secret" value={wcSecret} onChange={setWcSecret} type="password" />
+                  <Field
+                    label="Webhook Secret"
+                    value={wcWebhookSecret}
+                    onChange={setWcWebhookSecret}
+                    type="password"
+                    hint="WordPress Admin → WooCommerce → Settings → Advanced → Webhooks → In your webhook settings, create or view a webhook, enter a Secret string, and enter that same Secret here."
+                  />
                   <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '12px 14px', fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>
                     <strong>How to get your keys:</strong> WordPress Admin → WooCommerce → Settings → Advanced → REST API → Add Key → Description: &quot;Ittisalo&quot;, Permissions: Read/Write → Generate API Key.
                   </div>
