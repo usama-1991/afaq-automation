@@ -71,7 +71,10 @@ export async function POST(request: Request) {
         console.log(`[Next.js API] Trying to dispatch message ${message_id} to: ${url}`);
         response = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-internal-api-key': process.env.INTERNAL_SERVICE_KEY || '',
+          },
           body: JSON.stringify({ message_id }),
           // Short timeout to fail-fast and try next URL if offline
           signal: AbortSignal.timeout(4000)

@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import { createClient } from '@supabase/supabase-js';
 import ws from 'ws';
+import crypto from 'crypto';
 import { decrypt } from './crypto.js';
 
 const fastify = Fastify({ logger: true });
@@ -362,8 +363,35 @@ async function dispatchOutboundMessage(message) {
   }
 }
 
+function verifyInternalAuth(request) {
+  const expectedKey = process.env.INTERNAL_SERVICE_KEY;
+  if (!expectedKey) {
+    request.log.error('[chat-service] INTERNAL_SERVICE_KEY is not configured in environment!');
+    return false;
+  }
+
+  const providedKey = request.headers['x-internal-api-key'];
+  if (!providedKey || typeof providedKey !== 'string') {
+    return false;
+  }
+
+  const expectedBuf = Buffer.from(expectedKey);
+  const providedBuf = Buffer.from(providedKey);
+
+  if (expectedBuf.length !== providedBuf.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(expectedBuf, providedBuf);
+}
+
 // REST Dispatch POST endpoint for robust fail-safe client triggering
 fastify.post('/send', async (request, reply) => {
+  if (!verifyInternalAuth(request)) {
+    request.log.warn('[chat-service] Unauthorized direct dispatch attempt rejected.');
+    return reply.code(401).send({ error: 'Unauthorized: Invalid internal service key' });
+  }
+
   const { message_id } = request.body || {};
   if (!message_id) {
     return reply.code(400).send({ error: 'Missing message_id' });
