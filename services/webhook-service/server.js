@@ -6,6 +6,7 @@ import { startCronJobs } from './cron.js';
 import { processCampaign } from './campaign.js';
 import { sendTenantNotification } from './fcm.js';
 import { decrypt } from './crypto.js';
+import crypto from 'crypto';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -13,8 +14,19 @@ import OpenAI from 'openai';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-
 const fastify = Fastify({ logger: true });
+
+// Capture raw body Buffer for HMAC verification before JSON parsing
+fastify.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, body, done) => {
+  req.rawBody = body;
+  try {
+    const json = JSON.parse(body.toString('utf8'));
+    done(null, json);
+  } catch (err) {
+    err.statusCode = 400;
+    done(err, undefined);
+  }
+});
 
 // Initialize Supabase Client with Service Role Key
 const supabaseUrl = process.env.SUPABASE_URL || '';
@@ -548,7 +560,48 @@ function markMessageProcessed(messageId) {
   return false; // first time seeing this ID
 }
 
+function verifyMetaSignature(request) {
+  const appSecret = process.env.META_APP_SECRET;
+  if (!appSecret) {
+    request.log.error('[webhook] META_APP_SECRET is not configured in environment!');
+    return false;
+  }
+
+  const signatureHeader = request.headers['x-hub-signature-256'];
+  if (!signatureHeader || !signatureHeader.startsWith('sha256=')) {
+    request.log.warn('[webhook] Missing or malformed X-Hub-Signature-256 header');
+    return false;
+  }
+
+  const expectedSigHex = crypto
+    .createHmac('sha256', appSecret)
+    .update(request.rawBody || Buffer.from(''))
+    .digest('hex');
+
+  const receivedSigHex = signatureHeader.slice(7); // strip 'sha256='
+
+  try {
+    const expectedBuf = Buffer.from(expectedSigHex, 'hex');
+    const receivedBuf = Buffer.from(receivedSigHex, 'hex');
+
+    if (expectedBuf.length !== receivedBuf.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(expectedBuf, receivedBuf);
+  } catch (err) {
+    request.log.error(`[webhook] Signature comparison error: ${err.message}`);
+    return false;
+  }
+}
+
 fastify.post('/webhook', async (request, reply) => {
+  // ── 0. Verify Meta X-Hub-Signature-256 HMAC ────────────────────────────────
+  if (!verifyMetaSignature(request)) {
+    request.log.warn('[webhook] Signature verification failed. Rejecting request.');
+    return reply.code(401).send({ error: 'Unauthorized: Invalid signature' });
+  }
+
   const body = request.body;
   fastify.log.info('--- NEW WEBHOOK EVENT ---');
   fastify.log.info(JSON.stringify(body, null, 2));
