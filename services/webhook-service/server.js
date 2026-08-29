@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import rateLimit from '@fastify/rate-limit';
 import { createClient } from '@supabase/supabase-js';
 import ws from 'ws';
 import { processAIAgent } from './ai-agent.js';
@@ -15,6 +16,10 @@ import OpenAI from 'openai';
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const fastify = Fastify({ logger: true });
+
+await fastify.register(rateLimit, {
+  global: false,
+});
 
 // Capture raw body Buffer for HMAC verification before JSON parsing
 fastify.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, body, done) => {
@@ -595,7 +600,24 @@ function verifyMetaSignature(request) {
   }
 }
 
-fastify.post('/webhook', async (request, reply) => {
+fastify.post('/webhook', {
+  config: {
+    rateLimit: {
+      max: 600,
+      timeWindow: '1 minute',
+      keyGenerator: (req) => req.headers['x-forwarded-for'] || req.ip,
+      errorResponseBuilder: (req, context) => {
+        req.log.warn(`[RATE_LIMIT_EXCEEDED] 🚨 Webhook IP throttled: ${req.headers['x-forwarded-for'] || req.ip} (Limit: 600/min)`);
+        return {
+          statusCode: 429,
+          error: 'Too Many Requests',
+          message: `Rate limit exceeded. Try again in ${Math.ceil(context.after / 1000)} seconds.`,
+          retryAfter: Math.ceil(context.after / 1000)
+        };
+      }
+    }
+  }
+}, async (request, reply) => {
   // ── 0. Verify Meta X-Hub-Signature-256 HMAC ────────────────────────────────
   if (!verifyMetaSignature(request)) {
     request.log.warn('[webhook] Signature verification failed. Rejecting request.');

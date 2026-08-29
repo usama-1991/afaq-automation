@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { checkRateLimit, rateLimitResponse, getClientIp } from '@/lib/rate-limit';
 
 export async function GET(req: NextRequest) {
+  // ── Rate Limiting: 20 requests per minute per client IP ────────────────────
+  const clientIp = getClientIp(req);
+  const limit = await checkRateLimit('/api/availability', clientIp, 20, 60);
+  if (!limit.success) {
+    return rateLimitResponse(limit);
+  }
+
   const { searchParams } = new URL(req.url);
   const dateStr = searchParams.get('date');
   const tenantId = searchParams.get('tenant_id');

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { decrypt } from '@/lib/crypto';
+import { checkRateLimit, rateLimitResponse, getClientIp } from '@/lib/rate-limit';
 
 const getSupabase = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || '',
@@ -30,6 +31,13 @@ export async function POST(req: Request) {
     if (!tenantId) {
       console.error('[Shopify Webhook] ❌ tenant_id is missing from webhook URL query parameters.');
       return NextResponse.json({ error: 'tenant_id required in query params' }, { status: 400 });
+    }
+
+    // ── Rate Limiting: 120 requests per minute per tenant + client IP ──────────
+    const clientIp = getClientIp(req);
+    const limit = await checkRateLimit('/api/webhooks/shopify', `${tenantId}:${clientIp}`, 120, 60);
+    if (!limit.success) {
+      return rateLimitResponse(limit);
     }
 
     // ── HMAC-SHA256 Signature Verification ──────────────────────────────────

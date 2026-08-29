@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
   try {
@@ -20,6 +21,12 @@ export async function POST(request: Request) {
 
     if (profileError || !callerProfile?.tenant_id) {
       return NextResponse.json({ error: 'Tenant profile not found' }, { status: 404 });
+    }
+
+    // Rate limiting: 60 requests per minute per tenant
+    const limit = await checkRateLimit('/api/chat/send', callerProfile.tenant_id, 60, 60);
+    if (!limit.success) {
+      return rateLimitResponse(limit);
     }
 
     const { message_id } = await request.json();

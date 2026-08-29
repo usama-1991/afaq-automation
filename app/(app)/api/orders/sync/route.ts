@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { checkRateLimit, rateLimitResponse, getClientIp } from '@/lib/rate-limit';
 import {
   pushOrderToShopify,
   pushOrderToWooCommerce,
@@ -28,6 +29,12 @@ export async function POST(request: Request) {
     const expectedKey = process.env.ORDERS_SYNC_API_KEY || process.env.N8N_API_KEY;
     if (!expectedKey || !apiKey || apiKey !== expectedKey) {
       return NextResponse.json({ error: 'Unauthorized: Missing or invalid API key' }, { status: 401 });
+    }
+
+    // ── Rate Limiting: 30 requests per minute per sync caller ──────────────────
+    const limit = await checkRateLimit('/api/orders/sync', apiKey || getClientIp(request), 30, 60);
+    if (!limit.success) {
+      return rateLimitResponse(limit);
     }
 
     // ── Parse body ───────────────────────────────────────────────────────────
