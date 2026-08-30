@@ -25,10 +25,7 @@ export default function OnboardingPage() {
           .eq('id', session.user.id)
           .maybeSingle();
 
-        const isSuperAdmin =
-          profile?.role === 'super_admin' ||
-          session.user.email === 'usamahabib1991@gmail.com' ||
-          session.user.email === 'admin@ittisalo.io';
+        const isSuperAdmin = profile?.role === 'super_admin';
 
         if (isSuperAdmin) {
           router.replace('/admin');

@@ -1,5 +1,10 @@
 import cron from 'node-cron';
+import OpenAI from 'openai';
 import { decrypt } from './crypto.js';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || '',
+});
 
 // Helper to get Meta credentials
 async function getMetaCredentials(supabase, tenantId) {
@@ -295,6 +300,72 @@ export function startCronJobs(supabase) {
       } catch (err) {
         console.error(`[cron] Error renewing watch for tenant ${int.tenant_id}:`, err.message);
       }
+    }
+  });
+
+  // =========================================================================
+  // KB Embedding Backfill (Runs every 15 minutes)
+  // Generates text-embedding-3-small vector embeddings for newly uploaded KB docs
+  // =========================================================================
+  let isBackfillRunning = false;
+
+  cron.schedule('*/15 * * * *', async () => {
+    if (isBackfillRunning) {
+      console.log('[cron] KB embedding backfill already in progress, skipping overlapping tick.');
+      return;
+    }
+    isBackfillRunning = true;
+
+    try {
+      if (!process.env.OPENAI_API_KEY) {
+        console.warn('[cron] Skipping KB embedding backfill: OPENAI_API_KEY not set.');
+        return;
+      }
+
+      const { data: rows, error } = await supabase
+        .from('knowledge_base')
+        .select('id, title, content')
+        .filter('embedding', 'is', null)
+        .eq('is_active', true)
+        .limit(25); // Batched in chunks of 25 to protect concurrency and rate limits
+
+      if (error) {
+        console.error('[cron] Error querying un-embedded KB rows:', error.message);
+        return;
+      }
+
+      if (!rows || rows.length === 0) {
+        return; // Nothing to backfill
+      }
+
+      console.log(`[cron] Found ${rows.length} KB document(s) missing embeddings. Backfilling batch...`);
+
+      for (const row of rows) {
+        try {
+          const textToEmbed = `[${row.title || ''}]\n${row.content || ''}`.trim();
+          if (!textToEmbed) continue;
+
+          const embedResp = await openai.embeddings.create({
+            model: 'text-embedding-3-small',
+            input: textToEmbed,
+          });
+
+          const embedding = embedResp.data?.[0]?.embedding;
+          if (embedding) {
+            await supabase
+              .from('knowledge_base')
+              .update({ embedding })
+              .eq('id', row.id);
+            console.log(`[cron] Successfully backfilled embedding for KB row ${row.id}`);
+          }
+        } catch (embedErr) {
+          console.error(`[cron] Failed to embed KB row ${row.id}:`, embedErr.message);
+        }
+      }
+    } catch (err) {
+      console.error('[cron] Error in KB embedding backfill job:', err.message);
+    } finally {
+      isBackfillRunning = false;
     }
   });
 }

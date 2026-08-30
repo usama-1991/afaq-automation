@@ -56,14 +56,24 @@ fastify.get('/health', async (request, reply) => {
 
 // Campaign Broadcaster Webhook
 fastify.post('/api/campaigns/send', async (request, reply) => {
-  const apiKey = request.headers['x-api-key'];
-  const validKey = process.env.META_WEBHOOK_VERIFY_TOKEN || process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!apiKey || apiKey !== validKey) {
+  const apiKey = typeof request.headers['x-api-key'] === 'string' ? request.headers['x-api-key'] : '';
+  const validKey = process.env.INTERNAL_SERVICE_KEY;
+
+  if (!validKey) {
+    request.log.error('[campaigns] INTERNAL_SERVICE_KEY not configured in environment!');
+    return reply.code(500).send({ error: 'Server authentication misconfiguration' });
+  }
+
+  const apiKeyBuf = Buffer.from(apiKey);
+  const validKeyBuf = Buffer.from(validKey);
+  const isAuthed = apiKey && apiKeyBuf.length === validKeyBuf.length && crypto.timingSafeEqual(apiKeyBuf, validKeyBuf);
+
+  if (!isAuthed) {
+    request.log.warn('[campaigns] Unauthorized campaign trigger attempt rejected.');
     return reply.code(401).send({ error: 'Unauthorized' });
   }
 
-  const { campaignId } = request.body;
+  const { campaignId } = request.body || {};
   if (!campaignId) {
     return reply.code(400).send({ error: 'Missing campaignId in payload' });
   }

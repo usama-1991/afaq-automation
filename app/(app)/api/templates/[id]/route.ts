@@ -15,20 +15,20 @@ export async function DELETE(
   // Verify template belongs to this user's tenant before deleting
   const { data: tpl } = await supabase
     .from('templates')
-    .select('id, meta_template_id, tenant_id')
+    .select('id, name, meta_template_id, tenant_id')
     .eq('id', id)
     .single();
 
   if (!tpl) return NextResponse.json({ error: 'Template not found' }, { status: 404 });
 
-  // Optional: also delete from Meta if we have meta_template_id
-  if (tpl.meta_template_id) {
+  // Optional: also delete from Meta if we have meta_template_id and template name
+  if (tpl.meta_template_id && tpl.name) {
     const wabaId = process.env.META_WABA_ID;
     const accessToken = process.env.META_ACCESS_TOKEN;
     if (wabaId && accessToken) {
       try {
         await fetch(
-          `https://graph.facebook.com/v19.0/${wabaId}/message_templates?name=${tpl.meta_template_id}`,
+          `https://graph.facebook.com/v19.0/${wabaId}/message_templates?name=${encodeURIComponent(tpl.name)}`,
           {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${accessToken}` },
