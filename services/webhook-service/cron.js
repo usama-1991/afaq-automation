@@ -342,15 +342,36 @@ export function startCronJobs(supabase) {
 
       for (const row of rows) {
         try {
-          const textToEmbed = `[${row.title || ''}]\n${row.content || ''}`.trim();
+          let textToEmbed = `[${row.title || ''}]\n${row.content || ''}`.trim();
           if (!textToEmbed) continue;
 
-          const embedResp = await openai.embeddings.create({
-            model: 'text-embedding-3-small',
-            input: textToEmbed,
-          });
+          // Truncate to ~6,000 tokens (~24,000 chars) to stay safely within OpenAI's 8,192 token limit
+          const MAX_EMBED_CHARS = 24000;
+          if (textToEmbed.length > MAX_EMBED_CHARS) {
+            console.log(`[cron] Document ${row.id} exceeds safe context size (${textToEmbed.length} chars). Truncating to ${MAX_EMBED_CHARS} chars for embedding.`);
+            textToEmbed = textToEmbed.slice(0, MAX_EMBED_CHARS);
+          }
 
-          const embedding = embedResp.data?.[0]?.embedding;
+          let embedResp;
+          try {
+            embedResp = await openai.embeddings.create({
+              model: 'text-embedding-3-small',
+              input: textToEmbed,
+            });
+          } catch (apiErr) {
+            // Auto-recovery: If OpenAI still reports context length error, retry with aggressive 12k char truncation
+            if (apiErr.message && apiErr.message.includes('maximum context length')) {
+              console.warn(`[cron] Context length limit hit for ${row.id}. Retrying with 12,000 char truncation...`);
+              embedResp = await openai.embeddings.create({
+                model: 'text-embedding-3-small',
+                input: textToEmbed.slice(0, 12000),
+              });
+            } else {
+              throw apiErr;
+            }
+          }
+
+          const embedding = embedResp?.data?.[0]?.embedding;
           if (embedding) {
             await supabase
               .from('knowledge_base')
