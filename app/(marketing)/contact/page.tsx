@@ -1,4 +1,4 @@
-import { Mail, MessageCircle, MapPin } from "lucide-react";
+import { Mail, MessageCircle, MapPin, Building2, Phone } from "lucide-react";
 
 export default function Contact() {
   return (
@@ -11,40 +11,77 @@ export default function Contact() {
               Let's talk about your business.
             </h1>
             <p className="text-lg text-gray-600 mb-10 max-w-md">
-              Whether you want to see a live demo of the AI or have questions about pricing, our team is here to help.
+              Whether you want to see a live demo of the AI or have questions about our enterprise messaging platform, our team is here to help.
             </p>
             
-            <div className="space-y-8">
-              <div className="flex gap-4">
-                <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center shrink-0">
-                  <Mail size={24} className="text-[var(--color-mktg-cta)]" />
+            <div className="space-y-6">
+              {/* Legal Entity Card */}
+              <div className="flex gap-4 p-5 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                <div className="w-12 h-12 bg-red-50 rounded-xl shadow-sm flex items-center justify-center shrink-0">
+                  <Building2 size={24} className="text-[var(--color-mktg-cta)]" />
                 </div>
                 <div>
-                  <h4 className="text-lg font-bold text-[var(--color-mktg-base)] mb-1">Email Us</h4>
-                  <p className="text-gray-500 mb-2">We typically reply within 2 hours.</p>
-                  <a href="mailto:hello@ittisalo.com" className="text-[var(--color-mktg-cta)] font-medium hover:underline">hello@ittisalo.com</a>
+                  <h4 className="text-base font-bold text-[var(--color-mktg-base)] mb-1">Registered Legal Entity</h4>
+                  <p className="text-gray-900 font-semibold text-lg">ITTISALO (PRIVATE) LIMITED</p>
+                  <p className="text-sm text-gray-500 mt-1">SECP Corporate Unique ID (CUIN): <span className="font-mono font-medium text-gray-700">0347762</span></p>
+                  <p className="text-sm text-gray-500">National Tax Number (NTN): <span className="font-mono font-medium text-gray-700">J527787-0</span></p>
                 </div>
               </div>
-              
-              <div className="flex gap-4">
-                <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center shrink-0">
-                  <MessageCircle size={24} className="text-[var(--color-mktg-cta)]" />
-                </div>
-                <div>
-                  <h4 className="text-lg font-bold text-[var(--color-mktg-base)] mb-1">Chat Support</h4>
-                  <p className="text-gray-500 mb-2">Experience our own AI copilot in action.</p>
-                  <button className="text-[var(--color-mktg-cta)] font-medium hover:underline">Open Chat</button>
-                </div>
-              </div>
-              
-              <div className="flex gap-4">
-                <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center shrink-0">
+
+              {/* Registered Address */}
+              <div className="flex gap-4 p-5 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                <div className="w-12 h-12 bg-red-50 rounded-xl shadow-sm flex items-center justify-center shrink-0">
                   <MapPin size={24} className="text-[var(--color-mktg-cta)]" />
                 </div>
                 <div>
-                  <h4 className="text-lg font-bold text-[var(--color-mktg-base)] mb-1">Global HQ</h4>
-                  <p className="text-gray-500">Fully remote team, serving customers worldwide.</p>
+                  <h4 className="text-base font-bold text-[var(--color-mktg-base)] mb-1">Registered Office Address</h4>
+                  <p className="text-gray-800 font-medium">p 45 1 22ND LANE PHASE 7 DHA KARACHI</p>
+                  <p className="text-sm text-gray-500 mt-0.5">Karachi, Pakistan</p>
                 </div>
+              </div>
+
+              {/* Contact Channels */}
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="flex gap-3 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
+                  <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center shrink-0">
+                    <Mail size={20} className="text-[var(--color-mktg-cta)]" />
+                  </div>
+                  <div className="min-w-0">
+                    <h5 className="text-sm font-bold text-[var(--color-mktg-base)]">Email</h5>
+                    <a href="mailto:Ittisaloai@gmail.com" className="text-xs text-[var(--color-mktg-cta)] font-medium hover:underline block truncate">
+                      Ittisaloai@gmail.com
+                    </a>
+                    <a href="mailto:hello@ittisalo.com" className="text-xs text-gray-500 hover:underline block truncate">
+                      hello@ittisalo.com
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
+                  <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center shrink-0">
+                    <Phone size={20} className="text-[var(--color-mktg-cta)]" />
+                  </div>
+                  <div>
+                    <h5 className="text-sm font-bold text-[var(--color-mktg-base)]">Phone</h5>
+                    <a href="tel:+923103604110" className="text-xs text-gray-800 font-medium hover:underline block">
+                      +92 310 3604110
+                    </a>
+                    <span className="text-[11px] text-gray-400">Verified business line</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
+                <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center shrink-0">
+                  <MessageCircle size={20} className="text-[var(--color-mktg-cta)]" />
+                </div>
+                <div className="flex-1">
+                  <h5 className="text-sm font-bold text-[var(--color-mktg-base)]">Instant Messaging</h5>
+                  <p className="text-xs text-gray-500">Live AI Assistant & Support available 24/7</p>
+                </div>
+                <a href="https://wa.me/923103604110" target="_blank" rel="noopener noreferrer" className="text-xs bg-[var(--color-mktg-cta)] text-white px-3 py-1.5 rounded-lg font-medium hover:bg-[var(--color-mktg-cta-hover)] transition-colors">
+                  WhatsApp
+                </a>
               </div>
             </div>
           </div>

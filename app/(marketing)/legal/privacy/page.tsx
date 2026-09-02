@@ -23,7 +23,7 @@ export default function PrivacyPolicy() {
         <div className="text-gray-700 space-y-10 leading-relaxed">
           <div className="space-y-4 text-base sm:text-lg text-gray-600 bg-gray-50/70 border border-gray-200/80 rounded-2xl p-6 sm:p-8">
             <p>
-              This Privacy Policy explains how Ittisalo (&quot;Ittisalo,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) collects, uses, discloses, and safeguards information when you use our website, dashboard, and multi-tenant messaging automation platform (collectively, the &quot;Service&quot;). This policy applies both to businesses that sign up for Ittisalo (&quot;Tenants,&quot; &quot;Customers,&quot; &quot;you&quot;) and to the end customers who message a Tenant&apos;s business through WhatsApp, Instagram, or Messenger (&quot;End Users&quot;).
+              This Privacy Policy explains how ITTISALO (PRIVATE) LIMITED (&quot;Ittisalo,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) collects, uses, discloses, and safeguards information when you use our website, dashboard, and multi-tenant messaging automation platform (collectively, the &quot;Service&quot;). This policy applies both to businesses that sign up for Ittisalo (&quot;Tenants,&quot; &quot;Customers,&quot; &quot;you&quot;) and to the end customers who message a Tenant&apos;s business through WhatsApp, Instagram, or Messenger (&quot;End Users&quot;).
             </p>
             <p className="font-medium text-gray-800">
               By using the Service, you agree to the collection and use of information as described in this policy.
@@ -307,15 +307,18 @@ export default function PrivacyPolicy() {
               12. Contact Us
             </h2>
             <p>If you have questions about this Privacy Policy or our data practices, contact us at:</p>
-            <div className="pt-2 text-gray-800 space-y-1">
-              <p className="font-bold text-lg">Ittisalo</p>
-              <p>
+            <div className="pt-2 text-gray-800 space-y-1.5">
+              <p className="font-bold text-lg text-gray-900">ITTISALO (PRIVATE) LIMITED</p>
+              <p className="text-sm text-gray-600">Company Registration (CUIN): <span className="font-mono font-medium">0347762</span></p>
+              <p className="text-sm text-gray-600">National Tax Number (NTN): <span className="font-mono font-medium">J527787-0</span></p>
+              <p className="text-sm text-gray-600">Registered Address: p 45 1 22ND LANE PHASE 7 DHA KARACHI, Pakistan</p>
+              <p className="text-sm text-gray-600">Phone: <a href="tel:+923103604110" className="text-gray-900 hover:underline">+92 310 3604110</a></p>
+              <p className="text-sm text-gray-600">
                 Email:{" "}
                 <a href="mailto:Ittisaloai@gmail.com" className="text-[var(--color-mktg-cta)] hover:underline font-semibold">
                   Ittisaloai@gmail.com
                 </a>
               </p>
-              <p>Address: 22nd Lane, Phase 7, DHA , Karachi</p>
             </div>
           </section>
         </div>

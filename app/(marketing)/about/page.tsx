@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Globe2, Users, Rocket } from "lucide-react";
+import { Globe2, Users, Rocket, Building2 } from "lucide-react";
 
 export default function About() {
   return (
@@ -31,7 +31,7 @@ export default function About() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 mb-20">
+        <div className="grid md:grid-cols-3 gap-8 mb-16">
           <div className="text-center p-6 bg-gray-50 rounded-2xl border border-gray-100">
             <Globe2 size={32} className="mx-auto text-[var(--color-mktg-cta)] mb-4" />
             <h4 className="text-3xl font-bold text-[var(--color-mktg-base)] mb-2">50+</h4>
@@ -46,6 +46,37 @@ export default function About() {
             <Rocket size={32} className="mx-auto text-[var(--color-mktg-cta)] mb-4" />
             <h4 className="text-3xl font-bold text-[var(--color-mktg-base)] mb-2">300%</h4>
             <p className="text-sm text-gray-500">Avg. increase in response speed</p>
+          </div>
+        </div>
+
+        {/* Corporate Legal Entity Section */}
+        <div className="bg-slate-50 border border-slate-200/80 rounded-3xl p-8 mb-20 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <Building2 className="text-[var(--color-mktg-cta)]" size={28} />
+            <h3 className="text-2xl font-bold text-[var(--color-mktg-base)]">
+              Corporate & Registration Information
+            </h3>
+          </div>
+          <p className="text-gray-600 mb-6 leading-relaxed">
+            Ittisalo is owned and operated by <strong className="text-gray-900 font-semibold">ITTISALO (PRIVATE) LIMITED</strong>, a registered company incorporated under the Companies Act, 2017 with the Securities and Exchange Commission of Pakistan (SECP).
+          </p>
+          <div className="grid sm:grid-cols-2 gap-4 text-sm">
+            <div className="bg-white p-4 rounded-xl border border-gray-200/80 shadow-sm">
+              <span className="text-gray-400 block text-xs uppercase tracking-wider mb-1">Legal Entity Name</span>
+              <span className="font-bold text-gray-900 text-base">ITTISALO (PRIVATE) LIMITED</span>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-gray-200/80 shadow-sm">
+              <span className="text-gray-400 block text-xs uppercase tracking-wider mb-1">SECP Registration (CUIN)</span>
+              <span className="font-mono font-bold text-gray-900 text-base">0347762</span>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-gray-200/80 shadow-sm">
+              <span className="text-gray-400 block text-xs uppercase tracking-wider mb-1">National Tax Number (NTN)</span>
+              <span className="font-mono font-bold text-gray-900 text-base">J527787-0</span>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-gray-200/80 shadow-sm">
+              <span className="text-gray-400 block text-xs uppercase tracking-wider mb-1">Registered Address</span>
+              <span className="font-medium text-gray-900">p 45 1 22ND LANE PHASE 7 DHA KARACHI, Pakistan</span>
+            </div>
           </div>
         </div>
       </section>

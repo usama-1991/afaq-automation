@@ -85,8 +85,8 @@ function Footer() {
         <div className="landing-footer-divider" />
 
         <div className="landing-footer-bottom">
-          <p>© {new Date().getFullYear()} Ittisalo. All rights reserved.</p>
-          <p>Made with ❤️ in Karachi, Pakistan</p>
+          <p>© {new Date().getFullYear()} ITTISALO (PRIVATE) LIMITED. All rights reserved.</p>
+          <p>Operated by ITTISALO (PRIVATE) LIMITED (CUIN: 0347762) • p 45 1 22ND LANE PHASE 7 DHA KARACHI</p>
         </div>
       </div>
     </footer>

@@ -40,9 +40,14 @@ export default function Footer() {
                 Ittisalo
               </span>
             </Link>
-            <p className="text-sm text-gray-500 mb-6 max-w-xs">
+            <p className="text-sm text-gray-500 mb-4 max-w-xs">
               One AI inbox for every DM your business gets. Automate responses, take orders, and book appointments across WhatsApp, Instagram, and Messenger.
             </p>
+            <div className="text-xs text-gray-500 space-y-1 bg-gray-50 p-3 rounded-xl border border-gray-100 max-w-xs">
+              <p className="font-semibold text-gray-800">ITTISALO (PRIVATE) LIMITED</p>
+              <p className="text-gray-500">CUIN: 0347762 • NTN: J527787-0</p>
+              <p className="text-gray-500">p 45 1 22ND LANE PHASE 7 DHA KARACHI</p>
+            </div>
           </div>
 
           <div>
@@ -99,9 +104,14 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-gray-100 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-gray-400">
-            &copy; {new Date().getFullYear()} Ittisalo. All rights reserved.
-          </p>
+          <div>
+            <p className="text-sm text-gray-600 font-medium">
+              &copy; {new Date().getFullYear()} ITTISALO (PRIVATE) LIMITED. All rights reserved.
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              Ittisalo is owned and operated by ITTISALO (PRIVATE) LIMITED (SECP CUIN: 0347762).
+            </p>
+          </div>
           <div className="flex items-center gap-2 text-sm font-medium text-[var(--color-mktg-surface)] bg-gray-50 px-4 py-2 rounded-full cursor-pointer hover:bg-gray-100 transition-colors">
             <MessageCircle size={16} className="text-[var(--color-mktg-cta)]" /> Chat with us
           </div>

@@ -23,7 +23,7 @@ export default function TermsOfService() {
         <div className="text-gray-700 space-y-10 leading-relaxed">
           <div className="space-y-4 text-base sm:text-lg text-gray-600 bg-gray-50/70 border border-gray-200/80 rounded-2xl p-6 sm:p-8">
             <p>
-              These Terms of Service (&quot;Terms&quot;) govern access to and use of Ittisalo&apos;s website, dashboard, APIs, and related services (collectively, the &quot;Service&quot;), operated by Ittisalo (&quot;Ittisalo,&quot; &quot;we,&quot; &quot;us,&quot; &quot;our&quot;). By creating an account or using the Service, you (&quot;Customer,&quot; &quot;Tenant,&quot; &quot;you&quot;) agree to be bound by these Terms. If you are agreeing on behalf of a business, you represent that you have authority to bind that business.
+              These Terms of Service (&quot;Terms&quot;) govern access to and use of Ittisalo&apos;s website, dashboard, APIs, and related services (collectively, the &quot;Service&quot;), operated by ITTISALO (PRIVATE) LIMITED (&quot;Ittisalo,&quot; &quot;we,&quot; &quot;us,&quot; &quot;our&quot;). By creating an account or using the Service, you (&quot;Customer,&quot; &quot;Tenant,&quot; &quot;you&quot;) agree to be bound by these Terms. If you are agreeing on behalf of a business, you represent that you have authority to bind that business.
             </p>
             <p className="font-semibold text-gray-900">
               If you do not agree to these Terms, do not use the Service.
@@ -269,7 +269,7 @@ export default function TermsOfService() {
               16. Governing Law and Dispute Resolution
             </h2>
             <p>
-              These Terms are governed by the laws of [Pakistan / your chosen jurisdiction], without regard to conflict-of-law principles. Any disputes arising out of or relating to these Terms shall be subject to the exclusive jurisdiction of the courts of [City, Country], unless otherwise required by applicable law.
+              These Terms are governed by the laws of Pakistan, without regard to conflict-of-law principles. Any disputes arising out of or relating to these Terms shall be subject to the exclusive jurisdiction of the courts of Karachi / Islamabad, Pakistan, unless otherwise required by applicable law.
             </p>
           </section>
 
@@ -307,15 +307,18 @@ export default function TermsOfService() {
               18. Contact Us
             </h2>
             <p>For questions about these Terms, contact us at:</p>
-            <div className="pt-2 text-gray-800 space-y-1">
-              <p className="font-bold text-lg">Ittisalo</p>
-              <p>
+            <div className="pt-2 text-gray-800 space-y-1.5">
+              <p className="font-bold text-lg text-gray-900">ITTISALO (PRIVATE) LIMITED</p>
+              <p className="text-sm text-gray-600">Company Registration (CUIN): <span className="font-mono font-medium">0347762</span></p>
+              <p className="text-sm text-gray-600">National Tax Number (NTN): <span className="font-mono font-medium">J527787-0</span></p>
+              <p className="text-sm text-gray-600">Registered Address: p 45 1 22ND LANE PHASE 7 DHA KARACHI, Pakistan</p>
+              <p className="text-sm text-gray-600">Phone: <a href="tel:+923103604110" className="text-gray-900 hover:underline">+92 310 3604110</a></p>
+              <p className="text-sm text-gray-600">
                 Email:{" "}
                 <a href="mailto:Ittisaloai@gmail.com" className="text-[var(--color-mktg-cta)] hover:underline font-semibold">
                   Ittisaloai@gmail.com
                 </a>
               </p>
-              <p>Address: 22nd Lane, Phase 7, DHA, Karachi.</p>
             </div>
           </section>
         </div>
