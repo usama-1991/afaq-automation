@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useEffect, useCallback } from 'react';
 import { CalendarIntegrationsSettings } from '@/components/settings/CalendarIntegrations';
+import { WebsiteChatWidgetSettings } from '@/components/settings/WebsiteChatWidgetSettings';
 import { useSearchParams } from 'next/navigation';
 import { 
   Check, RefreshCw, Bot, Plug, Settings, Sparkles, 
@@ -16,7 +17,7 @@ import { niches } from '@/lib/niches';
 import { supabase } from '@/lib/supabase/client';
 import { encrypt, decrypt } from '@/lib/crypto';
 
-const tabs = ['Business Profile', 'Channels & APIs', 'Integrations', 'AI Knowledge', 'eCommerce Platform', 'Property Listings', 'Voice & Opt-Outs', 'Usage Quotas'] as const;
+const tabs = ['Business Profile', 'Channels & APIs', 'Website Chat Widget', 'Integrations', 'AI Knowledge', 'eCommerce Platform', 'Property Listings', 'Voice & Opt-Outs', 'Usage Quotas'] as const;
 type Tab = typeof tabs[number];
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
@@ -707,7 +708,7 @@ function SettingsInner() {
       </div>
 
       {/* Tab Panels */}
-      <div style={{ maxWidth: 640 }}>
+      <div style={{ maxWidth: tab === 'Website Chat Widget' ? '100%' : 640 }}>
 
         {/* ── Business Profile Tab ── */}
         {tab === 'Business Profile' && (
@@ -963,6 +964,11 @@ function SettingsInner() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* ── Website Chat Widget Tab ── */}
+        {tab === 'Website Chat Widget' && (
+          <WebsiteChatWidgetSettings />
         )}
 
         {/* ── Integrations Tab ── */}

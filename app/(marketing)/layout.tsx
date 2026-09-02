@@ -53,6 +53,14 @@ export default function MarketingLayout({
         <Navbar />
         <main className="min-h-screen pt-20">{children}</main>
         <Footer />
+        
+        {/* Ittisalo Omnichannel Live Chat Widget */}
+        <script
+          src="/widget.js"
+          data-tenant-id="3c459ad4-94cd-40f0-8b7f-cb3478a3302a"
+          data-position="bottom-right"
+          defer
+        />
       </body>
     </html>
   );

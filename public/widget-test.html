@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ittisalo Live Chat Widget — Demo Website</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: #f8fafc; color: #1e293b; padding: 60px 20px; line-height: 1.6; }
+    .container { max-width: 860px; margin: 0 auto; background: #ffffff; padding: 48px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
+    .badge { display: inline-block; background: #fee2e2; color: #dc2626; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 12px; margin-bottom: 12px; }
+    h1 { font-size: 32px; font-weight: 800; color: #0f172a; margin-bottom: 12px; letter-spacing: -0.5px; }
+    p { color: #475569; font-size: 16px; margin-bottom: 24px; }
+    .features { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 32px; }
+    .card { background: #f1f5f9; padding: 20px; border-radius: 12px; }
+    .card h3 { font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
+    .card p { font-size: 13.5px; color: #64748b; margin-bottom: 0; }
+    .instructions { margin-top: 36px; padding: 20px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; color: #92400e; font-size: 14px; }
+  </style>
+
+  <!-- Ittisalo Omnichannel Live Chat Widget Embed Tag -->
+  <script 
+    src="/widget.js" 
+    data-tenant-id="3c459ad4-94cd-40f0-8b7f-cb3478a3302a" 
+    data-position="bottom-right" 
+    defer>
+  </script>
+</head>
+<body>
+  <div class="container">
+    <div class="badge">TEST ENVIRONMENT</div>
+    <h1>Ittisalo Live Chat Widget Demo</h1>
+    <p>This page simulates a client's e-commerce storefront or corporate website with the Ittisalo Omnichannel Live Chat Widget embedded in the bottom-right corner.</p>
+
+    <div class="features">
+      <div class="card">
+        <h3>💬 Omnichannel Switcher</h3>
+        <p>Visitors can seamlessly chat on this website or click to continue directly on WhatsApp or Instagram.</p>
+      </div>
+      <div class="card">
+        <h3>⚡ Real-Time Live Sync</h3>
+        <p>Messages typed here instantly appear in the Ittisalo Unified Inbox for agents to reply.</p>
+      </div>
+      <div class="card">
+        <h3>📋 Pre-Chat Lead Capture</h3>
+        <p>Captures visitor Name & WhatsApp Number to auto-create CRM contacts.</p>
+      </div>
+      <div class="card">
+        <h3>🛡️ Zero Host Impact</h3>
+        <p>Isolated in Shadow DOM — zero style collisions with host website CSS.</p>
+      </div>
+    </div>
+
+    <div class="instructions">
+      👉 <strong>Look at the bottom right corner:</strong> Click the chat bubble to test the greeting, lead capture form, and live messaging!
+    </div>
+  </div>
+</body>
+</html>

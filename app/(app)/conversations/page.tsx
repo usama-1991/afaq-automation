@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect, useRef, memo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Search, Send, MessageSquare, Loader2, ChevronDown, Check, Paperclip, FileText, Image as ImageIcon, File, Eye, ArrowLeft, UserCheck, Bot, CheckCircle2, AlertTriangle, UserPlus, X as XIcon } from 'lucide-react';
+import { Search, Send, MessageSquare, Loader2, ChevronDown, Check, Paperclip, FileText, Image as ImageIcon, File, Eye, ArrowLeft, UserCheck, Bot, CheckCircle2, AlertTriangle, UserPlus, X as XIcon, Globe } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { useNiche } from '@/context/NicheContext';
 
@@ -33,16 +33,18 @@ const InstagramIcon = memo(function InstagramIcon({ size = 14 }: { size?: number
 
 // ── Platform config ─────────────────────────────────────────────────
 const PLATFORM: Record<string, { label: string; color: string; bg: string; icon: (s?: number) => React.ReactNode }> = {
-  whatsapp:  { label: 'WhatsApp',  color: '#25D366', bg: '#dcfce7', icon: (s) => <WhatsAppIcon size={s} />  },
-  messenger: { label: 'Messenger', color: '#0084ff', bg: '#dbeafe', icon: (s) => <MessengerIcon size={s} /> },
-  instagram: { label: 'Instagram', color: '#e1306c', bg: '#fce7f3', icon: (s) => <InstagramIcon size={s} /> },
+  whatsapp:   { label: 'WhatsApp',     color: '#25D366', bg: '#dcfce7', icon: (s) => <WhatsAppIcon size={s} />  },
+  messenger:  { label: 'Messenger',    color: '#0084ff', bg: '#dbeafe', icon: (s) => <MessengerIcon size={s} /> },
+  instagram:  { label: 'Instagram',    color: '#e1306c', bg: '#fce7f3', icon: (s) => <InstagramIcon size={s} /> },
+  web_widget: { label: 'Website Chat', color: '#4f46e5', bg: '#e0e7ff', icon: (s) => <Globe size={s || 14} /> },
 };
 
 const FILTERS = [
-  { key: 'all',       label: 'All Channels' },
-  { key: 'whatsapp',  label: 'WhatsApp'     },
-  { key: 'messenger', label: 'Messenger'    },
-  { key: 'instagram', label: 'Instagram'    },
+  { key: 'all',        label: 'All Channels' },
+  { key: 'whatsapp',   label: 'WhatsApp'     },
+  { key: 'messenger',  label: 'Messenger'    },
+  { key: 'instagram',  label: 'Instagram'    },
+  { key: 'web_widget', label: 'Website'      },
 ];
 
 const PlatformBadge = memo(function PlatformBadge({ platform }: { platform: string }) {

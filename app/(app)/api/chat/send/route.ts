@@ -37,13 +37,23 @@ export async function POST(request: Request) {
     // 3. Verify message ownership: Ensure message belongs to the caller's tenant
     const { data: message, error: msgError } = await supabase
       .from('messages')
-      .select('id, conversation_id, conversations!inner(tenant_id)')
+      .select('id, conversation_id, conversations!inner(tenant_id, platform)')
       .eq('id', message_id)
       .eq('conversations.tenant_id', callerProfile.tenant_id)
       .maybeSingle();
 
     if (msgError || !message) {
       return NextResponse.json({ error: 'Message not found or access denied' }, { status: 404 });
+    }
+
+    // Web Widget messages are delivered directly in real-time to the visitor's browser (no Meta API dispatch needed)
+    const convPlatform = (message as any)?.conversations?.platform;
+    if (convPlatform === 'web_widget') {
+      return NextResponse.json({
+        success: true,
+        channel: 'web_widget',
+        message: 'Message synced with live web visitor'
+      });
     }
 
     const urlsToTry: string[] = [];
