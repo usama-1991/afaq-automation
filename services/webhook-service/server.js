@@ -84,6 +84,86 @@ fastify.post('/api/campaigns/send', async (request, reply) => {
   return { success: true, message: 'Campaign processing started in the background.' };
 });
 
+// AI Process Endpoint for Website Live Chat Widget & Internal Channels
+fastify.post('/api/ai/process', async (request, reply) => {
+  const body = request.body || {};
+  const { tenant_id, conversation_id, customer_phone, customer_name, message, external_message_id } = body;
+
+  if (!tenant_id || !conversation_id || !message) {
+    return reply.code(400).send({ error: 'Missing tenant_id, conversation_id, or message' });
+  }
+
+  fastify.log.info(`[Widget AI] Processing message for conv ${conversation_id}: "${(message || '').slice(0, 40)}"`);
+
+  // 1. Fetch tenant niche & details
+  let tenantNiche = 'general';
+  let tenantBusinessName = '';
+  let tenantCurrency = 'PKR';
+  try {
+    const { data: tenant } = await supabase
+      .from('tenants')
+      .select('niche, business_name, default_currency')
+      .eq('id', tenant_id)
+      .maybeSingle();
+
+    if (tenant) {
+      tenantNiche = tenant.niche || 'general';
+      tenantBusinessName = tenant.business_name || '';
+      tenantCurrency = tenant.default_currency || 'PKR';
+    }
+  } catch (_) {}
+
+  // 2. Fetch KB, history, and agent config in parallel
+  try {
+    const [kbResult, historyResult, agentResult] = await Promise.allSettled([
+      supabase.from('knowledge_base').select('kb_type, title, content').eq('tenant_id', tenant_id).eq('is_active', true).limit(20),
+      supabase.from('messages').select('sender_type, content, created_at').eq('conversation_id', conversation_id).order('created_at', { ascending: false }).limit(11),
+      supabase.from('agents').select('name, prompt, tone, language').eq('tenant_id', tenant_id).eq('is_active', true).maybeSingle()
+    ]);
+
+    const knowledgeBase = kbResult.status === 'fulfilled' ? (kbResult.value.data || []) : [];
+    const rawHistory = historyResult.status === 'fulfilled' ? (historyResult.value.data || []) : [];
+    const conversationHistory = rawHistory.slice(0, 10).reverse();
+    const agentConfig = agentResult.status === 'fulfilled' ? (agentResult.value.data || {}) : {};
+
+    const payload = {
+      tenant_id,
+      conversation_id,
+      customer_phone: customer_phone || 'web_visitor',
+      customer_name: customer_name || 'Website Visitor',
+      platform: 'web_widget',
+      message_type: 'text',
+      message: message,
+      normalized_message: message,
+      external_message_id: external_message_id || `web_${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      processed_at: new Date().toISOString(),
+      niche: tenantNiche,
+      business_name: tenantBusinessName,
+      currency: tenantCurrency,
+      agent_name: agentConfig?.name || null,
+      agent_prompt: agentConfig?.prompt || null,
+      agent_tone: agentConfig?.tone || null,
+      agent_language: agentConfig?.language || 'en',
+      knowledge_base: knowledgeBase,
+      conversation_history: conversationHistory,
+      existing_context: null,
+      integrations: {},
+      _raw_meta: false
+    };
+
+    // Run the built-in AI agent (uses OPENAI_API_KEY, searches KB, saves bot reply to DB)
+    processAIAgent(payload).catch(err => {
+      fastify.log.error(`[AI-Agent] Error processing web chat: ${err.message}`);
+    });
+
+    return reply.send({ success: true, message: 'AI processing triggered' });
+  } catch (err) {
+    fastify.log.error(`[AI-Agent] Enrichment error: ${err.message}`);
+    return reply.code(500).send({ error: err.message });
+  }
+});
+
 // Meta Webhook Verification
 fastify.get('/webhook', async (request, reply) => {
   const mode = request.query['hub.mode'];

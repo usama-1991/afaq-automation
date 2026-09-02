@@ -261,10 +261,18 @@ async function triggerAIBotResponse(
       }
     }
 
-    // 3. Fallback: If webhook service URL is configured (Railway microservice)
+    // 3. Fallback: Dispatch to internal AI microservice (Railway airy-reprieve or webhook-service)
     const webhookUrls = [
       process.env.WEBHOOK_SERVICE_URL,
+      // Railway private networking for user's service: airy-reprieve
+      'http://airy-reprieve.railway.internal:8080/api/ai/process',
+      'http://airy-reprieve.railway.internal:3000/api/ai/process',
+      'http://airy-reprieve.railway.internal:3002/api/ai/process',
+      'http://airy-reprieve.railway.internal:3003/api/ai/process',
+      'http://airy-reprieve:8080/api/ai/process',
+      'http://airy-reprieve:3000/api/ai/process',
       'http://webhook-service.private.railway.internal:8080/api/ai/process',
+      'http://webhook-service.private.railway.internal:3000/api/ai/process',
       'http://localhost:3002/api/ai/process',
     ].filter(Boolean) as string[];
 
