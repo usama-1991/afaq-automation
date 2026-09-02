@@ -142,9 +142,11 @@ export async function POST(request: Request) {
 
     // 4. Trigger AI Bot if conversation is open (not in human handoff)
     if (conv.status === 'open') {
-      triggerAIBotResponse(supabase, tenantId, conversationId, conv, text, externalMsgId).catch(err => {
-        console.warn('[Widget AI Trigger Warning]:', err.message);
-      });
+      try {
+        await triggerAIBotResponse(supabase, tenantId, conversationId, conv, text, externalMsgId);
+      } catch (err: any) {
+        console.error('[Widget AI Trigger Error]:', err.message);
+      }
     }
 
     return NextResponse.json(
@@ -255,10 +257,15 @@ async function triggerAIBotResponse(
 
             return; // Successfully responded via AI
           }
+        } else {
+          const errBody = await aiResp.text().catch(() => '');
+          console.error(`[OpenAI Generation Error]: HTTP ${aiResp.status} - ${errBody}`);
         }
       } catch (openAiErr: any) {
-        console.warn('[Direct OpenAI Generation Error]:', openAiErr.message);
+        console.warn('[Direct OpenAI Exception]:', openAiErr.message);
       }
+    } else {
+      console.warn('[Widget AI]: OPENAI_API_KEY is not set in environment.');
     }
 
     // 3. Fallback: Dispatch to internal AI microservice (Railway airy-reprieve or webhook-service)
