@@ -328,7 +328,10 @@ function ConversationsInner() {
     fetchMessages(selected.id);
     const sub = supabase.channel(`messages_rt_${selected.id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${selected.id}` },
-        (payload: any) => setMessages(prev => [...prev, payload.new]))
+        (payload: any) => setMessages(prev => {
+          if (prev.some(m => m.id === payload.new.id)) return prev;
+          return [...prev, payload.new];
+        }))
       .subscribe();
     return () => { supabase.removeChannel(sub); };
   }, [selected?.id]);
@@ -345,6 +348,7 @@ function ConversationsInner() {
     const tempId = `temp_${Date.now()}`;
     const optimisticMsg = {
       id: tempId,
+      tenant_id: selected.tenant_id,
       conversation_id: selected.id,
       sender_type: 'agent',
       content,
@@ -353,10 +357,31 @@ function ConversationsInner() {
     };
     setMessages(prev => [...prev, optimisticMsg]);
     
-    // 2. Background DB Insert & API Dispatch
+    // 2. Auto take-over: If AI is active (unassigned), assign to current human agent so AI pauses
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!selected.assigned_to && user?.id) {
+        await supabase.from('conversations').update({
+          status: 'open',
+          assigned_to: user.id,
+          assigned_at: new Date().toISOString(),
+        }).eq('id', selected.id);
+        setSelectedState((prev: any) => prev ? { ...prev, status: 'open', assigned_to: user.id } : prev);
+        setConversations((prev: any[]) => prev.map((c: any) => c.id === selected.id ? { ...c, status: 'open', assigned_to: user.id } : c));
+      }
+    } catch (e) {
+      console.error('Auto take-over error:', e);
+    }
+
+    // 3. Background DB Insert & API Dispatch
     const { data, error } = await supabase
       .from('messages')
-      .insert([{ conversation_id: selected.id, sender_type: 'agent', content }])
+      .insert([{
+        tenant_id: selected.tenant_id,
+        conversation_id: selected.id,
+        sender_type: 'agent',
+        content
+      }])
       .select('id')
       .single();
 
@@ -364,9 +389,17 @@ function ConversationsInner() {
       console.error('Failed to save agent message:', error.message);
       // Revert optimistic message on failure
       setMessages(prev => prev.filter(m => m.id !== tempId));
+      alert(`Failed to send message: ${error.message}`);
     } else if (data?.id) {
       // Reconcile optimistic ID with real database ID
       setMessages(prev => prev.map(m => m.id === tempId ? { ...m, id: data.id, status: 'sent' } : m));
+
+      // Update conversation preview and timestamp
+      await supabase.from('conversations').update({
+        last_message_at: new Date().toISOString(),
+        last_message_preview: content.slice(0, 100),
+        updated_at: new Date().toISOString()
+      }).eq('id', selected.id);
 
       // Trigger direct dispatch via secure API route proxy
       fetch('/api/chat/send', {
@@ -475,6 +508,7 @@ function ConversationsInner() {
       const tempId = `temp_media_${Date.now()}`;
       const optimisticMediaMsg = {
         id: tempId,
+        tenant_id: selected.tenant_id,
         conversation_id: selected.id,
         sender_type: 'agent',
         content: formattedContent,
@@ -483,10 +517,27 @@ function ConversationsInner() {
       };
       setMessages(prev => [...prev, optimisticMediaMsg]);
 
+      // Auto take-over if AI active
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!selected.assigned_to && user?.id) {
+          await supabase.from('conversations').update({
+            status: 'open',
+            assigned_to: user.id,
+            assigned_at: new Date().toISOString(),
+          }).eq('id', selected.id);
+          setSelectedState((prev: any) => prev ? { ...prev, status: 'open', assigned_to: user.id } : prev);
+          setConversations((prev: any[]) => prev.map((c: any) => c.id === selected.id ? { ...c, status: 'open', assigned_to: user.id } : c));
+        }
+      } catch (errAuto) {
+        console.error('Auto take-over error on media:', errAuto);
+      }
+
       // 2. Background DB Insert & API Dispatch
       const { data, error } = await supabase
         .from('messages')
         .insert([{
+          tenant_id: selected.tenant_id,
           conversation_id: selected.id,
           sender_type: 'agent',
           content: formattedContent
@@ -497,8 +548,17 @@ function ConversationsInner() {
       if (error) {
         console.error('Failed to save media agent message:', error.message);
         setMessages(prev => prev.filter(m => m.id !== tempId));
+        alert(`Failed to send media: ${error.message}`);
       } else if (data?.id) {
         setMessages(prev => prev.map(m => m.id === tempId ? { ...m, id: data.id, status: 'sent' } : m));
+
+        // Update conversation preview and timestamp
+        await supabase.from('conversations').update({
+          last_message_at: new Date().toISOString(),
+          last_message_preview: `[Media: ${category}] ${file.name}`,
+          updated_at: new Date().toISOString()
+        }).eq('id', selected.id);
+
         // Trigger direct dispatch via secure API route proxy
         fetch('/api/chat/send', {
           method: 'POST',

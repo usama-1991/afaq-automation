@@ -153,6 +153,7 @@ export async function POST(req: Request) {
 
       if (conversation) {
         await supabase.from('messages').insert({
+          tenant_id: record.tenant_id,
           conversation_id: conversation.id,
           sender_type: 'bot',
           content: messageText,

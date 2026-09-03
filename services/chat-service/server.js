@@ -107,15 +107,15 @@ async function dispatchOutboundMessage(message) {
 
   if (intError || !integration) throw new Error("Integration not found for tenant");
 
-  const externalPhoneId = integration.external_account_id?.trim();
+  const externalPhoneId = (integration.external_account_id || integration.credentials?.phone_number_id || process.env.META_PHONE_NUMBER_ID || '').trim();
   const customerPhone = conv.external_conversation_id?.trim();
-  let rawToken = integration.access_token || process.env.META_ACCESS_TOKEN || '';
+  let rawToken = integration.credentials?.access_token || integration.access_token || process.env.META_ACCESS_TOKEN || '';
 
   if (conv.platform === 'messenger') {
-    rawToken = integration.access_token || process.env.MESSENGER_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN || '';
+    rawToken = integration.credentials?.access_token || integration.access_token || process.env.MESSENGER_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN || '';
   }
   if (conv.platform === 'instagram') {
-    rawToken = integration.access_token || process.env.INSTAGRAM_ACCESS_TOKEN || process.env.MESSENGER_ACCESS_TOKEN || '';
+    rawToken = integration.credentials?.access_token || integration.access_token || process.env.INSTAGRAM_ACCESS_TOKEN || process.env.MESSENGER_ACCESS_TOKEN || '';
   }
 
   let accessToken = (decrypt(rawToken) || rawToken)?.trim();

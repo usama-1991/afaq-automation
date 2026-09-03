@@ -72,6 +72,7 @@ export async function notifyOrderStatusUpdate(orderId: string, newStatus: string
 
     if (conv) {
       await supabase.from('messages').insert({
+        tenant_id: order.tenant_id,
         conversation_id: conv.id,
         sender_type: 'bot',
         content: messageText,
