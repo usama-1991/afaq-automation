@@ -106,13 +106,22 @@ export async function POST(request: Request) {
     // 3. Verify message ownership: Ensure message belongs to caller's tenant
     const { data: message, error: msgError } = await supabase
       .from('messages')
-      .select('id, conversation_id, content, sender_type, tenant_id, conversations!inner(id, tenant_id, platform, external_conversation_id, customer_phone)')
+      .select('id, conversation_id, content, sender_type, tenant_id, external_message_id, conversations!inner(id, tenant_id, platform, external_conversation_id, customer_phone)')
       .eq('id', message_id)
       .eq('conversations.tenant_id', callerProfile.tenant_id)
       .maybeSingle();
 
     if (msgError || !message) {
       return NextResponse.json({ error: 'Message not found or access denied' }, { status: 404 });
+    }
+
+    // Deduplication check: if message already dispatched to Meta, skip duplicate dispatch
+    if (message.external_message_id) {
+      return NextResponse.json({
+        success: true,
+        already_dispatched: true,
+        external_message_id: message.external_message_id
+      });
     }
 
     const conv = (message as any).conversations;

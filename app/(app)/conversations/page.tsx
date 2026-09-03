@@ -400,22 +400,6 @@ function ConversationsInner() {
         last_message_preview: content.slice(0, 100),
         updated_at: new Date().toISOString()
       }).eq('id', selected.id);
-
-      // Trigger direct dispatch via secure API route proxy
-      fetch('/api/chat/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message_id: data.id })
-      })
-      .then(async res => {
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          console.error('Direct dispatch proxy failed:', errData.error || res.statusText);
-        } else {
-          console.log('Direct dispatch proxy succeeded:', await res.json().catch(() => ({})));
-        }
-      })
-      .catch(err => console.error('Failed to trigger direct dispatch proxy:', err));
     }
 
     setSending(false);
@@ -558,22 +542,6 @@ function ConversationsInner() {
           last_message_preview: `[Media: ${category}] ${file.name}`,
           updated_at: new Date().toISOString()
         }).eq('id', selected.id);
-
-        // Trigger direct dispatch via secure API route proxy
-        fetch('/api/chat/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message_id: data.id })
-        })
-        .then(async res => {
-          if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            console.error('Media direct dispatch proxy failed:', errData.error || res.statusText);
-          } else {
-            console.log('Media direct dispatch proxy succeeded:', await res.json().catch(() => ({})));
-          }
-        })
-        .catch(err => console.error('Failed to trigger media direct dispatch proxy:', err));
       }
 
       try {

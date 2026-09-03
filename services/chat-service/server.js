@@ -86,6 +86,12 @@ const parseMediaContent = (content) => {
 async function dispatchOutboundMessage(message) {
   if (message.sender_type === 'customer') return;
 
+  // Deduplication check: if message was already dispatched to Meta, skip
+  if (message.external_message_id) {
+    fastify.log.info(`[chat-service] Message ${message.id} already has external_message_id ${message.external_message_id}. Skipping duplicate.`);
+    return message.external_message_id;
+  }
+
   fastify.log.info(`[chat-service] Processing dispatch for outbound message ID: ${message.id}`);
 
   // 1. Get Conversation details
