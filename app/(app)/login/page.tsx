@@ -139,6 +139,9 @@ function AuthForm() {
           setInfoMessage(
             "Account created! Please check your email inbox to confirm your email and activate your workspace."
           );
+          setFullName("");
+          setEmail("");
+          setPassword("");
           setLoading(false);
         }
       }
@@ -429,6 +432,7 @@ function AuthForm() {
                   type="button"
                   onClick={() => {
                     setMode("signup");
+                    setPassword("");
                     setError(null);
                     setInfoMessage(null);
                   }}
@@ -444,6 +448,7 @@ function AuthForm() {
                   type="button"
                   onClick={() => {
                     setMode("login");
+                    setPassword("");
                     setError(null);
                     setInfoMessage(null);
                   }}
