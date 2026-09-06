@@ -15,28 +15,72 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  const [tenantId, setTenantId] = useState('');
+
   useEffect(() => {
-    const checkSuperAdmin = async () => {
+    const initTenant = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         const { data: profile } = await supabase
           .from('users')
-          .select('role')
+          .select('role, tenant_id')
           .eq('id', session.user.id)
           .maybeSingle();
 
-        const isSuperAdmin = profile?.role === 'super_admin';
-
-        if (isSuperAdmin) {
+        if (profile?.role === 'super_admin') {
           router.replace('/admin');
+          return;
+        }
+
+        if (profile?.tenant_id) {
+          setTenantId(profile.tenant_id);
+          const { data: t } = await supabase
+            .from('tenants')
+            .select('*')
+            .eq('id', profile.tenant_id)
+            .maybeSingle();
+
+          if (t) {
+            if (t.niche) setNiche(t.niche);
+            if (t.business_name && t.business_name !== 'My Business') setBusinessName(t.business_name);
+            if (t.website) setWebsite(t.website);
+            if (t.business_phone) setWaPhone(t.business_phone);
+            if (t.location) setLocation(t.location);
+            if (t.niche_settings) {
+              const ns = t.niche_settings;
+              if (ns.timezone) setTimezone(ns.timezone);
+              if (ns.legalName) setLegalName(ns.legalName);
+              if (ns.description) setDescription(ns.description);
+              if (ns.is247 !== undefined) setIs247(ns.is247);
+              if (ns.autoReply) setAutoReply(ns.autoReply);
+              if (ns.nicheSetting1) setNicheSetting1(ns.nicheSetting1);
+              if (ns.nicheSetting2) setNicheSetting2(ns.nicheSetting2);
+              if (ns.aiTone) setAiTone(ns.aiTone);
+              if (ns.aiLanguage) setAiLanguage(ns.aiLanguage);
+              if (ns.humanHandoffNumber) setHumanHandoffNumber(ns.humanHandoffNumber);
+            }
+          }
+
+          // Also prefetch knowledge base if already saved
+          const { data: kbEntries } = await supabase
+            .from('knowledge_base')
+            .select('title, content')
+            .eq('tenant_id', profile.tenant_id);
+
+          if (kbEntries && kbEntries.length > 0) {
+            const faqEntry = kbEntries.find((k: any) => k.title === 'Onboarding FAQs');
+            if (faqEntry?.content) setKbFaqs(faqEntry.content);
+            const catEntry = kbEntries.find((k: any) => k.title === 'Onboarding Catalog/Menu');
+            if (catEntry?.content) setKbCatalog(catEntry.content);
+          }
         }
       }
     };
-    checkSuperAdmin();
+    initTenant();
   }, [router]);
 
   // Step 1: Business Identity
-  const [niche, setNiche] = useState('');
+  const [niche, setNiche] = useState('general');
   const [businessName, setBusinessName] = useState('');
   const [legalName, setLegalName] = useState('');
   const [description, setDescription] = useState('');
@@ -71,7 +115,90 @@ export default function OnboardingPage() {
 
   const totalSteps = 7;
 
+  // Persist progress to tenant at each step
+  const saveStepProgress = async (currentStep: number) => {
+    try {
+      let tId = tenantId;
+      if (!tId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data: profile } = await supabase
+          .from('users')
+          .select('tenant_id')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (!profile?.tenant_id) return;
+        tId = profile.tenant_id;
+        setTenantId(tId);
+      }
+
+      if (currentStep === 1) {
+        await supabase.from('tenants').update({
+          niche: niche || 'general',
+          business_name: businessName || 'My Business',
+          location: location || '',
+          niche_settings: { timezone, legalName, description }
+        }).eq('id', tId);
+      } else if (currentStep === 2) {
+        if (waPhone || waToken) {
+          await supabase.from('tenants').update({
+            business_phone: waPhone || '',
+            wa_token_enc: waToken ? encrypt(waToken) : null,
+            meta_connected: !!(waPhone || waToken)
+          }).eq('id', tId);
+        }
+      } else if (currentStep === 3) {
+        const { data: t } = await supabase.from('tenants').select('niche_settings').eq('id', tId).maybeSingle();
+        const prevNs = t?.niche_settings || {};
+        await supabase.from('tenants').update({
+          niche_settings: { ...prevNs, is247, autoReply }
+        }).eq('id', tId);
+      } else if (currentStep === 4) {
+        if (website) {
+          await supabase.from('tenants').update({ website }).eq('id', tId);
+        }
+        if (kbFaqs) {
+          const { data: existingFaq } = await supabase.from('knowledge_base')
+            .select('id').eq('tenant_id', tId).eq('title', 'Onboarding FAQs').maybeSingle();
+          if (existingFaq?.id) {
+            await supabase.from('knowledge_base').update({ content: kbFaqs }).eq('id', existingFaq.id);
+          } else {
+            await supabase.from('knowledge_base').insert({
+              tenant_id: tId, kb_type: 'text', title: 'Onboarding FAQs', content: kbFaqs, is_active: true
+            });
+          }
+        }
+        if (kbCatalog) {
+          const { data: existingCat } = await supabase.from('knowledge_base')
+            .select('id').eq('tenant_id', tId).eq('title', 'Onboarding Catalog/Menu').maybeSingle();
+          if (existingCat?.id) {
+            await supabase.from('knowledge_base').update({ content: kbCatalog }).eq('id', existingCat.id);
+          } else {
+            await supabase.from('knowledge_base').insert({
+              tenant_id: tId, kb_type: 'text', title: 'Onboarding Catalog/Menu', content: kbCatalog, is_active: true
+            });
+          }
+        }
+      } else if (currentStep === 5) {
+        const { data: t } = await supabase.from('tenants').select('niche_settings').eq('id', tId).maybeSingle();
+        const prevNs = t?.niche_settings || {};
+        await supabase.from('tenants').update({
+          niche_settings: { ...prevNs, nicheSetting1, nicheSetting2 }
+        }).eq('id', tId);
+      } else if (currentStep === 6) {
+        const { data: t } = await supabase.from('tenants').select('niche_settings').eq('id', tId).maybeSingle();
+        const prevNs = t?.niche_settings || {};
+        await supabase.from('tenants').update({
+          niche_settings: { ...prevNs, aiTone, aiLanguage, humanHandoffNumber }
+        }).eq('id', tId);
+      }
+    } catch (err: any) {
+      console.warn('[Onboarding auto-save]:', err?.message);
+    }
+  };
+
   const nextStep = () => {
+    saveStepProgress(step);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setStep(s => Math.min(s + 1, totalSteps));
   };
@@ -142,10 +269,28 @@ export default function OnboardingPage() {
         }
       }
 
-      // Add basic KB if provided
-      if (kbFaqs || kbCatalog) {
-        if (kbFaqs) await supabase.from('knowledge_base').insert({ tenant_id: tenantId, kb_type: 'text', title: 'Onboarding FAQs', content: kbFaqs, is_active: true });
-        if (kbCatalog) await supabase.from('knowledge_base').insert({ tenant_id: tenantId, kb_type: 'text', title: 'Onboarding Catalog/Menu', content: kbCatalog, is_active: true });
+      // Add basic KB if provided (upsert by title to prevent duplicates)
+      if (kbFaqs) {
+        const { data: existingFaq } = await supabase.from('knowledge_base')
+          .select('id').eq('tenant_id', tenantId).eq('title', 'Onboarding FAQs').maybeSingle();
+        if (existingFaq?.id) {
+          await supabase.from('knowledge_base').update({ content: kbFaqs }).eq('id', existingFaq.id);
+        } else {
+          await supabase.from('knowledge_base').insert({
+            tenant_id: tenantId, kb_type: 'text', title: 'Onboarding FAQs', content: kbFaqs, is_active: true
+          });
+        }
+      }
+      if (kbCatalog) {
+        const { data: existingCat } = await supabase.from('knowledge_base')
+          .select('id').eq('tenant_id', tenantId).eq('title', 'Onboarding Catalog/Menu').maybeSingle();
+        if (existingCat?.id) {
+          await supabase.from('knowledge_base').update({ content: kbCatalog }).eq('id', existingCat.id);
+        } else {
+          await supabase.from('knowledge_base').insert({
+            tenant_id: tenantId, kb_type: 'text', title: 'Onboarding Catalog/Menu', content: kbCatalog, is_active: true
+          });
+        }
       }
 
       setNicheId(niche || 'general');
@@ -274,12 +419,12 @@ export default function OnboardingPage() {
               <p style={{ fontSize: 14, color: '#4b5563', marginBottom: 24 }}>Connect your WhatsApp API to enable AI messaging.</p>
 
               <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>WhatsApp Number (Required)</label>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>WhatsApp Number <span style={{ color: '#9ca3af', fontWeight: 400 }}>(Optional - can add later)</span></label>
                 <input value={waPhone} onChange={e => setWaPhone(e.target.value)} placeholder="+92 300 0000000" style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none' }} />
               </div>
 
               <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Display Name (Required)</label>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Display Name <span style={{ color: '#9ca3af', fontWeight: 400 }}>(Optional)</span></label>
                 <input value={waDisplayName} onChange={e => setWaDisplayName(e.target.value)} placeholder="Your Business Display Name" style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none' }} />
               </div>
 
@@ -293,8 +438,18 @@ export default function OnboardingPage() {
                 <button onClick={prevStep} style={{ flex: 1, padding: '14px', fontSize: 14, fontWeight: 600, background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 9, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                   <ArrowLeft size={16} /> Back
                 </button>
-                <button onClick={nextStep} disabled={!waPhone || !waDisplayName} style={{ flex: 2, padding: '14px', fontSize: 14, fontWeight: 600, background: waPhone && waDisplayName ? '#dc2626' : '#fca5a5', color: '#fff', border: 'none', borderRadius: 9, cursor: waPhone && waDisplayName ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  Continue <ArrowRight size={16} />
+                <button 
+                  onClick={nextStep} 
+                  style={{ 
+                    flex: 2, padding: '14px', fontSize: 14, fontWeight: 600, 
+                    background: (waPhone.trim() || waDisplayName.trim() || waToken.trim()) ? '#dc2626' : '#111827', 
+                    color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    transition: 'all 0.2s',
+                    boxShadow: (waPhone.trim() || waDisplayName.trim() || waToken.trim()) ? '0 2px 8px rgba(220,38,38,0.25)' : 'none'
+                  }}
+                >
+                  {(waPhone.trim() || waDisplayName.trim() || waToken.trim()) ? 'Continue' : 'Skip for now'} <ArrowRight size={16} />
                 </button>
               </div>
             </div>
@@ -330,8 +485,18 @@ export default function OnboardingPage() {
                 <button onClick={prevStep} style={{ flex: 1, padding: '14px', fontSize: 14, fontWeight: 600, background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 9, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                   <ArrowLeft size={16} /> Back
                 </button>
-                <button onClick={nextStep} style={{ flex: 2, padding: '14px', fontSize: 14, fontWeight: 600, background: '#111827', color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  Skip or Continue <ArrowRight size={16} />
+                <button 
+                  onClick={nextStep} 
+                  style={{ 
+                    flex: 2, padding: '14px', fontSize: 14, fontWeight: 600, 
+                    background: '#dc2626', 
+                    color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    transition: 'all 0.2s',
+                    boxShadow: '0 2px 8px rgba(220,38,38,0.25)'
+                  }}
+                >
+                  Continue <ArrowRight size={16} />
                 </button>
               </div>
             </div>
@@ -371,8 +536,18 @@ export default function OnboardingPage() {
                 <button onClick={prevStep} style={{ flex: 1, padding: '14px', fontSize: 14, fontWeight: 600, background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 9, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                   <ArrowLeft size={16} /> Back
                 </button>
-                <button onClick={nextStep} style={{ flex: 2, padding: '14px', fontSize: 14, fontWeight: 600, background: '#111827', color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  Skip for now <ArrowRight size={16} />
+                <button 
+                  onClick={nextStep} 
+                  style={{ 
+                    flex: 2, padding: '14px', fontSize: 14, fontWeight: 600, 
+                    background: (website.trim() || kbFaqs.trim() || kbCatalog.trim()) ? '#dc2626' : '#111827', 
+                    color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    transition: 'all 0.2s',
+                    boxShadow: (website.trim() || kbFaqs.trim() || kbCatalog.trim()) ? '0 2px 8px rgba(220,38,38,0.25)' : 'none'
+                  }}
+                >
+                  {(website.trim() || kbFaqs.trim() || kbCatalog.trim()) ? 'Continue' : 'Skip for now'} <ArrowRight size={16} />
                 </button>
               </div>
             </div>
@@ -430,8 +605,18 @@ export default function OnboardingPage() {
                 <button onClick={prevStep} style={{ flex: 1, padding: '14px', fontSize: 14, fontWeight: 600, background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 9, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                   <ArrowLeft size={16} /> Back
                 </button>
-                <button onClick={nextStep} style={{ flex: 2, padding: '14px', fontSize: 14, fontWeight: 600, background: '#111827', color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  Skip or Continue <ArrowRight size={16} />
+                <button 
+                  onClick={nextStep} 
+                  style={{ 
+                    flex: 2, padding: '14px', fontSize: 14, fontWeight: 600, 
+                    background: (nicheSetting1.trim() || nicheSetting2.trim()) ? '#dc2626' : '#111827', 
+                    color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    transition: 'all 0.2s',
+                    boxShadow: (nicheSetting1.trim() || nicheSetting2.trim()) ? '0 2px 8px rgba(220,38,38,0.25)' : 'none'
+                  }}
+                >
+                  {(nicheSetting1.trim() || nicheSetting2.trim()) ? 'Continue' : 'Skip for now'} <ArrowRight size={16} />
                 </button>
               </div>
             </div>
@@ -476,8 +661,18 @@ export default function OnboardingPage() {
                 <button onClick={prevStep} style={{ flex: 1, padding: '14px', fontSize: 14, fontWeight: 600, background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 9, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                   <ArrowLeft size={16} /> Back
                 </button>
-                <button onClick={nextStep} style={{ flex: 2, padding: '14px', fontSize: 14, fontWeight: 600, background: '#111827', color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  Continue <ArrowRight size={16} />
+                <button 
+                  onClick={nextStep} 
+                  style={{ 
+                    flex: 2, padding: '14px', fontSize: 14, fontWeight: 600, 
+                    background: '#dc2626', 
+                    color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    transition: 'all 0.2s',
+                    boxShadow: '0 2px 8px rgba(220,38,38,0.25)'
+                  }}
+                >
+                  Continue to Plan <ArrowRight size={16} />
                 </button>
               </div>
             </div>
