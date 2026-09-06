@@ -14,17 +14,106 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-
   const [tenantId, setTenantId] = useState('');
 
+  // Step 1: Business Identity
+  const [niche, setNiche] = useState('general');
+  const [businessName, setBusinessName] = useState('');
+  const [legalName, setLegalName] = useState('');
+  const [description, setDescription] = useState('');
+  const [location, setLocation] = useState('');
+  const [timezone, setTimezone] = useState('Asia/Karachi');
+
+  // Step 2: WhatsApp Connection
+  const [waPhone, setWaPhone] = useState('');
+  const [waDisplayName, setWaDisplayName] = useState('');
+  const [waToken, setWaToken] = useState('');
+  
+  // Step 3: Operating Hours
+  const [is247, setIs247] = useState(true);
+  const [autoReply, setAutoReply] = useState('');
+
+  // Step 4: Knowledge Base Seeding
+  const [kbFaqs, setKbFaqs] = useState('');
+  const [kbCatalog, setKbCatalog] = useState('');
+  const [website, setWebsite] = useState('');
+
+  // Step 5: Niche Config
+  const [nicheSetting1, setNicheSetting1] = useState(''); // E.g. slots, payment methods
+  const [nicheSetting2, setNicheSetting2] = useState(''); 
+
+  // Step 6: AI Personality
+  const [aiTone, setAiTone] = useState('Friendly and professional');
+  const [aiLanguage, setAiLanguage] = useState('English');
+  const [humanHandoffNumber, setHumanHandoffNumber] = useState('');
+
+  // Step 7: Plan
+  const [plan, setPlan] = useState('trial');
+
+  const totalSteps = 7;
+
+  // Persist draft to browser localStorage
+  const saveDraftToLocalStorage = () => {
+    try {
+      if (typeof window === 'undefined') return;
+      const draft = {
+        step, niche, businessName, legalName, description, location, timezone,
+        waPhone, waDisplayName, waToken, is247, autoReply,
+        kbFaqs, kbCatalog, website, nicheSetting1, nicheSetting2,
+        aiTone, aiLanguage, humanHandoffNumber, plan
+      };
+      localStorage.setItem('ittisalo_onboarding_draft', JSON.stringify(draft));
+    } catch (e) {}
+  };
+
   useEffect(() => {
+    // 1. Try restoring from localStorage draft
+    try {
+      const rawDraft = localStorage.getItem('ittisalo_onboarding_draft');
+      if (rawDraft) {
+        const d = JSON.parse(rawDraft);
+        if (d.niche) setNiche(d.niche);
+        if (d.businessName) setBusinessName(d.businessName);
+        if (d.legalName) setLegalName(d.legalName);
+        if (d.description) setDescription(d.description);
+        if (d.location) setLocation(d.location);
+        if (d.timezone) setTimezone(d.timezone);
+        if (d.waPhone) setWaPhone(d.waPhone);
+        if (d.waDisplayName) setWaDisplayName(d.waDisplayName);
+        if (d.waToken) setWaToken(d.waToken);
+        if (d.is247 !== undefined) setIs247(d.is247);
+        if (d.autoReply) setAutoReply(d.autoReply);
+        if (d.website) setWebsite(d.website);
+        if (d.kbFaqs) setKbFaqs(d.kbFaqs);
+        if (d.kbCatalog) setKbCatalog(d.kbCatalog);
+        if (d.nicheSetting1) setNicheSetting1(d.nicheSetting1);
+        if (d.nicheSetting2) setNicheSetting2(d.nicheSetting2);
+        if (d.aiTone) setAiTone(d.aiTone);
+        if (d.aiLanguage) setAiLanguage(d.aiLanguage);
+        if (d.humanHandoffNumber) setHumanHandoffNumber(d.humanHandoffNumber);
+        if (d.plan) setPlan(d.plan);
+        if (d.step && d.step > 1) setStep(d.step);
+      }
+    } catch (e) {}
+
+    // 2. Fetch authenticated tenant info
     const initTenant = async () => {
+      let activeUser = null;
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
+        activeUser = session.user;
+      } else {
+        const { data: refreshData } = await supabase.auth.refreshSession();
+        if (refreshData?.session?.user) {
+          activeUser = refreshData.session.user;
+        }
+      }
+
+      if (activeUser) {
         const { data: profile } = await supabase
           .from('users')
           .select('role, tenant_id')
-          .eq('id', session.user.id)
+          .eq('id', activeUser.id)
           .maybeSingle();
 
         if (profile?.role === 'super_admin') {
@@ -79,48 +168,14 @@ export default function OnboardingPage() {
     initTenant();
   }, [router]);
 
-  // Step 1: Business Identity
-  const [niche, setNiche] = useState('general');
-  const [businessName, setBusinessName] = useState('');
-  const [legalName, setLegalName] = useState('');
-  const [description, setDescription] = useState('');
-  const [location, setLocation] = useState('');
-  const [timezone, setTimezone] = useState('Asia/Karachi');
-
-  // Step 2: WhatsApp Connection
-  const [waPhone, setWaPhone] = useState('');
-  const [waDisplayName, setWaDisplayName] = useState('');
-  const [waToken, setWaToken] = useState('');
-  
-  // Step 3: Operating Hours
-  const [is247, setIs247] = useState(true);
-  const [autoReply, setAutoReply] = useState('');
-
-  // Step 4: Knowledge Base Seeding
-  const [kbFaqs, setKbFaqs] = useState('');
-  const [kbCatalog, setKbCatalog] = useState('');
-  const [website, setWebsite] = useState('');
-
-  // Step 5: Niche Config
-  const [nicheSetting1, setNicheSetting1] = useState(''); // E.g. slots, payment methods
-  const [nicheSetting2, setNicheSetting2] = useState(''); 
-
-  // Step 6: AI Personality
-  const [aiTone, setAiTone] = useState('Friendly and professional');
-  const [aiLanguage, setAiLanguage] = useState('English');
-  const [humanHandoffNumber, setHumanHandoffNumber] = useState('');
-
-  // Step 7: Plan
-  const [plan, setPlan] = useState('trial');
-
-  const totalSteps = 7;
-
   // Persist progress to tenant at each step
   const saveStepProgress = async (currentStep: number) => {
+    saveDraftToLocalStorage();
     try {
       let tId = tenantId;
       if (!tId) {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { session } } = await supabase.auth.getSession();
+        const user = session?.user;
         if (!user) return;
         const { data: profile } = await supabase
           .from('users')
@@ -211,17 +266,41 @@ export default function OnboardingPage() {
     setLoading(true);
     setErrorMsg('');
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) throw new Error('Authentication session not found.');
+      saveDraftToLocalStorage();
 
-      const { data: profile, error: profileError } = await supabase
-        .from('users')
-        .select('tenant_id')
-        .eq('id', user.id)
-        .single();
-      if (profileError || !profile?.tenant_id) throw new Error('Associated tenant profile not found.');
+      let activeUser = null;
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData?.session?.user) {
+        activeUser = sessionData.session.user;
+      } else {
+        const { data: refreshData } = await supabase.auth.refreshSession();
+        if (refreshData?.session?.user) {
+          activeUser = refreshData.session.user;
+        } else {
+          const { data: userData } = await supabase.auth.getUser();
+          if (userData?.user) activeUser = userData.user;
+        }
+      }
 
-      const tenantId = profile.tenant_id;
+      if (!activeUser) {
+        throw new Error('AUTH_SESSION_MISSING');
+      }
+
+      let activeTenantId = tenantId;
+      if (!activeTenantId) {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('tenant_id')
+          .eq('id', activeUser.id)
+          .maybeSingle();
+        if (profile?.tenant_id) activeTenantId = profile.tenant_id;
+      }
+
+      if (!activeTenantId) {
+        throw new Error('Associated tenant workspace not found. Please log in again.');
+      }
+
+      const tenantIdToUse = activeTenantId;
 
       // Update tenant
       const updatePayload: any = {
@@ -253,7 +332,7 @@ export default function OnboardingPage() {
       const { error: tenantUpdateError } = await supabase
         .from('tenants')
         .update(updatePayload)
-        .eq('id', tenantId);
+        .eq('id', tenantIdToUse);
       if (tenantUpdateError) throw tenantUpdateError;
 
       // Update Agent
@@ -261,37 +340,43 @@ export default function OnboardingPage() {
       if (activeNiche) {
         const customPrompt = `${activeNiche.systemRole}\n\nBusiness Description: ${description}\nTone: ${aiTone}\nLanguage: ${aiLanguage}`;
         
-        const { data: existingAgent } = await supabase.from('agents').select('id').eq('tenant_id', tenantId).maybeSingle();
+        const { data: existingAgent } = await supabase.from('agents').select('id').eq('tenant_id', tenantIdToUse).maybeSingle();
         if (existingAgent?.id) {
           await supabase.from('agents').update({ name: activeNiche.agentName, prompt: customPrompt, is_active: true }).eq('id', existingAgent.id);
         } else {
-          await supabase.from('agents').insert({ tenant_id: tenantId, name: activeNiche.agentName, prompt: customPrompt, is_active: true });
+          await supabase.from('agents').insert({ tenant_id: tenantIdToUse, name: activeNiche.agentName, prompt: customPrompt, is_active: true });
         }
       }
 
       // Add basic KB if provided (upsert by title to prevent duplicates)
       if (kbFaqs) {
         const { data: existingFaq } = await supabase.from('knowledge_base')
-          .select('id').eq('tenant_id', tenantId).eq('title', 'Onboarding FAQs').maybeSingle();
+          .select('id').eq('tenant_id', tenantIdToUse).eq('title', 'Onboarding FAQs').maybeSingle();
         if (existingFaq?.id) {
           await supabase.from('knowledge_base').update({ content: kbFaqs }).eq('id', existingFaq.id);
         } else {
           await supabase.from('knowledge_base').insert({
-            tenant_id: tenantId, kb_type: 'text', title: 'Onboarding FAQs', content: kbFaqs, is_active: true
+            tenant_id: tenantIdToUse, kb_type: 'text', title: 'Onboarding FAQs', content: kbFaqs, is_active: true
           });
         }
       }
       if (kbCatalog) {
         const { data: existingCat } = await supabase.from('knowledge_base')
-          .select('id').eq('tenant_id', tenantId).eq('title', 'Onboarding Catalog/Menu').maybeSingle();
+          .select('id').eq('tenant_id', tenantIdToUse).eq('title', 'Onboarding Catalog/Menu').maybeSingle();
         if (existingCat?.id) {
           await supabase.from('knowledge_base').update({ content: kbCatalog }).eq('id', existingCat.id);
         } else {
           await supabase.from('knowledge_base').insert({
-            tenant_id: tenantId, kb_type: 'text', title: 'Onboarding Catalog/Menu', content: kbCatalog, is_active: true
+            tenant_id: tenantIdToUse, kb_type: 'text', title: 'Onboarding Catalog/Menu', content: kbCatalog, is_active: true
           });
         }
       }
+
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('ittisalo_onboarding_draft');
+        }
+      } catch (e) {}
 
       setNicheId(niche || 'general');
       setOnboarded(true);
@@ -344,8 +429,33 @@ export default function OnboardingPage() {
         {renderProgress()}
 
         {errorMsg && (
-          <div style={{ background: '#fef2f2', border: '1px solid #fee2e2', color: '#b91c1c', borderRadius: 10, padding: '12px 16px', fontSize: 13.5, marginBottom: 20, textAlign: 'center', fontWeight: 500 }}>
-            {errorMsg}
+          <div style={{ background: '#fef2f2', border: '1px solid #fee2e2', color: '#b91c1c', borderRadius: 10, padding: '14px 18px', fontSize: 13.5, marginBottom: 20, textAlign: 'center', fontWeight: 500, lineHeight: 1.5 }}>
+            {errorMsg === 'AUTH_SESSION_MISSING' || errorMsg.toLowerCase().includes('session') ? (
+              <div>
+                <p style={{ margin: '0 0 6px 0', fontWeight: 700, fontSize: 14 }}>Authentication session not found</p>
+                <p style={{ margin: '0 0 12px 0', fontSize: 13, color: '#4b5563' }}>
+                  Your inputs are safely preserved in this browser! Please open login in another tab to sign in, then return here and click <strong>Complete Setup</strong>.
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 10 }}>
+                  <a 
+                    href="/login?next=/onboarding" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: '#dc2626', color: '#fff', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600, boxShadow: '0 2px 8px rgba(220,38,38,0.25)' }}
+                  >
+                    Open Login in New Tab ↗
+                  </a>
+                  <button 
+                    onClick={handleFinish} 
+                    style={{ padding: '8px 16px', background: '#111827', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
+                  >
+                    Retry Complete Setup ↻
+                  </button>
+                </div>
+              </div>
+            ) : (
+              errorMsg
+            )}
           </div>
         )}
 
