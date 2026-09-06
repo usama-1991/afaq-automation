@@ -215,7 +215,7 @@ export default function OnboardingPage() {
               <p style={{ fontSize: 14, color: '#4b5563', marginBottom: 24 }}>Let's customize your AI agent based on your industry and basic details.</p>
 
               <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 8 }}>Select your niche (Required)</label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 10, marginBottom: 20 }}>
                 {niches.map(n => (
                   <div key={n.id} onClick={() => setNiche(n.id)} style={{
                     background: '#fff', border: niche === n.id ? `2px solid #dc2626` : '1.5px solid rgba(220,38,38,0.12)',
@@ -387,7 +387,18 @@ export default function OnboardingPage() {
               </div>
               <p style={{ fontSize: 14, color: '#4b5563', marginBottom: 24 }}>Custom settings for your specific business type.</p>
 
-              {niche === 'ecommerce' ? (
+              {niche === 'general' ? (
+                <>
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Primary Industry / Business Sector</label>
+                    <input value={nicheSetting1} onChange={e => setNicheSetting1(e.target.value)} placeholder="e.g. SaaS, Consulting, Marketing Agency, Professional Services" style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none' }} />
+                  </div>
+                  <div style={{ marginBottom: 24 }}>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Target Customer Profile</label>
+                    <input value={nicheSetting2} onChange={e => setNicheSetting2(e.target.value)} placeholder="e.g. High-intent B2B leads, Retail consumers, Inbound inquiries" style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none' }} />
+                  </div>
+                </>
+              ) : niche === 'ecommerce' ? (
                 <>
                   <div style={{ marginBottom: 16 }}>
                     <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Accepted Payment Methods</label>

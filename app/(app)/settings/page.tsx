@@ -113,6 +113,10 @@ function SettingsInner() {
   const [emergencyPhone, setEmergencyPhone] = useState('');
   const [specialties, setSpecialties] = useState('');
 
+  const [generalIndustry, setGeneralIndustry] = useState('');
+  const [targetAudience, setTargetAudience] = useState('');
+  const [primaryCta, setPrimaryCta] = useState('');
+
   // APIs state — start empty, loaded from DB per tenant
   const [waToken, setWaToken] = useState('');
   const [waPhoneId, setWaPhoneId] = useState('');
@@ -245,6 +249,9 @@ function SettingsInner() {
               if (ns.aiTone) setAiTone(ns.aiTone);
               if (ns.aiLanguage) setAiLanguage(ns.aiLanguage);
               if (ns.humanHandoffNumber) setHumanHandoffNumber(ns.humanHandoffNumber);
+              if (ns.generalIndustry) setGeneralIndustry(ns.generalIndustry);
+              if (ns.targetAudience) setTargetAudience(ns.targetAudience);
+              if (ns.primaryCta) setPrimaryCta(ns.primaryCta);
             }
 
             // Load knowledge base entries
@@ -534,7 +541,8 @@ function SettingsInner() {
             dentalEmergency, slotLength, insurances, agencyLicense,
             operatingCities, propertyTypes, stylistsCount, bridalPackages,
             opdHours, emergencyPhone, specialties, slotCapacity, isHalal,
-            timezone, legalName, description, is247, autoReply, aiTone, aiLanguage, humanHandoffNumber
+            timezone, legalName, description, is247, autoReply, aiTone, aiLanguage, humanHandoffNumber,
+            generalIndustry, targetAudience, primaryCta
           };
           const updatePayload: Record<string, any> = {
             business_name: businessName,
@@ -822,6 +830,14 @@ function SettingsInner() {
                 <Sparkles size={16} color="#dc2626" />
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Industry-Specific Attributes ({niche.label})</div>
               </div>
+
+              {niche.id === 'general' && (
+                <>
+                  <Field label="Primary Business Sector" value={generalIndustry} onChange={setGeneralIndustry} hint="e.g. SaaS, Marketing Agency, Consulting, Logistics, Services" />
+                  <Field label="Target Customer Profile" value={targetAudience} onChange={setTargetAudience} hint="Who your business primarily sells to or qualifies" />
+                  <Field label="Primary Action / Booking Link" value={primaryCta} onChange={setPrimaryCta} hint="Demo booking link or product link (e.g. https://ittisalo.com/demo)" />
+                </>
+              )}
 
               {niche.id === 'restaurant' && (
                 <>

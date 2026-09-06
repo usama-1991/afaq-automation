@@ -144,7 +144,72 @@ const ecommerceConvos: SampleConvo[] = [
   },
 ];
 
+const generalConvos: SampleConvo[] = [
+  {
+    id: 1, customerName: 'Ahmed Raza', avatar: 'AR', lastMessage: 'What services do you provide?', time: '2 min ago', unread: 2, channel: 'whatsapp', status: 'active', aiActive: true,
+    messages: [
+      { role: 'customer', text: 'Hi! Can you tell me what services your company provides?', time: '11:15 AM' },
+      { role: 'bot', text: "Hello Ahmed! Welcome to Ittisalo 👋 We help businesses unify their WhatsApp, Instagram, Facebook Messenger, and website chats into a single AI-powered inbox. Would you like to see how it works or book a quick demo?", time: '11:15 AM' },
+      { role: 'customer', text: 'Yes, I would like to know pricing first please', time: '11:16 AM' },
+      { role: 'bot', text: "We offer flexible tiers starting with a 14-day free trial, followed by Starter, Pro, and Enterprise plans. What features are you looking for?", time: '11:16 AM' },
+    ],
+  },
+  {
+    id: 2, customerName: 'Farhan Tariq', avatar: 'FT', lastMessage: 'Can we schedule a call for tomorrow?', time: '25 min ago', unread: 0, channel: 'whatsapp', status: 'resolved', aiActive: true,
+    messages: [
+      { role: 'customer', text: 'Can we schedule a consultation call for tomorrow at 3pm?', time: '10:30 AM' },
+      { role: 'bot', text: "Confirmed! I've noted a consultation call for tomorrow at 3:00 PM. Our team specialist will connect with you. Looking forward to speaking! 📅", time: '10:31 AM' },
+    ],
+  },
+];
+
 export const niches: NicheConfig[] = [
+  {
+    id: 'general',
+    label: 'General Business',
+    icon: '💼',
+    color: '#dc2626',
+    bgColor: '#fef2f2',
+    agentName: 'Ittisalo Copilot',
+    greeting: "Hello! Welcome to our business. How can I assist you today? Feel free to ask about our services, pricing, or how we can help your team.",
+    systemRole: "You are a professional business assistant. Answer questions, provide customer support, qualify inbound leads, schedule consultations, and share company details. Always be professional, warm, concise, and helpful.",
+    knowledgeBase: [
+      { name: 'Company Overview & FAQ.pdf', type: 'PDF', description: 'Core business overview, services, and frequently asked questions' },
+      { name: 'Services & Pricing Guide', type: 'Document', description: 'Service packages, pricing tiers, and contact information' },
+    ],
+    dos: ['Always greet warmly and professionally', 'Provide clear and concise answers', 'Capture customer contact details when they express interest', 'Offer to schedule a consultation or demo', 'Escalate complex requests to a human team member'],
+    donts: ['Never provide inaccurate pricing or false commitments', 'Never share confidential company or client data', 'Never ignore customer complaints or frustration'],
+    sampleConversations: generalConvos,
+    contacts: [
+      { id: 1, name: 'Zeeshan Ali', phone: '+92 300 5551234', email: 'zeeshan@example.com', visits: 5, lastVisit: 'Yesterday', totalSpent: 'USD 450', tags: ['High Intent', 'Lead'] },
+      { id: 2, name: 'Nadia Khan', phone: '+92 321 4445678', email: 'nadia@firm.com', visits: 2, lastVisit: '3 days ago', totalSpent: 'USD 120', tags: ['Inquiry'] },
+    ],
+    stats: { conversations: 312, avgResponse: '1.1', sentiment: 'Positive', sentimentScore: 0.89, resolution: 94 },
+    appointmentBased: false,
+    ecommerceEnabled: false,
+    keyPhrases: ['pricing', 'services', 'demo', 'features', 'support', 'contact', 'quote', 'hours', 'consultation'],
+    quickReplies: [
+      {
+        category: 'Business Inquiries',
+        replies: [
+          { label: 'Hours & Location', text: "We're available 24/7 online! How can our team assist your business today? 🌐" },
+          { label: 'Schedule Consultation', text: "I'd be glad to arrange a discussion with our team! What date and time works best for you? 📅" }
+        ]
+      },
+      {
+        category: 'Support & Pricing',
+        replies: [
+          { label: 'Pricing Information', text: "We offer flexible tiers to match your needs. Could you tell me more about your requirements so I can recommend the right plan? 💼" },
+          { label: 'Connect to Human Agent', text: "I am notifying a member of our team to join this conversation and assist you directly! 👤" }
+        ]
+      }
+    ],
+    dashboardMetrics: [
+      { label: 'Qualified Leads', value: '58', desc: 'Inbound inquiries qualified', trend: '+18.5% this week' },
+      { label: 'Avg First Reply', value: '38s', desc: 'Instant AI response speed' },
+      { label: 'Resolution Rate', value: '94.2%', desc: 'Inquiries resolved automatically' }
+    ]
+  },
   {
     id: 'restaurant',
     label: 'Restaurant / Food',
