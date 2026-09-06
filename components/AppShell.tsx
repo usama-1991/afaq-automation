@@ -69,13 +69,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       if (profile?.tenant_id) {
         const { data: tenant } = await supabase
           .from('tenants')
-          .select('niche')
+          .select('niche, onboarding_completed')
           .eq('id', profile.tenant_id)
           .single();
 
-        if (tenant?.niche) {
-          if (tenant.niche !== 'general') {
+        if (tenant) {
+          if (tenant.niche) {
             setNicheId(tenant.niche);
+          }
+          if (tenant.onboarding_completed) {
             setOnboarded(true);
           } else {
             setOnboarded(false);

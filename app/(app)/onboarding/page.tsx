@@ -130,6 +130,11 @@ export default function OnboardingPage() {
             .maybeSingle();
 
           if (t) {
+            if (t.onboarding_completed) {
+              setOnboarded(true);
+              router.replace('/dashboard');
+              return;
+            }
             if (t.niche) setNiche(t.niche);
             if (t.business_name && t.business_name !== 'My Business') setBusinessName(t.business_name);
             if (t.website) setWebsite(t.website);
