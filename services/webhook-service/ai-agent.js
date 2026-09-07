@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 import { sendTenantNotification } from './fcm.js';
 import { encrypt, decrypt } from './crypto.js';
+import { dispatchOutboundMessage } from './dispatcher.js';
 import ws from 'ws';
 
 const supabaseUrl = process.env.SUPABASE_URL || 'https://placeholder.supabase.co';
@@ -1099,12 +1100,8 @@ export async function processAIAgent(ctx) {
        ).catch(err => console.error('[FCM] Error sending handoff push:', err));
     }
 
-    // 6. (Removed) Send Reply to Customer via Meta API
-    // We no longer send the message here. Instead, we insert it into the 'messages' table below,
-    // and the chat-service picks it up via Realtime listener and sends it to Meta.
-
-    // Insert bot message into DB
-    const { error: insertError } = await supabase.from('messages').insert({
+    // 6. Insert bot message into DB and immediately dispatch to Meta API
+    const { data: insertedMsg, error: insertError } = await supabase.from('messages').insert({
       tenant_id: ctx.tenant_id,
       conversation_id: ctx.conversation_id,
       sender_type: 'bot',
@@ -1114,9 +1111,15 @@ export async function processAIAgent(ctx) {
       completion_tokens,
       kb_chunks_used: kbDocs.length,
       is_read: true
-    });
+    }).select('*').single();
+
     if (insertError) {
       console.error(`[AI-Agent] Failed to insert bot message:`, insertError);
+    } else if (insertedMsg) {
+      // Send directly to Meta (WhatsApp / Messenger / Instagram)
+      dispatchOutboundMessage(supabase, insertedMsg, console).catch(err => {
+        console.error(`[AI-Agent] Outbound dispatch error: ${err.message}`);
+      });
     }
     
     // Update conversation

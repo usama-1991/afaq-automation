@@ -7,6 +7,7 @@ import { startCronJobs } from './cron.js';
 import { processCampaign } from './campaign.js';
 import { sendTenantNotification } from './fcm.js';
 import { decrypt } from './crypto.js';
+import { startRealtimeDispatcher } from './dispatcher.js';
 import crypto from 'crypto';
 import fs from 'fs';
 import os from 'os';
@@ -49,6 +50,7 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
 
 // Start background cron jobs (Workflow 3 & 5)
 startCronJobs(supabase);
+startRealtimeDispatcher(supabase, fastify.log);
 
 fastify.get('/health', async (request, reply) => {
   return { status: 'ok', service: 'webhook-service' };
@@ -802,7 +804,17 @@ fastify.post('/webhook', {
               // ── Resolve real Messenger name (multi-strategy) ──────────────
               let customerName = 'Messenger User';
               try {
-                const token = process.env.MESSENGER_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN;
+                let token = process.env.MESSENGER_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN;
+                if (!token) {
+                  const { data: pageInt } = await supabase
+                    .from('integrations')
+                    .select('access_token, credentials')
+                    .eq('platform', 'messenger')
+                    .eq('external_account_id', pageId)
+                    .maybeSingle();
+                  token = (pageInt?.credentials?.access_token || pageInt?.access_token)?.trim();
+                  if (token) token = decrypt(token) || token;
+                }
 
                 // Strategy 1: Name in webhook payload (rare but possible)
                 if (event.sender?.name) {
@@ -810,45 +822,39 @@ fastify.post('/webhook', {
                   fastify.log.info(`[messenger] Name from payload: ${customerName}`);
                 }
 
-                // Strategy 2: Use the User Profile API with PSID
-                // This requires pages_messaging permission (Advanced Access)
+                // Strategy 2: Conversations API (most reliable with Page Access Token)
                 else if (token) {
                   try {
-                    const profileRes = await fetch(
-                      `https://graph.facebook.com/v21.0/${customerPsid}?fields=name,first_name,last_name&access_token=${token}`
+                    const convRes = await fetch(
+                      `https://graph.facebook.com/v21.0/${pageId}/conversations?user_id=${customerPsid}&fields=participants&access_token=${token}`
                     );
-                    const profileData = await profileRes.json();
-                    fastify.log.info(`[messenger] Profile API response: ${JSON.stringify(profileData)}`);
-                    if (profileData.name) {
-                      customerName = profileData.name;
-                      fastify.log.info(`[messenger] Name from Profile API: ${customerName}`);
-                    } else if (profileData.first_name) {
-                      customerName = `${profileData.first_name} ${profileData.last_name || ''}`.trim();
-                      fastify.log.info(`[messenger] Name from Profile API (first+last): ${customerName}`);
-                    } else if (profileData.error) {
-                      fastify.log.warn(`[messenger] Profile API error: ${profileData.error.message}. ` +
-                        `Ensure your app has pages_messaging permission with Advanced Access.`);
+                    const convData = await convRes.json();
+                    const participants = convData?.data?.[0]?.participants?.data || [];
+                    const user = participants.find(p => p.id === customerPsid || p.id !== pageId);
+                    if (user?.name && user.name !== 'Facebook User') {
+                      customerName = user.name;
+                      fastify.log.info(`[messenger] Resolved customer name from Conversations API: "${customerName}"`);
                     }
-                  } catch (profileErr) {
-                    fastify.log.warn(`[messenger] Profile API request failed: ${profileErr.message}`);
+                  } catch (convErr) {
+                    fastify.log.warn(`[messenger] Conversations API failed: ${convErr.message}`);
                   }
 
-                  // Strategy 3: Conversations API as fallback
+                  // Strategy 3: User Profile API with PSID as fallback
                   if (customerName === 'Messenger User') {
                     try {
-                      const convRes = await fetch(
-                        `https://graph.facebook.com/v21.0/${pageId}/conversations?user_id=${customerPsid}&fields=participants&access_token=${token}`
+                      const profileRes = await fetch(
+                        `https://graph.facebook.com/v21.0/${customerPsid}?fields=name,first_name,last_name&access_token=${token}`
                       );
-                      const convData = await convRes.json();
-                      const participants = convData?.data?.[0]?.participants?.data || [];
-                      fastify.log.info(`[messenger] Conversations API participants: ${JSON.stringify(participants)}`);
-                      const user = participants.find(p => p.id !== pageId);
-                      if (user?.name && user.name !== 'Facebook User') {
-                        customerName = user.name;
-                        fastify.log.info(`[messenger] Name from Conversations API: ${customerName}`);
+                      const profileData = await profileRes.json();
+                      if (profileData.name) {
+                        customerName = profileData.name;
+                        fastify.log.info(`[messenger] Name from Profile API: ${customerName}`);
+                      } else if (profileData.first_name) {
+                        customerName = `${profileData.first_name} ${profileData.last_name || ''}`.trim();
+                        fastify.log.info(`[messenger] Name from Profile API (first+last): ${customerName}`);
                       }
-                    } catch (convErr) {
-                      fastify.log.warn(`[messenger] Conversations API failed: ${convErr.message}`);
+                    } catch (profileErr) {
+                      fastify.log.warn(`[messenger] Profile API request failed: ${profileErr.message}`);
                     }
                   }
                 }
@@ -868,10 +874,15 @@ fastify.post('/webhook', {
         if (entry.messaging) {
           for (const event of entry.messaging) {
             // Skip echoes (messages sent by the page itself)
-            if (event.message && !event.message.is_echo) {
+            if (event.message && event.message.is_echo) {
+              fastify.log.info('[instagram] Skipping echo message.');
+              continue;
+            }
+
+            if (event.message && event.message.text) {
               const igAccountId = entry.id;        // Instagram Business Account ID
               const senderIgsid = event.sender.id; // Sender's Instagram-Scoped ID
-              const messageText = event.message.text || '';
+              const messageText = event.message.text;
               const messageId   = event.message.mid;
 
               // In-memory dedup
@@ -885,7 +896,18 @@ fastify.post('/webhook', {
                 if (event.sender?.name) {
                   customerName = event.sender.name;
                 } else {
-                  const token = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.MESSENGER_ACCESS_TOKEN;
+                  let token = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.MESSENGER_ACCESS_TOKEN;
+                  if (!token) {
+                    const { data: igInt } = await supabase
+                      .from('integrations')
+                      .select('access_token, credentials')
+                      .eq('platform', 'instagram')
+                      .eq('external_account_id', igAccountId)
+                      .maybeSingle();
+                    token = (igInt?.credentials?.access_token || igInt?.access_token)?.trim();
+                    if (token) token = decrypt(token) || token;
+                  }
+
                   if (token) {
                     // Strategy 1: Try IG Conversations API to get participant name
                     try {
