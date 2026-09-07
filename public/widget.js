@@ -703,6 +703,10 @@
         <div class="ittisalo-lead-intro">
           👋 Welcome! Please share your details to connect with us immediately:
         </div>
+        <div class="ittisalo-form-error" style="display: none; background: #fef2f2; border: 1px solid #fee2e2; color: #dc2626; padding: 10px 14px; border-radius: 9px; font-size: 12.5px; margin-bottom: 14px; font-weight: 500; align-items: center; gap: 8px; animation: ittisaloSlideUp 0.2s ease;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <span class="ittisalo-error-text"></span>
+        </div>
         <div class="ittisalo-field-group">
           <label class="ittisalo-field-label">Your Name</label>
           <input type="text" class="ittisalo-field-input input-name" placeholder="John Doe" required />
@@ -719,18 +723,54 @@
       </div>
     `;
 
+    var errorBanner = container.querySelector('.ittisalo-form-error');
+    var errorText = container.querySelector('.ittisalo-error-text');
+    var nameInput = container.querySelector('.input-name');
+    var phoneInput = container.querySelector('.input-phone');
+    var emailInput = container.querySelector('.input-email');
     var submitBtn = container.querySelector('.ittisalo-submit-btn');
+
+    function showError(msg, targetInput) {
+      if (errorBanner && errorText) {
+        errorText.textContent = msg;
+        errorBanner.style.display = 'flex';
+      }
+      if (targetInput) {
+        targetInput.style.borderColor = '#dc2626';
+        targetInput.style.boxShadow = '0 0 0 3px rgba(220, 38, 38, 0.12)';
+        targetInput.focus();
+      }
+    }
+
+    function clearError() {
+      if (errorBanner) {
+        errorBanner.style.display = 'none';
+        if (errorText) errorText.textContent = '';
+      }
+      [nameInput, phoneInput, emailInput].forEach(function(el) {
+        if (el) {
+          el.style.borderColor = '';
+          el.style.boxShadow = '';
+        }
+      });
+    }
+
+    [nameInput, phoneInput, emailInput].forEach(function(el) {
+      if (el) el.addEventListener('input', clearError);
+    });
+
     submitBtn.onclick = function() {
-      var name = container.querySelector('.input-name').value.trim();
-      var phone = container.querySelector('.input-phone').value.trim();
-      var email = container.querySelector('.input-email').value.trim();
+      clearError();
+      var name = nameInput.value.trim();
+      var phone = phoneInput.value.trim();
+      var email = emailInput.value.trim();
 
       if (!name) {
-        alert('Please enter your name.');
+        showError('Please enter your name.', nameInput);
         return;
       }
       if (!phone) {
-        alert('Please enter your phone number.');
+        showError('Please enter your phone number.', phoneInput);
         return;
       }
 
@@ -743,8 +783,9 @@
 
       initSession(leadData, function(err) {
         submitBtn.disabled = false;
+        submitBtn.textContent = 'Start Chat';
         if (err) {
-          alert('Could not start session. Please try again.');
+          showError('Could not start chat session. Please try again.', null);
           return;
         }
         renderChatInterface(container);
