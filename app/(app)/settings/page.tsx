@@ -9,7 +9,7 @@ import {
   Volume2, UserX, BarChart3, Upload, Key, ShieldCheck, 
   User, CreditCard, LayoutGrid, Sliders, MessageSquare, 
   AlertCircle, Globe, BookOpen, Trash2, Loader2, ShoppingCart,
-  ExternalLink, Link2, Home
+  ExternalLink, Link2, Home, Copy, Eye, EyeOff, MessageCircle
 } from 'lucide-react';
 import { useNiche } from '@/context/NicheContext';
 import { useConfirm, useAlert } from '@/context/DialogContext';
@@ -121,6 +121,21 @@ function SettingsInner() {
   const [waToken, setWaToken] = useState('');
   const [waPhoneId, setWaPhoneId] = useState('');
   const [waAccountId, setWaAccountId] = useState('');
+  const [showWaToken, setShowWaToken] = useState(false);
+
+  // Facebook Messenger credentials
+  const [fbPageId, setFbPageId] = useState('');
+  const [fbToken, setFbToken] = useState('');
+  const [showFbToken, setShowFbToken] = useState(false);
+
+  // Instagram Direct credentials
+  const [igAccountId, setIgAccountId] = useState('');
+  const [igToken, setIgToken] = useState('');
+  const [showIgToken, setShowIgToken] = useState(false);
+
+  // Helper copy states
+  const [copiedWebhook, setCopiedWebhook] = useState(false);
+  const [copiedVerify, setCopiedVerify] = useState(false);
 
   // AI Knowledge Base state
   interface KBEntry { id: string; kb_type: string; title: string; content: string; source_url?: string; is_active: boolean; created_at: string; }
@@ -226,6 +241,34 @@ function SettingsInner() {
               if (tenant.wa_token_enc) setWaToken('••••••••••••••••');
               if (tenant.wa_phone_number_id) setWaPhoneId(tenant.wa_phone_number_id);
               if (tenant.wa_account_id) setWaAccountId(tenant.wa_account_id);
+
+              if (tenant.facebook_page_id || tenant.fb_page_id) {
+                setFbPageId(tenant.facebook_page_id || tenant.fb_page_id || '');
+              }
+              if (tenant.instagram_page_id || tenant.ig_page_id) {
+                setIgAccountId(tenant.instagram_page_id || tenant.ig_page_id || '');
+              }
+
+              // Load active credentials from integrations table
+              try {
+                const { data: ints } = await supabase
+                  .from('integrations')
+                  .select('*')
+                  .eq('tenant_id', profile.tenant_id);
+
+                if (ints && ints.length > 0) {
+                  const mInt = ints.find((i: any) => i.platform === 'messenger');
+                  if (mInt) {
+                    if (mInt.external_account_id) setFbPageId(mInt.external_account_id);
+                    if (mInt.credentials?.access_token || mInt.access_token) setFbToken('••••••••••••••••');
+                  }
+                  const igInt = ints.find((i: any) => i.platform === 'instagram');
+                  if (igInt) {
+                    if (igInt.external_account_id) setIgAccountId(igInt.external_account_id);
+                    if (igInt.credentials?.access_token || igInt.access_token) setIgToken('••••••••••••••••');
+                  }
+                }
+              } catch (_) {}
               // Load niche_settings JSONB
               const ns = tenant.niche_settings || {};
               if (ns.dentalEmergency) setDentalEmergency(ns.dentalEmergency);
@@ -574,6 +617,16 @@ function SettingsInner() {
           if (waAccountId && !waAccountId.includes('•')) updatePayload.wa_account_id = waAccountId;
           if (waToken && !waToken.includes('•')) updatePayload.wa_token_enc = encrypt(waToken);
 
+          // Messenger & Instagram IDs on tenant
+          if (fbPageId !== undefined) {
+            updatePayload.facebook_page_id = fbPageId.trim();
+            updatePayload.fb_page_id = fbPageId.trim();
+          }
+          if (igAccountId !== undefined) {
+            updatePayload.instagram_page_id = igAccountId.trim();
+            updatePayload.ig_page_id = igAccountId.trim();
+          }
+
           const { error: tenantErr } = await supabase
             .from('tenants')
             .update(updatePayload)
@@ -584,30 +637,107 @@ function SettingsInner() {
             return;
           }
 
-          // Sync with integrations table for Meta WhatsApp Webhook routing
+          // 1. Sync with integrations table for Meta WhatsApp Webhook routing
           const activePhoneId = (waPhoneId && !waPhoneId.includes('•')) ? waPhoneId : updatePayload.wa_phone_number_id;
           if (activePhoneId) {
+            let existingWaToken: string | undefined = undefined;
+            if (!waToken || waToken.includes('•')) {
+              const { data: ex } = await supabase.from('integrations').select('credentials, access_token').eq('tenant_id', profile.tenant_id).eq('platform', 'whatsapp').maybeSingle();
+              existingWaToken = ex?.credentials?.access_token || ex?.access_token;
+            }
+
             await supabase
               .from('integrations')
               .delete()
               .eq('tenant_id', profile.tenant_id)
               .eq('platform', 'whatsapp');
 
+            const tokenToSave = (waToken && !waToken.includes('•')) ? waToken.trim() : existingWaToken;
             const { error: intErr } = await supabase
               .from('integrations')
               .insert({
                 tenant_id: profile.tenant_id,
                 platform: 'whatsapp',
-                external_account_id: activePhoneId,
+                external_account_id: activePhoneId.trim(),
+                access_token: tokenToSave,
                 credentials: {
-                  phone_number_id: activePhoneId,
-                  access_token: (waToken && !waToken.includes('•')) ? waToken : undefined,
-                  waba_id: (waAccountId && !waAccountId.includes('•')) ? waAccountId : undefined
-                }
+                  phone_number_id: activePhoneId.trim(),
+                  access_token: tokenToSave,
+                  waba_id: (waAccountId && !waAccountId.includes('•')) ? waAccountId.trim() : undefined
+                },
+                is_active: true
               });
 
             if (intErr) {
               console.warn('Warning syncing integrations table:', intErr.message);
+            }
+          }
+
+          // 2. Sync Facebook Messenger integration
+          if (fbPageId && fbPageId.trim()) {
+            let existingFbToken: string | undefined = undefined;
+            if (!fbToken || fbToken.includes('•')) {
+              const { data: ex } = await supabase.from('integrations').select('credentials, access_token').eq('tenant_id', profile.tenant_id).eq('platform', 'messenger').maybeSingle();
+              existingFbToken = ex?.credentials?.access_token || ex?.access_token;
+            }
+
+            await supabase
+              .from('integrations')
+              .delete()
+              .eq('tenant_id', profile.tenant_id)
+              .eq('platform', 'messenger');
+
+            const tokenToSave = (fbToken && !fbToken.includes('•')) ? fbToken.trim() : existingFbToken;
+            const { error: fbErr } = await supabase
+              .from('integrations')
+              .insert({
+                tenant_id: profile.tenant_id,
+                platform: 'messenger',
+                external_account_id: fbPageId.trim(),
+                access_token: tokenToSave,
+                credentials: {
+                  page_id: fbPageId.trim(),
+                  access_token: tokenToSave
+                },
+                is_active: true
+              });
+
+            if (fbErr) {
+              console.warn('Warning syncing Messenger integrations table:', fbErr.message);
+            }
+          }
+
+          // 3. Sync Instagram Direct integration
+          if (igAccountId && igAccountId.trim()) {
+            let existingIgToken: string | undefined = undefined;
+            if (!igToken || igToken.includes('•')) {
+              const { data: ex } = await supabase.from('integrations').select('credentials, access_token').eq('tenant_id', profile.tenant_id).eq('platform', 'instagram').maybeSingle();
+              existingIgToken = ex?.credentials?.access_token || ex?.access_token;
+            }
+
+            await supabase
+              .from('integrations')
+              .delete()
+              .eq('tenant_id', profile.tenant_id)
+              .eq('platform', 'instagram');
+
+            const tokenToSave = (igToken && !igToken.includes('•')) ? igToken.trim() : (existingIgToken || ((fbToken && !fbToken.includes('•')) ? fbToken.trim() : undefined));
+            const { error: igErr } = await supabase
+              .from('integrations')
+              .insert({
+                tenant_id: profile.tenant_id,
+                platform: 'instagram',
+                external_account_id: igAccountId.trim(),
+                access_token: tokenToSave,
+                credentials: {
+                  instagram_account_id: igAccountId.trim(),
+                  access_token: tokenToSave
+                },
+                is_active: true
+              });
+
+            if (igErr) {
+              console.warn('Warning syncing Instagram integrations table:', igErr.message);
             }
           }
         }
@@ -935,48 +1065,258 @@ function SettingsInner() {
 
         {/* ── Channels & APIs Tab ── */}
         {tab === 'Channels & APIs' && (
-          <div style={{ background: '#fff', borderRadius: 14, padding: '24px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-              <Plug size={16} color="#dc2626" />
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Connected Integrations</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Header Description */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px 24px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <Plug size={18} color="#dc2626" />
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#111827' }}>Omnichannel Communications & APIs</div>
+              </div>
+              <p style={{ fontSize: 13, color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+                Connect your Meta WhatsApp Cloud API, Facebook Messenger, and Instagram Direct messaging directly to Ittisalo. Incoming messages from every platform route straight into your unified inbox and trigger your AI agent automatically.
+              </p>
             </div>
-            <p style={{ fontSize: 12.5, color: '#6b7280', marginBottom: 20 }}>Configure credentials for omni-channel messaging routing and automation triggers.</p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              {/* Meta WhatsApp Token */}
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-                  <Key size={14} color="#dc2626" />
-                  <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151' }}>Meta WhatsApp Business Token</label>
+            {/* 1. WhatsApp Cloud API Card */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '22px 24px', border: '1.5px solid rgba(34, 197, 94, 0.2)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 9, background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#16a34a"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.086s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-10.416c-5.522 0-10 4.477-10 10 0 1.76.458 3.414 1.258 4.856l-1.336 4.88 5.002-1.312c1.401.764 3.003 1.196 4.706 1.196 5.523 0 10-4.478 10-10s-4.477-10-10-10z"/></svg>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 14.5, fontWeight: 700, color: '#111827' }}>WhatsApp Cloud API</div>
+                    <div style={{ fontSize: 12, color: '#6b7280' }}>Meta Cloud API for Official Business Phone Numbers</div>
+                  </div>
                 </div>
-                <input 
-                  type="password" 
-                  value={waToken} 
-                  onChange={e => setWaToken(e.target.value)} 
-                  style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fafafa', outline: 'none' }} 
-                />
+                {waPhoneId ? (
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '4px 10px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <Check size={12} strokeWidth={3} /> Connected
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 11.5, fontWeight: 600, color: '#9ca3af', background: '#f9fafb', border: '1px solid #e5e7eb', padding: '4px 10px', borderRadius: 20 }}>
+                    Not Connected
+                  </span>
+                )}
               </div>
 
-              {/* WhatsApp IDs grid */}
-              <div className="settings-wa-ids-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Meta Phone Number ID</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                    <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151' }}>Meta WhatsApp Business Permanent Token</label>
+                    <button type="button" onClick={() => setShowWaToken(!showWaToken)} style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: 11.5, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      {showWaToken ? <><EyeOff size={13} /> Hide</> : <><Eye size={13} /> View</>}
+                    </button>
+                  </div>
                   <input 
-                    type="text" 
-                    value={waPhoneId} 
-                    onChange={e => setWaPhoneId(e.target.value)} 
-                    style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fafafa', outline: 'none' }} 
+                    type={showWaToken ? 'text' : 'password'} 
+                    value={waToken} 
+                    onChange={e => setWaToken(e.target.value)} 
+                    placeholder="EAAB..."
+                    style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(0,0,0,0.08)', borderRadius: 9, background: '#fafafa', outline: 'none' }} 
                   />
                 </div>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>WhatsApp Account ID</label>
-                  <input 
-                    type="text" 
-                    value={waAccountId} 
-                    onChange={e => setWaAccountId(e.target.value)} 
-                    style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.12)', borderRadius: 9, background: '#fafafa', outline: 'none' }} 
-                  />
+
+                <div className="settings-wa-ids-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Meta Phone Number ID</label>
+                    <input 
+                      type="text" 
+                      value={waPhoneId} 
+                      onChange={e => setWaPhoneId(e.target.value)} 
+                      placeholder="e.g. 1347722581751294"
+                      style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(0,0,0,0.08)', borderRadius: 9, background: '#fafafa', outline: 'none' }} 
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>WhatsApp Account ID (WABA)</label>
+                    <input 
+                      type="text" 
+                      value={waAccountId} 
+                      onChange={e => setWaAccountId(e.target.value)} 
+                      placeholder="e.g. 1347738047209155"
+                      style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(0,0,0,0.08)', borderRadius: 9, background: '#fafafa', outline: 'none' }} 
+                    />
+                  </div>
                 </div>
+              </div>
+            </div>
+
+            {/* 2. Facebook Messenger API Card */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '22px 24px', border: '1.5px solid rgba(14, 116, 144, 0.2)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 9, background: 'linear-gradient(135deg, #00B2FF, #006AFF)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#ffffff"><path d="M12 2C6.477 2 2 6.145 2 11.258c0 2.914 1.455 5.518 3.735 7.195V22l3.376-1.854c.913.253 1.884.389 2.889.389 5.523 0 10-4.145 10-9.277C22 6.145 17.523 2 12 2zm1.066 12.443l-2.617-2.793-5.109 2.793 5.62-5.967 2.684 2.793 5.042-2.793-5.62 5.967z"/></svg>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 14.5, fontWeight: 700, color: '#111827' }}>Facebook Messenger</div>
+                    <div style={{ fontSize: 12, color: '#6b7280' }}>Automate replies on your Facebook Business Page</div>
+                  </div>
+                </div>
+                {fbPageId ? (
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: '#0284c7', background: '#f0f9ff', border: '1px solid #bae6fd', padding: '4px 10px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <Check size={12} strokeWidth={3} /> Connected
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 11.5, fontWeight: 600, color: '#9ca3af', background: '#f9fafb', border: '1px solid #e5e7eb', padding: '4px 10px', borderRadius: 20 }}>
+                    Not Connected
+                  </span>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ background: '#f0f9ff', border: '1px solid #e0f2fe', borderRadius: 9, padding: '10px 14px', fontSize: 12, color: '#0369a1', lineHeight: 1.4 }}>
+                  💡 In Meta Developer Dashboard under <strong>Messenger &gt; Messenger API Settings &gt; Generate access tokens</strong>, click <strong>[Generate]</strong> next to your page and paste the token below.
+                </div>
+
+                <div className="settings-wa-ids-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Facebook Page ID</label>
+                    <input 
+                      type="text" 
+                      value={fbPageId} 
+                      onChange={e => setFbPageId(e.target.value)} 
+                      placeholder="e.g. 1177714682092512"
+                      style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(0,0,0,0.08)', borderRadius: 9, background: '#fafafa', outline: 'none' }} 
+                    />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                      <label style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>Page Access Token</label>
+                      <button type="button" onClick={() => setShowFbToken(!showFbToken)} style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: 11.5, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {showFbToken ? <><EyeOff size={13} /> Hide</> : <><Eye size={13} /> View</>}
+                      </button>
+                    </div>
+                    <input 
+                      type={showFbToken ? 'text' : 'password'} 
+                      value={fbToken} 
+                      onChange={e => setFbToken(e.target.value)} 
+                      placeholder="EAAXP..."
+                      style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(0,0,0,0.08)', borderRadius: 9, background: '#fafafa', outline: 'none' }} 
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Instagram Direct API Card */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '22px 24px', border: '1.5px solid rgba(217, 70, 239, 0.2)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 9, background: 'linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="#ffffff"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4z"/></svg>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 14.5, fontWeight: 700, color: '#111827' }}>Instagram Direct Messaging</div>
+                    <div style={{ fontSize: 12, color: '#6b7280' }}>Conversational AI and support for Instagram Business Accounts</div>
+                  </div>
+                </div>
+                {igAccountId ? (
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: '#c026d3', background: '#fdf4ff', border: '1px solid #f5d0fe', padding: '4px 10px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <Check size={12} strokeWidth={3} /> Connected
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 11.5, fontWeight: 600, color: '#9ca3af', background: '#f9fafb', border: '1px solid #e5e7eb', padding: '4px 10px', borderRadius: 20 }}>
+                    Not Connected
+                  </span>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ background: '#fdf4ff', border: '1px solid #fae8ff', borderRadius: 9, padding: '10px 14px', fontSize: 12, color: '#86198f', lineHeight: 1.4 }}>
+                  📸 Ensure your Instagram account is switched to <strong>Professional / Business</strong>, linked to your Facebook Page, and that <em>"Allow access to messages"</em> is enabled in your Instagram app Privacy settings.
+                </div>
+
+                <div className="settings-wa-ids-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Instagram Account ID</label>
+                    <input 
+                      type="text" 
+                      value={igAccountId} 
+                      onChange={e => setIgAccountId(e.target.value)} 
+                      placeholder="e.g. 17841405822384920"
+                      style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(0,0,0,0.08)', borderRadius: 9, background: '#fafafa', outline: 'none' }} 
+                    />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                      <label style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>Instagram / Page Access Token</label>
+                      <button type="button" onClick={() => setShowIgToken(!showIgToken)} style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: 11.5, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {showIgToken ? <><EyeOff size={13} /> Hide</> : <><Eye size={13} /> View</>}
+                      </button>
+                    </div>
+                    <input 
+                      type={showIgToken ? 'text' : 'password'} 
+                      value={igToken} 
+                      onChange={e => setIgToken(e.target.value)} 
+                      placeholder="Leave blank to use Facebook Page Token"
+                      style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(0,0,0,0.08)', borderRadius: 9, background: '#fafafa', outline: 'none' }} 
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Meta Webhook Configuration Details */}
+            <div style={{ background: '#f8fafc', borderRadius: 14, padding: '20px 24px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+                <Link2 size={16} color="#475569" />
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#1e293b' }}>Meta Webhooks Configuration Helper</div>
+              </div>
+              <p style={{ fontSize: 12.5, color: '#64748b', marginBottom: 14 }}>
+                Configure these exact webhook values under your Meta App dashboard for WhatsApp, Messenger, and Instagram:
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+                <div style={{ background: '#fff', padding: '12px 14px', borderRadius: 10, border: '1px solid #cbd5e1' }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: '#64748b', marginBottom: 4 }}>WEBHOOK CALLBACK URL</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <code style={{ fontSize: 12, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      https://airy-reprieve-production.up.railway.app/webhook
+                    </code>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        navigator.clipboard.writeText('https://airy-reprieve-production.up.railway.app/webhook');
+                        setCopiedWebhook(true);
+                        setTimeout(() => setCopiedWebhook(false), 2000);
+                      }}
+                      style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 6, padding: '4px 8px', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}
+                    >
+                      {copiedWebhook ? <Check size={12} color="#16a34a" /> : <Copy size={12} />}
+                      {copiedWebhook ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ background: '#fff', padding: '12px 14px', borderRadius: 10, border: '1px solid #cbd5e1' }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: '#64748b', marginBottom: 4 }}>VERIFY TOKEN</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <code style={{ fontSize: 12, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      afaq_automation_secure_webhook_token_123
+                    </code>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        navigator.clipboard.writeText('afaq_automation_secure_webhook_token_123');
+                        setCopiedVerify(true);
+                        setTimeout(() => setCopiedVerify(false), 2000);
+                      }}
+                      style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 6, padding: '4px 8px', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}
+                    >
+                      {copiedVerify ? <Check size={12} color="#16a34a" /> : <Copy size={12} />}
+                      {copiedVerify ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ fontSize: 12, color: '#64748b' }}>
+                <strong>Subscribed fields required:</strong>
+                <span style={{ marginLeft: 8 }}>WhatsApp: <code>messages</code></span> • 
+                <span style={{ marginLeft: 8 }}>Messenger: <code>messages</code>, <code>messaging_postbacks</code></span> • 
+                <span style={{ marginLeft: 8 }}>Instagram: <code>messages</code></span>
               </div>
             </div>
           </div>
