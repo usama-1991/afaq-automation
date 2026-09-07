@@ -133,10 +133,6 @@ function SettingsInner() {
   const [igToken, setIgToken] = useState('');
   const [showIgToken, setShowIgToken] = useState(false);
 
-  // Helper copy states
-  const [copiedWebhook, setCopiedWebhook] = useState(false);
-  const [copiedVerify, setCopiedVerify] = useState(false);
-
   // AI Knowledge Base state
   interface KBEntry { id: string; kb_type: string; title: string; content: string; source_url?: string; is_active: boolean; created_at: string; }
   const [kbEntries, setKbEntries] = useState<KBEntry[]>([]);
@@ -1258,67 +1254,6 @@ function SettingsInner() {
               </div>
             </div>
 
-            {/* 4. Meta Webhook Configuration Details */}
-            <div style={{ background: '#f8fafc', borderRadius: 14, padding: '20px 24px', border: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-                <Link2 size={16} color="#475569" />
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#1e293b' }}>Meta Webhooks Configuration Helper</div>
-              </div>
-              <p style={{ fontSize: 12.5, color: '#64748b', marginBottom: 14 }}>
-                Configure these exact webhook values under your Meta App dashboard for WhatsApp, Messenger, and Instagram:
-              </p>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-                <div style={{ background: '#fff', padding: '12px 14px', borderRadius: 10, border: '1px solid #cbd5e1' }}>
-                  <div style={{ fontSize: 11.5, fontWeight: 700, color: '#64748b', marginBottom: 4 }}>WEBHOOK CALLBACK URL</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                    <code style={{ fontSize: 12, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      https://airy-reprieve-production.up.railway.app/webhook
-                    </code>
-                    <button 
-                      type="button" 
-                      onClick={() => {
-                        navigator.clipboard.writeText('https://airy-reprieve-production.up.railway.app/webhook');
-                        setCopiedWebhook(true);
-                        setTimeout(() => setCopiedWebhook(false), 2000);
-                      }}
-                      style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 6, padding: '4px 8px', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}
-                    >
-                      {copiedWebhook ? <Check size={12} color="#16a34a" /> : <Copy size={12} />}
-                      {copiedWebhook ? 'Copied' : 'Copy'}
-                    </button>
-                  </div>
-                </div>
-
-                <div style={{ background: '#fff', padding: '12px 14px', borderRadius: 10, border: '1px solid #cbd5e1' }}>
-                  <div style={{ fontSize: 11.5, fontWeight: 700, color: '#64748b', marginBottom: 4 }}>VERIFY TOKEN</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                    <code style={{ fontSize: 12, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      afaq_automation_secure_webhook_token_123
-                    </code>
-                    <button 
-                      type="button" 
-                      onClick={() => {
-                        navigator.clipboard.writeText('afaq_automation_secure_webhook_token_123');
-                        setCopiedVerify(true);
-                        setTimeout(() => setCopiedVerify(false), 2000);
-                      }}
-                      style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 6, padding: '4px 8px', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}
-                    >
-                      {copiedVerify ? <Check size={12} color="#16a34a" /> : <Copy size={12} />}
-                      {copiedVerify ? 'Copied' : 'Copy'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ fontSize: 12, color: '#64748b' }}>
-                <strong>Subscribed fields required:</strong>
-                <span style={{ marginLeft: 8 }}>WhatsApp: <code>messages</code></span> • 
-                <span style={{ marginLeft: 8 }}>Messenger: <code>messages</code>, <code>messaging_postbacks</code></span> • 
-                <span style={{ marginLeft: 8 }}>Instagram: <code>messages</code></span>
-              </div>
-            </div>
           </div>
         )}
 
