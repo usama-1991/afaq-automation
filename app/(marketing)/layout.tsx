@@ -57,7 +57,7 @@ export default function MarketingLayout({
         {/* Ittisalo Omnichannel Live Chat Widget */}
         <script
           src="/widget.js"
-          data-tenant-id="3c459ad4-94cd-40f0-8b7f-cb3478a3302a"
+          data-tenant-id="a7c6eb88-f161-494e-859a-b7352617db73"
           data-position="bottom-right"
           defer
         />
