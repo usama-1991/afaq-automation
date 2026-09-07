@@ -867,9 +867,10 @@
       .then(function(res) {
         isSending = false;
         sendBtn.disabled = false;
-        // Schedule fast poll to pick up AI response
+        // Schedule fast polls to pick up AI response immediately
         setTimeout(pollMessages, 1500);
-        setTimeout(pollMessages, 4000);
+        setTimeout(pollMessages, 3500);
+        setTimeout(pollMessages, 6000);
       })
       .catch(function(err) {
         console.error('[Ittisalo Widget] Send message error:', err);
@@ -989,7 +990,7 @@
 
   function startPolling() {
     if (pollInterval) clearInterval(pollInterval);
-    pollInterval = setInterval(pollMessages, 5000);
+    pollInterval = setInterval(pollMessages, 3500);
   }
 
   function updateBadge() {
@@ -1022,6 +1023,7 @@
       if (msgBody) msgBody.scrollTop = msgBody.scrollHeight;
 
       startPolling();
+      pollMessages();
     } else {
       chatBox.style.display = 'none';
       launcherBtn.querySelector('.icon-chat').style.display = 'block';

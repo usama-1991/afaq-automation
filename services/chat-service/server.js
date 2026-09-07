@@ -103,6 +103,11 @@ async function dispatchOutboundMessage(message) {
 
   if (convError || !conv) throw new Error("Conversation not found");
 
+  if (conv.platform === 'web_widget') {
+    fastify.log.info(`[chat-service] Message is for web_widget (delivered in-browser), skipping outbound provider dispatch.`);
+    return null;
+  }
+
   // 2. Get Integration details for this tenant
   const { data: integration, error: intError } = await supabase
     .from('integrations')

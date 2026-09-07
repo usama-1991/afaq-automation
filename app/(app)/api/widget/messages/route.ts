@@ -268,9 +268,12 @@ async function triggerAIBotResponse(
       console.warn('[Widget AI]: OPENAI_API_KEY is not set in environment.');
     }
 
-    // 3. Fallback: Dispatch to internal AI microservice (Railway airy-reprieve or webhook-service)
+    // 3. Fallback: Dispatch to internal/public AI microservice (Railway airy-reprieve / webhook-service)
     const webhookUrls = [
       process.env.WEBHOOK_SERVICE_URL,
+      // Public Railway production microservices (accessible from Vercel serverless)
+      'https://airy-reprieve-production.up.railway.app/api/ai/process',
+      'https://webhook-service-production.up.railway.app/api/ai/process',
       // Railway private networking for user's service: airy-reprieve
       'http://airy-reprieve.railway.internal:8080/api/ai/process',
       'http://airy-reprieve.railway.internal:3000/api/ai/process',
@@ -292,10 +295,15 @@ async function triggerAIBotResponse(
             'x-internal-api-key': process.env.INTERNAL_SERVICE_KEY || '',
           },
           body: JSON.stringify(payload),
-          signal: AbortSignal.timeout(3000)
+          signal: AbortSignal.timeout(8000)
         });
-        if (res.ok) return;
-      } catch (_) {}
+        if (res.ok) {
+          console.log(`[Widget AI]: Successfully dispatched to ${url}`);
+          return;
+        }
+      } catch (err: any) {
+        // Continue to next URL candidate
+      }
     }
 
     // Fallback: If n8n webhook URL configured
