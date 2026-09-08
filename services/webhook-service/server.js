@@ -7,7 +7,6 @@ import { startCronJobs } from './cron.js';
 import { processCampaign } from './campaign.js';
 import { sendTenantNotification } from './fcm.js';
 import { decrypt } from './crypto.js';
-import { startRealtimeDispatcher } from './dispatcher.js';
 import crypto from 'crypto';
 import fs from 'fs';
 import os from 'os';
@@ -50,7 +49,6 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
 
 // Start background cron jobs (Workflow 3 & 5)
 startCronJobs(supabase);
-startRealtimeDispatcher(supabase, fastify.log);
 
 fastify.get('/health', async (request, reply) => {
   return { status: 'ok', service: 'webhook-service' };

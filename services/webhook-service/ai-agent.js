@@ -15,7 +15,19 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
 });
 
+// In-flight guard to prevent duplicate AI processing for the same incoming message
+const _activeAiMessageIds = new Set();
+
 export async function processAIAgent(ctx) {
+  if (ctx.external_message_id) {
+    if (_activeAiMessageIds.has(ctx.external_message_id)) {
+      console.log(`[AI-Agent] Message ${ctx.external_message_id} is already actively being processed by AI. Skipping duplicate invocation.`);
+      return;
+    }
+    _activeAiMessageIds.add(ctx.external_message_id);
+    setTimeout(() => _activeAiMessageIds.delete(ctx.external_message_id), 60000);
+  }
+
   const _reqId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   try {
     console.log(`[AI-Agent][${_reqId}] ▶ START processing for conv_id: ${ctx.conversation_id}, msg: "${(ctx.normalized_message || '').slice(0, 50)}"`);
