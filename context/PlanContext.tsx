@@ -43,6 +43,8 @@ export interface TenantInfo {
   wa_account_id: string | null;
   ig_page_id: string | null;
   fb_page_id: string | null;
+  facebook_page_id?: string | null;
+  instagram_page_id?: string | null;
   business_name: string | null;
   business_phone: string | null;
   website: string | null;
