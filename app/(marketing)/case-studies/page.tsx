@@ -1,75 +1,144 @@
 import Link from "next/link";
-import { ArrowRight, Star } from "lucide-react";
+import { ArrowRight, Sparkles, TrendingUp, Clock, CheckCircle2 } from "lucide-react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Customer Case Studies & Success Stories — Ittisalo AI",
+  description:
+    "Explore how restaurants, clinics, salons, and eCommerce brands in Pakistan and globally use Ittisalo to automate WhatsApp & Instagram sales, reduce no-shows, and cut response times.",
+  keywords: [
+    "Ittisalo Case Studies",
+    "WhatsApp Automation Results",
+    "Karachi Business Success Stories",
+    "Restaurant AI Bot ROI"
+  ]
+};
+
+export const CASE_STUDIES = [
+  {
+    slug: "gourmet-bites-bistro",
+    company: "Gourmet Bites Bistro",
+    vertical: "Restaurants & Cafes",
+    location: "DHA Phase 6, Karachi",
+    headline: "How Gourmet Bites Bistro Automated 240% More WhatsApp Delivery Orders During Peak Rush",
+    metric: "+240%",
+    metricLabel: "WhatsApp Orders",
+    subMetric: "0.4s AI Response",
+    summary:
+      "Struggling with unread DMs and incorrect food orders during Friday night rushes, Gourmet Bites Bistro connected Ittisalo WhatsApp Bot to handle digital menu browsing, delivery address logging, and table reservations.",
+    image: "/images/solutions/restaurant.jpg",
+    quote: "Ittisalo feels like hiring 3 dedicated front-desk managers for a fraction of the cost. Our delivery revenue doubled in 30 days."
+  },
+  {
+    slug: "smilecare-dental",
+    company: "SmileCare Dental Clinic",
+    vertical: "Dental & Healthcare",
+    location: "DHA Phase 5, Karachi",
+    headline: "Cutting Patient Appointment No-Shows by 68% with Automated WhatsApp Intake",
+    metric: "68%",
+    metricLabel: "No-Show Reduction",
+    subMetric: "24/7 Booking",
+    summary:
+      "SmileCare Dental Clinic faced high patient cancellation rates and empty afternoon doctor slots. Ittisalo AI triaged symptoms, booked calendar slots, and dispatched automated 24-hr reminder texts.",
+    image: "/images/solutions/clinic.jpg",
+    quote: "Our reception staff no longer spend 4 hours a day making phone calls to confirm patient appointments. The AI handles it flawlessly."
+  },
+  {
+    slug: "glow-grace-salon",
+    company: "Glow & Grace Studio",
+    vertical: "Salons & Beauty Spas",
+    location: "Clifton, Karachi",
+    headline: "Achieving 94% Booking Deposit Capture Across Instagram DMs & WhatsApp",
+    metric: "94%",
+    metricLabel: "Deposit Capture",
+    subMetric: "120+ Weekly Slots",
+    summary:
+      "Glow & Grace Studio was losing late-night Instagram booking inquiries. Ittisalo AI showcased senior stylist menus, locked in calendar slots, and dispatched deposit links automatically.",
+    image: "/images/solutions/salon.jpg",
+    quote: "Clients love booking their haircut or facial at midnight directly over Instagram DM. Our weekend calendar is booked solid."
+  },
+  {
+    slug: "urban-chic-apparel",
+    company: "Urban Chic Apparel",
+    vertical: "eCommerce & Apparel",
+    location: "Lahore / Karachi",
+    headline: "Boosting Cash on Delivery (COD) Checkout Conversions by 38% via Instagram Auto-DM",
+    metric: "+38%",
+    metricLabel: "COD Conversions",
+    subMetric: "98% Order Accuracy",
+    summary:
+      "With over 500 daily 'Price please' comments on Instagram reels, Urban Chic Apparel deployed Ittisalo to auto-DM product links and confirm COD shipping details over WhatsApp.",
+    image: "/images/solutions/ecommerce.jpg",
+    quote: "Ittisalo eliminated our Instagram DM backlog. We scaled our weekly dispatches without hiring additional social media reps."
+  }
+];
 
 export default function CaseStudiesIndex() {
-  const studies = [
-    {
-      company: "Bella Salon",
-      industry: "Beauty & Wellness",
-      headline: "How Bella Salon booked 30% more appointments using Instagram Automation",
-      metric: "30%",
-      metricLabel: "Increase in bookings",
-      slug: "bella-salon",
-    },
-    {
-      company: "Fresh Eats Delivery",
-      industry: "Restaurant",
-      headline: "Handling 500+ daily WhatsApp orders without hiring extra staff",
-      metric: "0",
-      metricLabel: "Extra staff hired",
-      slug: "fresh-eats",
-    },
-    {
-      company: "Urban Realty",
-      industry: "Real Estate",
-      headline: "Qualifying 1,000s of Facebook leads automatically",
-      metric: "5x",
-      metricLabel: "Faster response time",
-      slug: "urban-realty",
-    }
-  ];
-
   return (
-    <div className="w-full bg-[var(--color-mktg-bg)] min-h-screen py-24 px-4">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-4xl md:text-5xl font-display font-bold text-[var(--color-mktg-base)] mb-4 text-center">
-          Customer Stories
-        </h1>
-        <p className="text-xl text-gray-600 text-center mb-16 max-w-2xl mx-auto">
-          See how businesses around the world use Ittisalo to automate conversations and grow revenue.
-        </p>
+    <div className="w-full bg-[#FDFCFB] min-h-screen">
+      {/* Hero */}
+      <section className="pt-16 pb-20 px-4 text-center bg-gradient-to-b from-[#FFF5F5]/60 to-white border-b border-[#EFEBE4]">
+        <div className="max-w-4xl mx-auto space-y-4">
+          <div className="inline-flex items-center gap-2 bg-[#FFF5F5] border border-[#FFE8EA] px-4 py-1.5 rounded-full text-xs font-bold text-[#8B1531]">
+            <Sparkles size={14} className="text-[#E63946]" /> Real Business Outcomes
+          </div>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-extrabold text-[#1A1517] tracking-tight">
+            Proven Results for <span className="bg-gradient-to-r from-[#E63946] via-[#C81E3A] to-[#8B1531] bg-clip-text text-transparent">Pakistani SMBs</span>
+          </h1>
+          <p className="text-lg text-[#5C5255] max-w-2xl mx-auto font-medium">
+            Discover how leading restaurants, clinics, salons, and eCommerce brands automate conversations and increase bottom-line revenue.
+          </p>
+        </div>
+      </section>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {studies.map((study) => (
-            <Link key={study.slug} href={`/case-studies/${study.slug}`} className="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group overflow-hidden flex flex-col">
-              <div className="h-48 bg-gray-100 relative">
-                {/* Image placeholder */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-gray-400 font-display font-bold text-2xl opacity-50">{study.company}</span>
+      {/* Grid */}
+      <section className="py-20 px-4 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {CASE_STUDIES.map((study) => (
+            <Link
+              key={study.slug}
+              href={`/case-studies/${study.slug}`}
+              className="bg-white rounded-3xl border border-[#EFEBE4] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group flex flex-col justify-between"
+            >
+              <div>
+                <div className="relative h-56 overflow-hidden bg-gray-100">
+                  <img
+                    src={study.image}
+                    alt={study.company}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-bold text-[#1A1517] shadow-md">
+                    {study.vertical} • {study.location}
+                  </div>
+                  <div className="absolute bottom-4 right-4 bg-[#240710] text-white px-3.5 py-1.5 rounded-full text-xs font-extrabold shadow-md flex items-center gap-1.5">
+                    <TrendingUp size={14} className="text-[#10B981]" /> {study.metric} {study.metricLabel}
+                  </div>
+                </div>
+
+                <div className="p-8 space-y-4">
+                  <h2 className="text-2xl font-bold text-[#1A1517] group-hover:text-[#C81E3A] transition-colors leading-snug">
+                    {study.headline}
+                  </h2>
+                  <p className="text-sm text-[#5C5255] leading-relaxed">
+                    {study.summary}
+                  </p>
+
+                  <div className="p-4 bg-[#FFF5F5] border border-[#FFE8EA] rounded-2xl text-xs font-medium text-[#8B1531] italic">
+                    "{study.quote}"
+                  </div>
                 </div>
               </div>
-              <div className="p-8 flex flex-col flex-1">
-                <div className="text-xs font-bold text-[var(--color-mktg-cta)] uppercase tracking-wider mb-3">
-                  {study.industry}
-                </div>
-                <h2 className="text-xl font-bold text-[var(--color-mktg-base)] mb-6 group-hover:text-[var(--color-mktg-cta)] transition-colors">
-                  {study.headline}
-                </h2>
-                
-                <div className="mt-auto pt-6 border-t border-gray-100 flex items-center justify-between">
-                  <div>
-                    <div className="text-2xl font-bold text-[var(--color-mktg-base)]">{study.metric}</div>
-                    <div className="text-xs text-gray-500 uppercase tracking-wide">{study.metricLabel}</div>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-[var(--color-mktg-cta)]">
-                    <ArrowRight size={18} />
-                  </div>
-                </div>
+
+              <div className="p-8 pt-0 border-t border-[#EFEBE4] mt-4 flex items-center justify-between">
+                <span className="text-xs font-bold text-[#8C8285]">Key Metric: {study.subMetric}</span>
+                <span className="inline-flex items-center gap-1 text-sm font-bold text-[#C81E3A] group-hover:translate-x-1 transition-transform">
+                  Read Full Case Study <ArrowRight size={16} />
+                </span>
               </div>
             </Link>
           ))}
         </div>
-      </div>
+      </section>
     </div>
   );
 }

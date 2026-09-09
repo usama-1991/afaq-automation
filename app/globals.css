@@ -2,38 +2,65 @@
 @source "../";
 
 :root {
-  --bg: #F6F5F2;
+  /* Ittisalo Brand Colors */
+  --brand-red-primary: #E63946;
+  --brand-red-deep: #C81E3A;
+  --brand-garnet: #8B1531;
+  --brand-dark-maroon: #240710;
+  --brand-dark-card: #3D0C1A;
+  --brand-sparkle-glow: rgba(230, 57, 70, 0.22);
+  --brand-bg-warm: #FDFCFB;
+  --brand-bg-rose: #FFF5F5;
+  --brand-bg-card: #FFFFFF;
+  --brand-border-warm: #EFEBE4;
+  --brand-text-primary: #1A1517;
+  --brand-text-secondary: #5C5255;
+  --brand-text-muted: #8C8285;
+  
+  /* Brand Gradient Definitions */
+  --brand-gradient: linear-gradient(135deg, #E63946 0%, #C81E3A 50%, #8B1531 100%);
+  --brand-gradient-hover: linear-gradient(135deg, #F04350 0%, #D8223F 50%, #9B1837 100%);
+  --brand-gradient-dark: linear-gradient(135deg, #240710 0%, #3D0C1A 50%, #17040B 100%);
+  --brand-gradient-soft: linear-gradient(135deg, #FFF5F5 0%, #FFE8EA 100%);
+  
+  /* Legacy App Compatibility Vars */
+  --bg: #FDFCFB;
   --surface: #ffffff;
   --surface2: #fafaf8;
-  --border: #E7E5E0;
-  --border-strong: #D1CEC6;
-  --primary: #A8253F;
-  --primary-dark: #7E1C30;
-  --primary-mid: #C42B33;
-  --primary-light: #FBEAEA;
-  --primary-glow: rgba(168, 37, 63, 0.15);
-  --text-primary: #14161A;
-  --text-secondary: #6B6F76;
-  --text-tertiary: #9ca3af;
+  --border: #EFEBE4;
+  --border-strong: #DCD6CC;
+  --primary: #C81E3A;
+  --primary-dark: #8B1531;
+  --primary-mid: #E63946;
+  --primary-light: #FFF5F5;
+  --primary-glow: rgba(230, 57, 70, 0.18);
+  --text-primary: #1A1517;
+  --text-secondary: #5C5255;
+  --text-tertiary: #8C8285;
   --sidebar-w: 64px;
   --bottom-nav-h: 60px;
-  --green: #157F3D;
-  --amber: #B4740E;
-  --blue: #2B5FA8;
-  --purple: #8b5cf6;
-  --success: #157F3D;
-  --success-bg: #E7F5EC;
-  --warn: #B4740E;
-  --warn-bg: #FBF0DC;
-  --danger: #C23B3B;
-  --danger-bg: #FBEAEA;
-  --info: #2B5FA8;
-  --info-bg: #EAF0F9;
-  --niche-accent: #C1440E;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
-  --shadow-md: 0 4px 14px rgba(0,0,0,0.06);
-  --radius: 14px;
-  --radius-sm: 8px;
+  --green: #10B981;
+  --amber: #F59E0B;
+  --blue: #2563EB;
+  --purple: #8B5CF6;
+  --success: #10B981;
+  --success-bg: #ECFDF5;
+  --warn: #F59E0B;
+  --warn-bg: #FFFBEB;
+  --danger: #E63946;
+  --danger-bg: #FFF5F5;
+  --info: #2563EB;
+  --info-bg: #EFF6FF;
+  --shadow-sm: 0 1px 3px rgba(36, 7, 16, 0.04), 0 1px 2px rgba(36, 7, 16, 0.02);
+  --shadow-md: 0 4px 20px rgba(36, 7, 16, 0.08);
+  --shadow-xl: 0 20px 40px rgba(36, 7, 16, 0.12);
+  --radius: 16px;
+  --radius-sm: 10px;
+  
+  /* Channel Brand Colors */
+  --wa-green: #25D366;
+  --ig-pink: #E1306C;
+  --ms-blue: #0084FF;
 }
 
 *, *::before, *::after {

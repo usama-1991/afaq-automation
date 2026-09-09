@@ -1,95 +1,101 @@
 import Link from "next/link";
-import { Globe2, Users, Rocket, Building2 } from "lucide-react";
+import { Globe2, Users, Rocket, Building2, Sparkles, ShieldCheck, HeartHandshake } from "lucide-react";
+import type { Metadata } from "next";
 
-export default function About() {
+export const metadata: Metadata = {
+  title: "About Ittisalo — ITTISALO (PRIVATE) LIMITED",
+  description:
+    "Learn about Ittisalo's mission to power business conversations for SMBs in Pakistan & globally. Incorporated SECP entity: ITTISALO (PRIVATE) LIMITED.",
+  keywords: [
+    "About Ittisalo",
+    "ITTISALO (PRIVATE) LIMITED",
+    "Karachi B2B SaaS Startup",
+    "Omnichannel AI Infrastructure"
+  ]
+};
+
+export default function AboutPage() {
   return (
-    <div className="w-full bg-white">
-      {/* Header */}
-      <section className="pt-24 pb-16 px-4 text-center bg-[var(--color-mktg-bg)]">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-4xl md:text-6xl font-display font-bold text-[var(--color-mktg-base)] mb-6">
-            Building the communication layer for local commerce
+    <div className="w-full bg-[#FDFCFB] min-h-screen">
+      {/* Hero */}
+      <section className="pt-16 pb-20 px-4 text-center bg-gradient-to-b from-[#FFF5F5]/60 to-white border-b border-[#EFEBE4]">
+        <div className="max-w-4xl mx-auto space-y-4">
+          <div className="inline-flex items-center gap-2 bg-[#FFF5F5] border border-[#FFE8EA] px-4 py-1.5 rounded-full text-xs font-bold text-[#8B1531]">
+            <Sparkles size={14} className="text-[#E63946]" /> Our Mission
+          </div>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-extrabold text-[#1A1517] tracking-tight">
+            Empowering SMBs with <span className="bg-gradient-to-r from-[#E63946] via-[#C81E3A] to-[#8B1531] bg-clip-text text-transparent">Enterprise AI</span>
           </h1>
-          <p className="text-xl text-gray-600 mb-10">
-            We believe that every small business deserves enterprise-grade AI to manage their customer relationships.
+          <p className="text-lg text-[#5C5255] max-w-2xl mx-auto font-medium leading-relaxed">
+            We build the conversational intelligence layer that turns every WhatsApp, Instagram, and Messenger message into an instant, delighted customer relationship.
           </p>
         </div>
       </section>
 
-      {/* Story */}
-      <section className="py-20 px-4 max-w-4xl mx-auto">
-        <div className="prose prose-lg text-gray-600">
-          <h2 className="text-3xl font-bold text-[var(--color-mktg-base)] mb-6">Our Story</h2>
-          <p className="mb-6">
-            Small and medium businesses are the backbone of local economies globally, but they face an impossible challenge: customers expect instant replies 24/7 on WhatsApp, Instagram, and Messenger.
+      {/* Main Content */}
+      <section className="py-20 px-4 max-w-4xl mx-auto space-y-16">
+        <div className="bg-white p-8 sm:p-10 rounded-3xl border border-[#EFEBE4] shadow-sm space-y-6">
+          <h2 className="text-3xl font-display font-bold text-[#1A1517]">Our Story</h2>
+          <p className="text-[#5C5255] leading-relaxed">
+            Small and medium businesses are the economic heartbeat of Karachi, Lahore, Islamabad, and markets around the world. But modern SMBs face an overwhelming operational challenge: customers expect 24/7 instant replies on messaging apps.
           </p>
-          <p className="mb-6">
-            A small salon owner shouldn't have to hire a full-time receptionist just to answer "what are your hours?" or "can I book an appointment?". A local restaurant shouldn't miss out on catering orders just because they were too busy in the kitchen to check Instagram DMs.
+          <p className="text-[#5C5255] leading-relaxed">
+            A boutique salon owner shouldn't miss out on weekend bookings because staff were washing hair when an Instagram DM arrived. A local restaurant shouldn't lose food orders because staff couldn't answer 40 WhatsApp messages during Friday night rush.
           </p>
-          <p className="mb-12">
-            That's why we built Ittisalo. We leverage the latest in generative AI to create a unified inbox that literally works while you sleep. It doesn't just chat—it takes orders, books appointments, and captures leads.
+          <p className="text-[#5C5255] leading-relaxed">
+            Ittisalo was born to fix this friction. We engineered a multi-tenant AI conversational platform that ingests menus, schedules, and catalogs to handle customer dialogs autonomously, while letting human teams step in seamlessly whenever high-value situations arise.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 mb-16">
-          <div className="text-center p-6 bg-gray-50 rounded-2xl border border-gray-100">
-            <Globe2 size={32} className="mx-auto text-[var(--color-mktg-cta)] mb-4" />
-            <h4 className="text-3xl font-bold text-[var(--color-mktg-base)] mb-2">50+</h4>
-            <p className="text-sm text-gray-500">Countries served</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
+          <div className="bg-white p-6 rounded-2xl border border-[#EFEBE4] shadow-sm space-y-2">
+            <Globe2 size={32} className="mx-auto text-[#C81E3A]" />
+            <div className="text-3xl font-extrabold text-[#1A1517]">100%</div>
+            <div className="text-xs font-bold text-[#8C8285] uppercase">Meta API Compliant</div>
           </div>
-          <div className="text-center p-6 bg-gray-50 rounded-2xl border border-gray-100">
-            <Users size={32} className="mx-auto text-[var(--color-mktg-cta)] mb-4" />
-            <h4 className="text-3xl font-bold text-[var(--color-mktg-base)] mb-2">10M+</h4>
-            <p className="text-sm text-gray-500">Messages automated</p>
+          <div className="bg-white p-6 rounded-2xl border border-[#EFEBE4] shadow-sm space-y-2">
+            <Users size={32} className="mx-auto text-[#C81E3A]" />
+            <div className="text-3xl font-extrabold text-[#1A1517]">5+</div>
+            <div className="text-xs font-bold text-[#8C8285] uppercase">Industry Verticals</div>
           </div>
-          <div className="text-center p-6 bg-gray-50 rounded-2xl border border-gray-100">
-            <Rocket size={32} className="mx-auto text-[var(--color-mktg-cta)] mb-4" />
-            <h4 className="text-3xl font-bold text-[var(--color-mktg-base)] mb-2">300%</h4>
-            <p className="text-sm text-gray-500">Avg. increase in response speed</p>
+          <div className="bg-white p-6 rounded-2xl border border-[#EFEBE4] shadow-sm space-y-2">
+            <Rocket size={32} className="mx-auto text-[#C81E3A]" />
+            <div className="text-3xl font-extrabold text-[#1A1517]">&lt; 0.5s</div>
+            <div className="text-xs font-bold text-[#8C8285] uppercase">Avg Response Speed</div>
           </div>
         </div>
 
-        {/* Corporate Legal Entity Section */}
-        <div className="bg-slate-50 border border-slate-200/80 rounded-3xl p-8 mb-20 shadow-sm">
-          <div className="flex items-center gap-3 mb-4">
-            <Building2 className="text-[var(--color-mktg-cta)]" size={28} />
-            <h3 className="text-2xl font-bold text-[var(--color-mktg-base)]">
-              Corporate & Registration Information
+        {/* Corporate Legal Entity Card */}
+        <div className="bg-[#240710] text-white p-8 sm:p-10 rounded-3xl space-y-6 shadow-xl border border-[#3D0C1A]">
+          <div className="flex items-center gap-3">
+            <Building2 className="text-[#E63946]" size={28} />
+            <h3 className="text-2xl font-bold text-white">
+              Corporate & SECP Entity Registration
             </h3>
           </div>
-          <p className="text-gray-600 mb-6 leading-relaxed">
-            Ittisalo is owned and operated by <strong className="text-gray-900 font-semibold">ITTISALO (PRIVATE) LIMITED</strong>, a registered company incorporated under the Companies Act, 2017 with the Securities and Exchange Commission of Pakistan (SECP).
+          <p className="text-gray-300 text-sm leading-relaxed">
+            Ittisalo is registered and operated by <strong className="text-white">ITTISALO (PRIVATE) LIMITED</strong>, a legal entity incorporated under the Companies Act, 2017 with the Securities and Exchange Commission of Pakistan (SECP).
           </p>
-          <div className="grid sm:grid-cols-2 gap-4 text-sm">
-            <div className="bg-white p-4 rounded-xl border border-gray-200/80 shadow-sm">
-              <span className="text-gray-400 block text-xs uppercase tracking-wider mb-1">Legal Entity Name</span>
-              <span className="font-bold text-gray-900 text-base">ITTISALO (PRIVATE) LIMITED</span>
+
+          <div className="grid sm:grid-cols-2 gap-4 text-xs pt-2">
+            <div className="bg-[#3D0C1A] p-4 rounded-xl border border-[#5C162A] space-y-1">
+              <span className="text-gray-400 uppercase tracking-wider block">Official Registered Name</span>
+              <span className="font-bold text-white text-sm">ITTISALO (PRIVATE) LIMITED</span>
             </div>
-            <div className="bg-white p-4 rounded-xl border border-gray-200/80 shadow-sm">
-              <span className="text-gray-400 block text-xs uppercase tracking-wider mb-1">SECP Registration (CUIN)</span>
-              <span className="font-mono font-bold text-gray-900 text-base">0347762</span>
+            <div className="bg-[#3D0C1A] p-4 rounded-xl border border-[#5C162A] space-y-1">
+              <span className="text-gray-400 uppercase tracking-wider block">SECP Corporate Registration (CUIN)</span>
+              <span className="font-mono font-bold text-white text-sm">0347762</span>
             </div>
-            <div className="bg-white p-4 rounded-xl border border-gray-200/80 shadow-sm">
-              <span className="text-gray-400 block text-xs uppercase tracking-wider mb-1">National Tax Number (NTN)</span>
-              <span className="font-mono font-bold text-gray-900 text-base">J527787-0</span>
+            <div className="bg-[#3D0C1A] p-4 rounded-xl border border-[#5C162A] space-y-1">
+              <span className="text-gray-400 uppercase tracking-wider block">National Tax Number (NTN)</span>
+              <span className="font-mono font-bold text-white text-sm">J527787-0</span>
             </div>
-            <div className="bg-white p-4 rounded-xl border border-gray-200/80 shadow-sm">
-              <span className="text-gray-400 block text-xs uppercase tracking-wider mb-1">Registered Address</span>
-              <span className="font-medium text-gray-900">p 45 1 22ND LANE PHASE 7 DHA KARACHI, Pakistan</span>
+            <div className="bg-[#3D0C1A] p-4 rounded-xl border border-[#5C162A] space-y-1">
+              <span className="text-gray-400 uppercase tracking-wider block">Headquarters Address</span>
+              <span className="font-medium text-white text-xs">P 45 1 22nd Lane, Phase 7 DHA, Karachi, Pakistan</span>
             </div>
           </div>
         </div>
-      </section>
-      
-      {/* CTA */}
-      <section className="py-24 bg-[var(--color-mktg-surface)] text-center text-white">
-        <h2 className="text-3xl font-bold mb-6">Join us on our mission</h2>
-        <p className="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
-          We're a fast-growing team of engineers, designers, and operators building the future of local commerce.
-        </p>
-        <Link href="/contact" className="inline-flex items-center justify-center gap-2 bg-[var(--color-mktg-cta)] text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-[var(--color-mktg-cta-hover)] transition-colors shadow-lg shadow-red-500/20">
-          Contact Us
-        </Link>
       </section>
     </div>
   );

@@ -1,135 +1,275 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { MessageCircle, ShoppingBag, Calendar } from "lucide-react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { MessageSquare, ShoppingBag, Calendar, Sparkles, CheckCircle2, Bot, ArrowRight, ShieldCheck } from "lucide-react";
 
 export default function HeroAnimation() {
+  const [activeTab, setActiveTab] = useState<"whatsapp" | "instagram" | "messenger">("whatsapp");
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveTab((prev) => {
+        if (prev === "whatsapp") return "instagram";
+        if (prev === "instagram") return "messenger";
+        return "whatsapp";
+      });
+    }, 6000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
-    <div className="relative w-full max-w-4xl mx-auto h-[500px] flex items-center justify-center">
-      {/* Background Glow */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-[var(--color-mktg-bg)] via-[var(--color-mktg-cta)]/5 to-[var(--color-mktg-bg)] rounded-3xl" />
-      
-      {/* Central Inbox UI */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        className="relative z-10 w-full max-w-2xl bg-white border border-gray-100 shadow-2xl rounded-2xl overflow-hidden"
-      >
-        {/* Header */}
-        <div className="bg-gray-50 border-b border-gray-100 px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-red-400" />
-            <div className="w-3 h-3 rounded-full bg-yellow-400" />
-            <div className="w-3 h-3 rounded-full bg-green-400" />
+    <div className="relative w-full max-w-5xl mx-auto">
+      {/* Background Decorative Glows */}
+      <div className="absolute -top-12 -left-12 w-72 h-72 bg-[#E63946]/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-12 -right-12 w-80 h-80 bg-[#C81E3A]/10 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Main Container Container */}
+      <div className="relative z-10 bg-white/90 backdrop-blur-xl border border-[#EFEBE4] shadow-2xl rounded-3xl overflow-hidden">
+        {/* Browser Top Window Bar */}
+        <div className="bg-[#240710] px-5 py-3.5 flex items-center justify-between border-b border-[#3D0C1A]">
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-[#E63946]/80 inline-block" />
+            <span className="w-3 h-3 rounded-full bg-amber-400/80 inline-block" />
+            <span className="w-3 h-3 rounded-full bg-emerald-400/80 inline-block" />
+            <span className="ml-3 text-xs font-mono text-gray-400 hidden sm:inline-block">
+              app.ittisalo.com/inbox • Live Unified AI Workspace
+            </span>
           </div>
-          <div className="font-medium text-sm text-[var(--color-mktg-surface)]">Ittisalo AI Copilot</div>
-          <div className="w-16" />
+
+          {/* Tab selector */}
+          <div className="flex items-center gap-1 bg-[#3D0C1A] p-1 rounded-xl">
+            <button
+              onClick={() => setActiveTab("whatsapp")}
+              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                activeTab === "whatsapp" ? "bg-[#25D366] text-white shadow-sm" : "text-gray-400 hover:text-white"
+              }`}
+            >
+              <MessageSquare size={13} /> WhatsApp
+            </button>
+            <button
+              onClick={() => setActiveTab("instagram")}
+              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                activeTab === "instagram" ? "bg-[#E1306C] text-white shadow-sm" : "text-gray-400 hover:text-white"
+              }`}
+            >
+              <MessageSquare size={13} /> Instagram
+            </button>
+            <button
+              onClick={() => setActiveTab("messenger")}
+              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                activeTab === "messenger" ? "bg-[#0084FF] text-white shadow-sm" : "text-gray-400 hover:text-white"
+              }`}
+            >
+              <MessageSquare size={13} /> Messenger
+            </button>
+          </div>
         </div>
 
         {/* Content Body */}
-        <div className="p-6 bg-white min-h-[300px] relative">
-          {/* WhatsApp Thread */}
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.5 }}
-            className="flex items-start gap-4 mb-6"
-          >
-            <div className="w-8 h-8 rounded-full bg-[var(--color-mktg-wa)]/10 flex items-center justify-center flex-shrink-0">
-              <MessageCircle size={16} className="text-[var(--color-mktg-wa)]" />
-            </div>
-            <div className="bg-gray-50 p-4 rounded-2xl rounded-tl-none border border-gray-100 max-w-[80%]">
-              <div className="text-xs font-semibold text-gray-500 mb-1">WhatsApp Customer</div>
-              <p className="text-sm text-[var(--color-mktg-surface)]">Do you have the Nike Air Max in size 10?</p>
-            </div>
-          </motion.div>
+        <div className="p-6 md:p-8 min-h-[380px] bg-gradient-to-b from-[#FDFCFB] to-white relative">
+          <AnimatePresence mode="wait">
+            {activeTab === "whatsapp" && (
+              <motion.div
+                key="whatsapp"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.35 }}
+                className="space-y-4 max-w-2xl mx-auto"
+              >
+                {/* Meta Badge */}
+                <div className="flex items-center justify-between text-xs text-[#5C5255] pb-2 border-b border-[#EFEBE4]">
+                  <span className="flex items-center gap-1.5 font-bold text-[#25D366]">
+                    <span className="w-2 h-2 rounded-full bg-[#25D366] animate-pulse" /> Official WhatsApp Business API
+                  </span>
+                  <span className="font-semibold text-gray-400">Gourmet Bites Bistro (Karachi)</span>
+                </div>
 
-          {/* AI Reply to WhatsApp */}
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 1.2 }}
-            className="flex items-start gap-4 mb-6 flex-row-reverse"
-          >
-            <div className="w-8 h-8 rounded-full bg-[var(--color-mktg-cta)]/10 flex items-center justify-center flex-shrink-0">
-              <div className="w-4 h-4 bg-[var(--color-mktg-cta)] rounded-sm rotate-45" />
-            </div>
-            <div className="bg-[var(--color-mktg-cta)]/5 p-4 rounded-2xl rounded-tr-none border border-[var(--color-mktg-cta)]/20 max-w-[80%]">
-              <div className="text-xs font-semibold text-[var(--color-mktg-cta)] mb-1">AI Copilot</div>
-              <p className="text-sm text-[var(--color-mktg-surface)]">Yes! We have 3 pairs left in size 10. Would you like to reserve one for pickup or order for delivery?</p>
-              <div className="mt-3 flex gap-2">
-                <span className="inline-flex items-center gap-1 bg-white px-2 py-1 rounded text-xs font-medium border border-gray-100"><ShoppingBag size={12}/> Order Created</span>
-              </div>
-            </div>
-          </motion.div>
+                {/* Customer Message */}
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-full bg-[#25D366]/10 border border-[#25D366]/30 flex items-center justify-center font-bold text-[#25D366] text-xs shrink-0">
+                    WA
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl rounded-tl-sm border border-[#EFEBE4] shadow-sm max-w-[85%]">
+                    <div className="flex items-center justify-between text-xs text-[#8C8285] mb-1">
+                      <span className="font-bold text-[#1A1517]">Zainab Khan (+92 300 8294192)</span>
+                      <span>12:44 PM</span>
+                    </div>
+                    <p className="text-sm text-[#1A1517] font-medium leading-relaxed">
+                      Hi! Do you have table availability for 4 people tonight at 8:30 PM? Also can I order the Charcoal Grilled Burger deal for pickup?
+                    </p>
+                  </div>
+                </div>
 
-          {/* Instagram Thread */}
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 2.2 }}
-            className="flex items-start gap-4 mb-6"
-          >
-            <div className="w-8 h-8 rounded-full bg-[var(--color-mktg-ig)]/10 flex items-center justify-center flex-shrink-0">
-              <MessageCircle size={16} className="text-[var(--color-mktg-ig)]" />
-            </div>
-            <div className="bg-gray-50 p-4 rounded-2xl rounded-tl-none border border-gray-100 max-w-[80%]">
-              <div className="text-xs font-semibold text-gray-500 mb-1">Instagram DM</div>
-              <p className="text-sm text-[var(--color-mktg-surface)]">Hi, can I book a haircut for tomorrow at 3 PM?</p>
-            </div>
-          </motion.div>
+                {/* AI Copilot Response */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="flex items-start gap-3 flex-row-reverse"
+                >
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#E63946] to-[#8B1531] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-md">
+                    <Sparkles size={16} />
+                  </div>
+                  <div className="bg-[#FFF5F5] p-4.5 rounded-2xl rounded-tr-sm border border-[#FFE8EA] shadow-sm max-w-[88%] space-y-3">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-[#C81E3A] flex items-center gap-1">
+                        <Bot size={14} /> Ittisalo AI Autonomous Agent (0.4s response)
+                      </span>
+                      <span className="text-[#8C8285]">Auto-Replied</span>
+                    </div>
+                    <p className="text-sm text-[#1A1517] font-medium leading-relaxed">
+                      Assalam-o-Alaikum Zainab! Yes, we have reserved Table #7 for 4 guests tonight at 8:30 PM under your name. Your Charcoal Grilled Burger combo has also been sent to the kitchen queue! 🍔✨
+                    </p>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-3 py-1 rounded-full font-bold">
+                        <CheckCircle2 size={13} /> Table #7 Reserved
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 border border-amber-200 text-xs px-3 py-1 rounded-full font-bold">
+                        <ShoppingBag size={13} /> Kitchen Order #GB-9401 (Rs. 2,450)
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
 
-          {/* AI Reply to Instagram */}
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 3.0 }}
-            className="flex items-start gap-4 flex-row-reverse"
-          >
-            <div className="w-8 h-8 rounded-full bg-[var(--color-mktg-cta)]/10 flex items-center justify-center flex-shrink-0">
-              <div className="w-4 h-4 bg-[var(--color-mktg-cta)] rounded-sm rotate-45" />
-            </div>
-            <div className="bg-[var(--color-mktg-cta)]/5 p-4 rounded-2xl rounded-tr-none border border-[var(--color-mktg-cta)]/20 max-w-[80%]">
-              <div className="text-xs font-semibold text-[var(--color-mktg-cta)] mb-1">AI Copilot</div>
-              <p className="text-sm text-[var(--color-mktg-surface)]">Tomorrow at 3 PM is open! I've booked you in with Sarah. See you then! ✨</p>
-              <div className="mt-3 flex gap-2">
-                <span className="inline-flex items-center gap-1 bg-white px-2 py-1 rounded text-xs font-medium border border-gray-100"><Calendar size={12}/> Appointment Confirmed</span>
-              </div>
-            </div>
-          </motion.div>
+            {activeTab === "instagram" && (
+              <motion.div
+                key="instagram"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.35 }}
+                className="space-y-4 max-w-2xl mx-auto"
+              >
+                <div className="flex items-center justify-between text-xs text-[#5C5255] pb-2 border-b border-[#EFEBE4]">
+                  <span className="flex items-center gap-1.5 font-bold text-[#E1306C]">
+                    <span className="w-2 h-2 rounded-full bg-[#E1306C] animate-pulse" /> Instagram Automation (DM & Story)
+                  </span>
+                  <span className="font-semibold text-gray-400">Urban Chic Apparel (@urbanchic.pk)</span>
+                </div>
 
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-full bg-[#E1306C]/10 border border-[#E1306C]/30 flex items-center justify-center font-bold text-[#E1306C] text-xs shrink-0">
+                    IG
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl rounded-tl-sm border border-[#EFEBE4] shadow-sm max-w-[85%]">
+                    <div className="flex items-center justify-between text-xs text-[#8C8285] mb-1">
+                      <span className="font-bold text-[#1A1517]">@samira_styles (Story Reply)</span>
+                      <span>02:15 PM</span>
+                    </div>
+                    <p className="text-sm text-[#1A1517] font-medium leading-relaxed">
+                      Loved this Crimson Velvet Kurti in your latest reel! Is Medium size in stock for delivery to Lahore?
+                    </p>
+                  </div>
+                </div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="flex items-start gap-3 flex-row-reverse"
+                >
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#E63946] to-[#8B1531] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-md">
+                    <Sparkles size={16} />
+                  </div>
+                  <div className="bg-[#FFF5F5] p-4.5 rounded-2xl rounded-tr-sm border border-[#FFE8EA] shadow-sm max-w-[88%] space-y-3">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-[#C81E3A] flex items-center gap-1">
+                        <Bot size={14} /> AI Sales Assistant (Instagram Auto-DM)
+                      </span>
+                      <span className="text-[#8C8285]">Auto-Replied</span>
+                    </div>
+                    <p className="text-sm text-[#1A1517] font-medium leading-relaxed">
+                      Hey Samira! Yes! 4 items left in Size Medium. We offer Cash on Delivery (2-day dispatch to Lahore). Click below to place your order directly via WhatsApp or Checkout catalog! 🛍️
+                    </p>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <span className="inline-flex items-center gap-1.5 bg-[#25D366]/10 text-[#1B803E] border border-[#25D366]/30 text-xs px-3 py-1 rounded-full font-bold">
+                        <MessageSquare size={13} /> One-Click WhatsApp Checkout Link Generated
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+
+            {activeTab === "messenger" && (
+              <motion.div
+                key="messenger"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.35 }}
+                className="space-y-4 max-w-2xl mx-auto"
+              >
+                <div className="flex items-center justify-between text-xs text-[#5C5255] pb-2 border-b border-[#EFEBE4]">
+                  <span className="flex items-center gap-1.5 font-bold text-[#0084FF]">
+                    <span className="w-2 h-2 rounded-full bg-[#0084FF] animate-pulse" /> Facebook Lead Ad Instant Router
+                  </span>
+                  <span className="font-semibold text-gray-400">SmileCare Dental Clinic (DHA Karachi)</span>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-full bg-[#0084FF]/10 border border-[#0084FF]/30 flex items-center justify-center font-bold text-[#0084FF] text-xs shrink-0">
+                    FB
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl rounded-tl-sm border border-[#EFEBE4] shadow-sm max-w-[85%]">
+                    <div className="flex items-center justify-between text-xs text-[#8C8285] mb-1">
+                      <span className="font-bold text-[#1A1517]">Tariq Mehmood (Click-to-Messenger Ad)</span>
+                      <span>05:10 PM</span>
+                    </div>
+                    <p className="text-sm text-[#1A1517] font-medium leading-relaxed">
+                      I saw your Teeth Whitening Special Offer ad. Can I book a consultation with Dr. Fatima tomorrow morning?
+                    </p>
+                  </div>
+                </div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="flex items-start gap-3 flex-row-reverse"
+                >
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#E63946] to-[#8B1531] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-md">
+                    <Sparkles size={16} />
+                  </div>
+                  <div className="bg-[#FFF5F5] p-4.5 rounded-2xl rounded-tr-sm border border-[#FFE8EA] shadow-sm max-w-[88%] space-y-3">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-[#C81E3A] flex items-center gap-1">
+                        <Bot size={14} /> Clinic Scheduling AI
+                      </span>
+                      <span className="text-[#8C8285]">Auto-Booked</span>
+                    </div>
+                    <p className="text-sm text-[#1A1517] font-medium leading-relaxed">
+                      Hello Mr. Tariq! Dr. Fatima has an open slot tomorrow Thursday at 11:00 AM. I have scheduled your Teeth Whitening Consultation & sent an automated SMS reminder! 🦷
+                    </p>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 text-xs px-3 py-1 rounded-full font-bold">
+                        <Calendar size={13} /> Consultation Confirmed (Thu 11:00 AM)
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-      </motion.div>
 
-      {/* Floating Elements */}
-      <motion.div 
-        animate={{ y: [0, -10, 0] }} 
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-10 -left-10 md:left-10 bg-white p-4 rounded-xl shadow-lg border border-gray-100 flex items-center gap-3 z-20"
-      >
-        <div className="w-10 h-10 rounded-full bg-[var(--color-mktg-wa)] flex items-center justify-center">
-           <MessageCircle size={20} className="text-white" />
+        {/* Bottom Metrics Bar */}
+        <div className="bg-[#FFF5F5] border-t border-[#FFE8EA] px-6 py-4 flex flex-wrap items-center justify-between gap-4 text-xs text-[#5C5255]">
+          <div className="flex items-center gap-2 font-bold text-[#1A1517]">
+            <span className="w-2 h-2 rounded-full bg-[#10B981]" /> Multi-Tenant Architecture Active
+          </div>
+          <div className="flex items-center gap-6">
+            <span>Average AI Response Time: <strong>&lt; 0.5s</strong></span>
+            <span>Order Conversion Rate: <strong>+34%</strong></span>
+            <span>No-Show Reduction: <strong>68%</strong></span>
+          </div>
         </div>
-        <div>
-          <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">WhatsApp</div>
-          <div className="text-sm font-semibold text-[var(--color-mktg-surface)]">+42 new messages</div>
-        </div>
-      </motion.div>
-
-      <motion.div 
-        animate={{ y: [0, 15, 0] }} 
-        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-        className="absolute bottom-20 -right-4 md:-right-10 bg-white p-4 rounded-xl shadow-lg border border-gray-100 flex items-center gap-3 z-20"
-      >
-        <div className="w-10 h-10 rounded-full bg-[var(--color-mktg-ig)] flex items-center justify-center">
-           <MessageCircle size={20} className="text-white" />
-        </div>
-        <div>
-          <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Instagram</div>
-          <div className="text-sm font-semibold text-[var(--color-mktg-surface)]">28 stories replied</div>
-        </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
+

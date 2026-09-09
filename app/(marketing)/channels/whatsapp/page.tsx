@@ -1,78 +1,149 @@
 import Link from "next/link";
-import { MessageCircle, Calendar, ShoppingBag, ArrowRight } from "lucide-react";
+import { MessageSquare, Calendar, ShoppingBag, ArrowRight, Sparkles, CheckCircle2, ShieldCheck, Zap } from "lucide-react";
+import type { Metadata } from "next";
 
-export default function WhatsAppChannel() {
+export const metadata: Metadata = {
+  title: "WhatsApp Business API AI Automation Platform — Ittisalo",
+  description:
+    "Automate WhatsApp catalog sales, delivery orders, and appointment scheduling with official WhatsApp Business API integration. Trusted by SMBs across Pakistan.",
+  keywords: [
+    "WhatsApp Business API Pakistan",
+    "WhatsApp AI Automation",
+    "WhatsApp Bot for Restaurants Karachi",
+    "WhatsApp E-commerce Catalog",
+    "Ittisalo WhatsApp Inbox"
+  ]
+};
+
+export default function WhatsAppChannelPage() {
   return (
-    <div className="w-full bg-white">
-      {/* Header */}
-      <section className="pt-24 pb-16 px-4 bg-[var(--color-mktg-bg)]">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 border border-green-100 text-[var(--color-mktg-wa)] text-sm font-semibold mb-6">
-              <MessageCircle size={16} />
-              WhatsApp Integration
+    <div className="w-full bg-[#FDFCFB]">
+      {/* Hero */}
+      <section className="pt-16 pb-24 px-4 bg-gradient-to-b from-[#ECFDF5]/60 via-[#FDFCFB] to-white border-b border-[#EFEBE4]">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-12 gap-12 items-center">
+          <div className="lg:col-span-7 space-y-6">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#ECFDF5] border border-[#A7F3D0] text-[#065F46] text-xs sm:text-sm font-bold shadow-sm">
+              <MessageSquare size={16} className="text-[#25D366]" /> Official WhatsApp Business API Solution
             </div>
-            <h1 className="text-4xl md:text-5xl font-display font-bold text-[var(--color-mktg-base)] mb-6">
-              Turn WhatsApp into your best storefront
+
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-extrabold text-[#1A1517] leading-[1.12]">
+              Turn WhatsApp into Your Highest-Converting <span className="text-[#25D366]">Sales Channel</span>
             </h1>
-            <p className="text-xl text-gray-600 mb-8">
-              Don't just answer questions. Automate complete order flows, share catalogs, and book appointments directly in WhatsApp.
+
+            <p className="text-lg text-[#5C5255] font-medium leading-relaxed max-w-2xl">
+              WhatsApp is where your customers live. Ittisalo replaces slow manual texting with an automated AI engine that shares interactive catalogs, takes delivery orders, and books clinic or salon appointments 24 hours a day.
             </p>
-            <Link href="/contact" className="inline-flex items-center justify-center gap-2 bg-[var(--color-mktg-cta)] text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-[var(--color-mktg-cta-hover)] transition-colors shadow-lg shadow-red-500/20">
-              Start Automating
-            </Link>
-          </div>
-          
-          <div className="bg-[#111B21] rounded-3xl p-6 border border-gray-200 shadow-2xl relative max-w-sm mx-auto w-full">
-            <div className="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
-              <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold">IB</div>
-              <div className="text-white font-semibold">Ittisalo Boutique <span className="block text-xs text-green-400 font-normal">Online</span></div>
+
+            <div className="flex flex-col sm:flex-row gap-4 pt-2">
+              <Link
+                href="/contact"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold text-lg text-white shadow-xl shadow-[#25D366]/20 bg-[#25D366] hover:bg-[#1EBE5D] transition-all"
+              >
+                <Sparkles size={18} /> Connect WhatsApp Business API
+              </Link>
+              <Link
+                href="/product"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold text-lg text-[#1A1517] bg-white border border-[#EFEBE4] hover:bg-[#FFF5F5]"
+              >
+                Explore Product Features <ArrowRight size={18} />
+              </Link>
             </div>
-            <div className="space-y-4">
-              <div className="bg-[#202C33] text-white p-3 rounded-2xl rounded-tl-none text-sm w-5/6">
-                Hi! Do you have the summer dress in blue?
+          </div>
+
+          <div className="lg:col-span-5">
+            {/* Live WhatsApp Mockup Card */}
+            <div className="bg-[#111B21] rounded-3xl p-6 border border-[#202C33] shadow-2xl relative max-w-md mx-auto w-full text-white">
+              <div className="flex items-center justify-between border-b border-[#202C33] pb-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[#00A884] flex items-center justify-center text-white font-bold">
+                    WA
+                  </div>
+                  <div>
+                    <div className="font-bold text-sm flex items-center gap-1">
+                      Gourmet Bites Bistro <ShieldCheck size={14} className="text-[#00A884]" />
+                    </div>
+                    <div className="text-[11px] text-[#00A884] font-medium">Verified WhatsApp Business</div>
+                  </div>
+                </div>
+                <span className="text-[10px] bg-[#202C33] px-2 py-1 rounded text-gray-400 font-mono">0.4s AI speed</span>
               </div>
-              <div className="bg-[#005C4B] text-white p-3 rounded-2xl rounded-tr-none text-sm w-5/6 ml-auto">
-                Yes! We have it in blue (Sizes S, M, L). It's $45 with free shipping. Would you like to order?
-              </div>
-              <div className="bg-[#202C33] text-white p-3 rounded-2xl rounded-tl-none text-sm w-5/6">
-                Yes, size M please.
-              </div>
-              <div className="bg-[#005C4B] text-white p-4 rounded-2xl rounded-tr-none text-sm w-5/6 ml-auto shadow-sm border border-[#005C4B]">
-                <div className="font-bold mb-2 flex items-center gap-2"><ShoppingBag size={14}/> Order Summary</div>
-                <div className="text-green-100 mb-1">1x Summer Dress (Blue, M)</div>
-                <div className="font-bold mb-3">Total: $45</div>
-                <button className="w-full bg-[#00A884] text-white font-bold py-2 rounded-lg">Pay Now</button>
+
+              <div className="space-y-3.5 text-xs">
+                <div className="bg-[#202C33] p-3.5 rounded-2xl rounded-tl-sm text-gray-200 max-w-[85%]">
+                  Assalam-o-Alaikum! Can I order 2 Zinger Burgers for delivery in DHA Phase 5 Karachi?
+                </div>
+
+                <div className="bg-[#005C4B] p-3.5 rounded-2xl rounded-tr-sm text-white max-w-[90%] ml-auto space-y-2">
+                  <div className="font-bold flex items-center gap-1.5 text-[#00A884] text-[11px]">
+                    <Sparkles size={13} /> Ittisalo AI Assistant
+                  </div>
+                  <p>
+                    Walaikum Assalam! Yes! 2 Zinger Burgers combo with fries & drinks is Rs. 1,850. Cash on Delivery available. Should I confirm your order for DHA Phase 5? 🍔
+                  </p>
+                  <div className="pt-1 flex gap-2">
+                    <span className="bg-[#00A884] text-white px-2.5 py-1 rounded font-bold text-[10px]">
+                      Confirm Order & Delivery
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-24 px-4 max-w-7xl mx-auto">
-        <h2 className="text-3xl font-display font-bold text-center mb-16">Specifically built for WhatsApp</h2>
-        <div className="grid md:grid-cols-3 gap-8">
-          <div className="p-6">
-            <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center text-[var(--color-mktg-wa)] mb-4">
-              <ShoppingBag size={24} />
+      {/* Live Dashboard Feature Screenshot */}
+      <section className="py-20 bg-white border-b border-[#EFEBE4]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-5">
+              <div className="inline-flex items-center gap-2 bg-[#ECFDF5] text-[#065F46] px-3.5 py-1 rounded-full text-xs font-bold">
+                <Zap size={14} /> Multi-Agent WhatsApp Hub
+              </div>
+              <h2 className="text-3xl font-display font-extrabold text-[#1A1517]">
+                Manage all WhatsApp conversations from a single dashboard
+              </h2>
+              <p className="text-sm text-[#5C5255] leading-relaxed">
+                Connect multiple phone numbers and assign team members with round-robin routing. Your support agents can view real-time AI suggestions, takeover chats seamlessly, and tag order states.
+              </p>
+
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-3 text-xs font-bold text-[#1A1517]">
+                  <CheckCircle2 size={16} className="text-[#10B981]" /> Official Green Tick Verification Guidance
+                </div>
+                <div className="flex items-center gap-3 text-xs font-bold text-[#1A1517]">
+                  <CheckCircle2 size={16} className="text-[#10B981]" /> Interactive WhatsApp Button & List Messages
+                </div>
+                <div className="flex items-center gap-3 text-xs font-bold text-[#1A1517]">
+                  <CheckCircle2 size={16} className="text-[#10B981]" /> Click-to-WhatsApp Ads Instant Conversion Tracking
+                </div>
+              </div>
             </div>
-            <h3 className="text-xl font-bold mb-2">Native Catalog Sync</h3>
-            <p className="text-gray-600">Connect your inventory and let the AI showcase products, check stock, and process orders entirely within the chat.</p>
+
+            <div className="rounded-2xl overflow-hidden border border-[#EFEBE4] shadow-2xl bg-gray-900">
+              <img src="/images/dashboard/inbox.png" alt="WhatsApp Inbox Dashboard" className="w-full h-auto object-cover" />
+            </div>
           </div>
-          <div className="p-6">
-            <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center text-[var(--color-mktg-wa)] mb-4">
-              <Calendar size={24} />
-            </div>
-            <h3 className="text-xl font-bold mb-2">Frictionless Bookings</h3>
-            <p className="text-gray-600">The AI checks your calendar availability in real-time and books appointments without sending users to a web link.</p>
-          </div>
-          <div className="p-6">
-            <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center text-[var(--color-mktg-wa)] mb-4">
-              <ArrowRight size={24} />
-            </div>
-            <h3 className="text-xl font-bold mb-2">Broadcast Campaigns</h3>
-            <p className="text-gray-600">Send personalized promotional messages to your customer list and let the AI handle the hundreds of replies instantly.</p>
+        </div>
+      </section>
+
+      {/* Solutions Cross Links */}
+      <section className="py-16 bg-[#FDFCFB]">
+        <div className="max-w-5xl mx-auto px-4 text-center space-y-6">
+          <h3 className="text-2xl font-bold text-[#1A1517]">Explore WhatsApp AI Workflows By Vertical</h3>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Link href="/solutions/restaurants" className="px-5 py-2.5 bg-white border border-[#EFEBE4] rounded-xl text-xs font-bold text-[#1A1517] hover:border-[#C81E3A]">
+              Restaurant Order Bot →
+            </Link>
+            <Link href="/solutions/clinics" className="px-5 py-2.5 bg-white border border-[#EFEBE4] rounded-xl text-xs font-bold text-[#1A1517] hover:border-[#C81E3A]">
+              Clinic Booking AI →
+            </Link>
+            <Link href="/solutions/ecommerce-fashion" className="px-5 py-2.5 bg-white border border-[#EFEBE4] rounded-xl text-xs font-bold text-[#1A1517] hover:border-[#C81E3A]">
+              eCommerce Catalog Sync →
+            </Link>
+            <Link href="/case-studies/gourmet-bites-bistro" className="px-5 py-2.5 bg-[#FFF5F5] border border-[#FFE8EA] rounded-xl text-xs font-bold text-[#C81E3A]">
+              View Restaurant Case Study →
+            </Link>
           </div>
         </div>
       </section>
