@@ -29,11 +29,11 @@ export default function HeroAnimation() {
         {/* Browser Top Window Bar */}
         <div className="bg-[#240710] px-5 py-3.5 flex items-center justify-between border-b border-[#3D0C1A]">
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-[#E63946]/80 inline-block" />
-            <span className="w-3 h-3 rounded-full bg-amber-400/80 inline-block" />
-            <span className="w-3 h-3 rounded-full bg-emerald-400/80 inline-block" />
-            <span className="ml-3 text-xs font-mono text-gray-400 hidden sm:inline-block">
-              app.ittisalo.com/inbox • Live Unified AI Workspace
+            <span className="w-3 h-3 rounded-full bg-[#EF4444] inline-block" />
+            <span className="w-3 h-3 rounded-full bg-[#F59E0B] inline-block" />
+            <span className="w-3 h-3 rounded-full bg-[#10B981] inline-block" />
+            <span className="ml-3 text-xs font-mono text-gray-300 hidden md:inline-block truncate max-w-[260px] sm:max-w-none">
+              app.ittisalo.com/conversations
             </span>
           </div>
 
@@ -41,7 +41,7 @@ export default function HeroAnimation() {
           <div className="flex items-center gap-1 bg-[#3D0C1A] p-1 rounded-xl">
             <button
               onClick={() => setActiveTab("whatsapp")}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
                 activeTab === "whatsapp" ? "bg-[#25D366] text-white shadow-sm" : "text-gray-400 hover:text-white"
               }`}
             >
@@ -49,7 +49,7 @@ export default function HeroAnimation() {
             </button>
             <button
               onClick={() => setActiveTab("instagram")}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
                 activeTab === "instagram" ? "bg-[#E1306C] text-white shadow-sm" : "text-gray-400 hover:text-white"
               }`}
             >
@@ -57,7 +57,7 @@ export default function HeroAnimation() {
             </button>
             <button
               onClick={() => setActiveTab("messenger")}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
                 activeTab === "messenger" ? "bg-[#0084FF] text-white shadow-sm" : "text-gray-400 hover:text-white"
               }`}
             >
@@ -110,7 +110,7 @@ export default function HeroAnimation() {
                   className="flex items-start gap-3 flex-row-reverse"
                 >
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#E63946] to-[#8B1531] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-md">
-                    <Sparkles size={16} />
+                    <Bot size={18} />
                   </div>
                   <div className="bg-[#FFF5F5] p-4.5 rounded-2xl rounded-tr-sm border border-[#FFE8EA] shadow-sm max-w-[88%] space-y-3">
                     <div className="flex items-center justify-between text-xs">
@@ -173,7 +173,7 @@ export default function HeroAnimation() {
                   className="flex items-start gap-3 flex-row-reverse"
                 >
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#E63946] to-[#8B1531] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-md">
-                    <Sparkles size={16} />
+                    <Bot size={18} />
                   </div>
                   <div className="bg-[#FFF5F5] p-4.5 rounded-2xl rounded-tr-sm border border-[#FFE8EA] shadow-sm max-w-[88%] space-y-3">
                     <div className="flex items-center justify-between text-xs">
@@ -233,7 +233,7 @@ export default function HeroAnimation() {
                   className="flex items-start gap-3 flex-row-reverse"
                 >
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#E63946] to-[#8B1531] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-md">
-                    <Sparkles size={16} />
+                    <Bot size={18} />
                   </div>
                   <div className="bg-[#FFF5F5] p-4.5 rounded-2xl rounded-tr-sm border border-[#FFE8EA] shadow-sm max-w-[88%] space-y-3">
                     <div className="flex items-center justify-between text-xs">

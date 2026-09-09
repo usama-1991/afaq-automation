@@ -117,11 +117,8 @@ export default function Home() {
           <div className="grid lg:grid-cols-12 gap-12 lg:gap-8 items-center mb-16">
             <div className="lg:col-span-7 space-y-6">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#FFF5F5] border border-[#FFE8EA] text-[#8B1531] text-xs sm:text-sm font-bold shadow-sm">
-                <Sparkles size={16} className="text-[#E63946]" />
+                <ShieldCheck size={16} className="text-[#E63946]" />
                 <span>Multi-Tenant Conversational AI Platform</span>
-                <span className="bg-[#E63946] text-white px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider">
-                  V2 Live
-                </span>
               </div>
 
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-extrabold tracking-tight text-[#1A1517] leading-[1.12]">
@@ -138,7 +135,7 @@ export default function Home() {
                   className="inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl font-bold text-lg text-white shadow-xl shadow-[#E63946]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   style={{ background: "linear-gradient(135deg, #E63946 0%, #C81E3A 50%, #8B1531 100%)" }}
                 >
-                  <Sparkles size={20} /> Book Live Demo & Free Trial
+                  Book Live Demo & Free Trial <ArrowRight size={18} />
                 </Link>
                 <Link
                   href="/product"
@@ -337,7 +334,7 @@ export default function Home() {
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold text-lg text-white shadow-xl shadow-[#E63946]/20 transition-all hover:scale-105"
               style={{ background: "linear-gradient(135deg, #E63946 0%, #C81E3A 50%, #8B1531 100%)" }}
             >
-              <Sparkles size={20} /> Schedule Live Demo
+              Schedule Live Demo <ArrowRight size={18} />
             </Link>
             <Link
               href="/pricing"

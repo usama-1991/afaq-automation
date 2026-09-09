@@ -106,7 +106,7 @@ export default function ProductPage() {
       <section className="pt-16 pb-20 px-4 bg-gradient-to-b from-[#FFF5F5]/60 to-white border-b border-[#EFEBE4]">
         <div className="max-w-4xl mx-auto text-center space-y-6">
           <div className="inline-flex items-center gap-2 bg-[#FFF5F5] border border-[#FFE8EA] px-4 py-1.5 rounded-full text-xs font-bold text-[#8B1531]">
-            <Sparkles size={14} className="text-[#E63946]" /> Built for High-Volume Business Messaging
+            <ShieldCheck size={14} className="text-[#E63946]" /> Built for High-Volume Business Messaging
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-extrabold text-[#1A1517] tracking-tight">
             The Complete <span className="bg-gradient-to-r from-[#E63946] via-[#C81E3A] to-[#8B1531] bg-clip-text text-transparent">AI Conversational Stack</span>
@@ -121,7 +121,7 @@ export default function ProductPage() {
               className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold text-white shadow-xl shadow-[#E63946]/20"
               style={{ background: "linear-gradient(135deg, #E63946 0%, #C81E3A 50%, #8B1531 100%)" }}
             >
-              <Sparkles size={18} /> Request Customized Product Demo
+              Request Customized Product Demo <ArrowRight size={16} />
             </Link>
             <a
               href="https://app.ittisalo.com/login"

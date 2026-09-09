@@ -45,9 +45,8 @@ export default function Footer() {
                 alt="Ittisalo Logo"
                 className="w-10 h-10 object-contain drop-shadow-md group-hover:scale-105 transition-transform"
               />
-              <span className="font-display font-extrabold text-2xl tracking-tight text-white flex items-center gap-1.5">
+              <span className="font-display font-extrabold text-2xl tracking-tight text-white">
                 Ittisalo
-                <span className="text-[#E63946]"><Sparkles size={18} /></span>
               </span>
             </Link>
             <p className="text-sm text-gray-300 max-w-sm leading-relaxed">

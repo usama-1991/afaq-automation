@@ -52,22 +52,14 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-20">
           {/* Brand Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="relative flex items-center justify-center">
-              <img
-                src="/logo.png"
-                alt="Ittisalo Logo"
-                className="w-9 h-9 sm:w-10 sm:h-10 object-contain drop-shadow-md group-hover:scale-105 transition-transform duration-200"
-              />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-display font-extrabold text-2xl tracking-tight text-[#1A1517] flex items-center gap-1">
-                Ittisalo
-                <span className="w-1.5 h-1.5 rounded-full bg-[#E63946] inline-block animate-pulse" />
-              </span>
-              <span className="text-[10px] font-semibold text-[#8B1531] uppercase tracking-wider -mt-1 hidden sm:inline-block">
-                Omnichannel AI Inbox
-              </span>
-            </div>
+            <img
+              src="/logo.png"
+              alt="Ittisalo Logo"
+              className="w-9 h-9 sm:w-10 sm:h-10 object-contain drop-shadow-md group-hover:scale-105 transition-transform duration-200"
+            />
+            <span className="font-display font-extrabold text-2xl tracking-tight text-[#1A1517]">
+              Ittisalo
+            </span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -124,7 +116,7 @@ export default function Navbar() {
                 <div className="bg-white rounded-2xl shadow-xl border border-[#EFEBE4] p-3 flex flex-col gap-1.5">
                   <div className="px-3 py-1.5 text-[11px] font-bold text-[#8C8285] uppercase tracking-wider flex items-center justify-between">
                     <span>Industry Vertical Workflows</span>
-                    <span className="text-[#C81E3A] flex items-center gap-1"><Sparkles size={11} /> Pre-Trained AI</span>
+                    <span className="text-[#C81E3A] font-bold">Pre-Trained AI</span>
                   </div>
                   {SOLUTIONS.map((solution) => (
                     <Link
@@ -181,7 +173,7 @@ export default function Navbar() {
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white shadow-md shadow-[#E63946]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
               style={{ background: "linear-gradient(135deg, #E63946 0%, #C81E3A 50%, #8B1531 100%)" }}
             >
-              <Sparkles size={15} /> Book a Demo
+              Book a Demo
             </Link>
           </div>
 

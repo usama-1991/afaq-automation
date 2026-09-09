@@ -83,7 +83,7 @@ export default function LiveProductShowcase() {
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
           <div className="inline-flex items-center gap-2 bg-[#FFF5F5] border border-[#FFE8EA] px-4 py-1.5 rounded-full text-xs font-bold text-[#C81E3A]">
-            <Sparkles size={14} /> Built for Real Production Scale
+            <ShieldCheck size={14} /> Production-Grade Architecture
           </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-display font-extrabold text-[#1A1517] tracking-tight">
             See how Ittisalo powers your business conversations
@@ -123,14 +123,14 @@ export default function LiveProductShowcase() {
               {/* Top Browser Bar */}
               <div className="bg-[#240710] px-4 py-3 flex items-center justify-between border-b border-[#3D0C1A]">
                 <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-[#E63946]" />
-                  <span className="w-3 h-3 rounded-full bg-amber-400" />
-                  <span className="w-3 h-3 rounded-full bg-emerald-400" />
+                  <span className="w-3 h-3 rounded-full bg-[#EF4444]" />
+                  <span className="w-3 h-3 rounded-full bg-[#F59E0B]" />
+                  <span className="w-3 h-3 rounded-full bg-[#10B981]" />
                 </div>
-                <div className="bg-[#3D0C1A] px-4 py-1 rounded-lg text-xs font-mono text-gray-300">
+                <div className="bg-[#3D0C1A] px-3 py-1 rounded-lg text-xs font-mono text-gray-300 truncate max-w-[220px] sm:max-w-none">
                   https://app.ittisalo.com/{activeContent.id}
                 </div>
-                <span className="text-[10px] font-bold bg-[#E63946] text-white px-2 py-0.5 rounded-full">
+                <span className="text-[10px] font-bold bg-[#E63946] text-white px-2 py-0.5 rounded-full shrink-0">
                   LIVE DASHBOARD
                 </span>
               </div>
@@ -157,7 +157,7 @@ export default function LiveProductShowcase() {
           {/* Details & Features Column */}
           <div className="lg:col-span-4 space-y-6">
             <div className="inline-flex items-center gap-2 bg-[#FFE8EA] text-[#8B1531] px-3 py-1 rounded-full text-xs font-bold">
-              <Sparkles size={13} /> {activeContent.badge}
+              {activeContent.badge}
             </div>
 
             <h3 className="text-2xl font-bold text-[#1A1517]">
