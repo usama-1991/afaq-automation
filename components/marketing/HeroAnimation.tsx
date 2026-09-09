@@ -115,7 +115,7 @@ export default function HeroAnimation() {
                   <div className="bg-[#FFF5F5] p-4.5 rounded-2xl rounded-tr-sm border border-[#FFE8EA] shadow-sm max-w-[88%] space-y-3">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-[#C81E3A] flex items-center gap-1">
-                        <Bot size={14} /> Ittisalo AI Autonomous Agent (0.4s response)
+                        <Sparkles size={14} className="text-[#C81E3A]" /> Ittisalo AI Autonomous Agent (0.4s response)
                       </span>
                       <span className="text-[#8C8285]">Auto-Replied</span>
                     </div>
@@ -178,7 +178,7 @@ export default function HeroAnimation() {
                   <div className="bg-[#FFF5F5] p-4.5 rounded-2xl rounded-tr-sm border border-[#FFE8EA] shadow-sm max-w-[88%] space-y-3">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-[#C81E3A] flex items-center gap-1">
-                        <Bot size={14} /> AI Sales Assistant (Instagram Auto-DM)
+                        <Sparkles size={14} className="text-[#C81E3A]" /> AI Sales Assistant (Instagram Auto-DM)
                       </span>
                       <span className="text-[#8C8285]">Auto-Replied</span>
                     </div>
@@ -186,8 +186,8 @@ export default function HeroAnimation() {
                       Hey Samira! Yes! 4 items left in Size Medium. We offer Cash on Delivery (2-day dispatch to Lahore). Click below to place your order directly via WhatsApp or Checkout catalog! 🛍️
                     </p>
                     <div className="flex flex-wrap gap-2 pt-1">
-                      <span className="inline-flex items-center gap-1.5 bg-[#25D366]/10 text-[#1B803E] border border-[#25D366]/30 text-xs px-3 py-1 rounded-full font-bold">
-                        <MessageSquare size={13} /> One-Click WhatsApp Checkout Link Generated
+                      <span className="inline-flex items-center gap-1.5 bg-[#FFF5F5] text-[#8B1531] border border-[#FFE8EA] text-xs px-3 py-1 rounded-full font-bold">
+                        <Sparkles size={13} className="text-[#E63946]" /> One-Click WhatsApp Checkout Link Generated
                       </span>
                     </div>
                   </div>
@@ -238,7 +238,7 @@ export default function HeroAnimation() {
                   <div className="bg-[#FFF5F5] p-4.5 rounded-2xl rounded-tr-sm border border-[#FFE8EA] shadow-sm max-w-[88%] space-y-3">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-[#C81E3A] flex items-center gap-1">
-                        <Bot size={14} /> Clinic Scheduling AI
+                        <Sparkles size={14} className="text-[#C81E3A]" /> Clinic Scheduling AI
                       </span>
                       <span className="text-[#8C8285]">Auto-Booked</span>
                     </div>

@@ -2,21 +2,84 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { ChevronDown, Menu, X, Sparkles, MessageSquare, ShieldCheck, ArrowRight } from "lucide-react";
+import {
+  ChevronDown,
+  Menu,
+  X,
+  Sparkles,
+  MessageSquare,
+  ShieldCheck,
+  ArrowRight,
+  Utensils,
+  Stethoscope,
+  Scissors,
+  ShoppingBag,
+  Building2,
+  Camera,
+  Send
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const CHANNELS = [
-  { name: "WhatsApp Business API", path: "/channels/whatsapp", color: "#25D366", desc: "Catalog sharing, click-to-WhatsApp ads & official green tick setup" },
-  { name: "Instagram DMs & Stories", path: "/channels/instagram", color: "#E1306C", desc: "Story replies, comment auto-DM & catalog link dispatch" },
-  { name: "Facebook Messenger", path: "/channels/messenger", color: "#0084FF", desc: "Lead ads instant conversion & customer service routing" },
+  {
+    name: "WhatsApp Business API",
+    path: "/channels/whatsapp",
+    color: "#25D366",
+    desc: "Catalog sharing, click-to-WhatsApp ads & official green tick setup",
+    icon: MessageSquare
+  },
+  {
+    name: "Instagram DMs & Stories",
+    path: "/channels/instagram",
+    color: "#E1306C",
+    desc: "Story replies, comment auto-DM & catalog link dispatch",
+    icon: Camera
+  },
+  {
+    name: "Facebook Messenger",
+    path: "/channels/messenger",
+    color: "#0084FF",
+    desc: "Lead ads instant conversion & customer service routing",
+    icon: Send
+  }
 ];
 
 const SOLUTIONS = [
-  { name: "Restaurants & Cafes", path: "/solutions/restaurants", badge: "Order Bot", desc: "Digital menu, order confirmation & WhatsApp delivery tracking" },
-  { name: "Dental & Health Clinics", path: "/solutions/clinics", badge: "Booking AI", desc: "24/7 appointment scheduling, reminders & patient intake" },
-  { name: "Salons & Spas", path: "/solutions/salons", badge: "No-Show Shield", desc: "Automated booking, deposit collection & appointment alerts" },
-  { name: "eCommerce & Apparel", path: "/solutions/ecommerce-fashion", badge: "Cart Recovery", desc: "Product catalog browsing, abandoned cart recovery & COD confirmation" },
-  { name: "Real Estate Agencies", path: "/solutions/real-estate", badge: "Lead Capture", desc: "Property brochure dispatch, site visit booking & lead scoring" },
+  {
+    name: "Restaurants & Cafes",
+    path: "/solutions/restaurants",
+    badge: "Order Bot",
+    desc: "Digital menu, order confirmation & WhatsApp delivery tracking",
+    icon: Utensils
+  },
+  {
+    name: "Dental & Health Clinics",
+    path: "/solutions/clinics",
+    badge: "Booking AI",
+    desc: "24/7 appointment scheduling, reminders & patient intake",
+    icon: Stethoscope
+  },
+  {
+    name: "Salons & Spas",
+    path: "/solutions/salons",
+    badge: "No-Show Shield",
+    desc: "Automated booking, deposit collection & appointment alerts",
+    icon: Scissors
+  },
+  {
+    name: "eCommerce & Apparel",
+    path: "/solutions/ecommerce-fashion",
+    badge: "Cart Recovery",
+    desc: "Product catalog browsing, abandoned cart recovery & COD confirmation",
+    icon: ShoppingBag
+  },
+  {
+    name: "Real Estate Agencies",
+    path: "/solutions/real-estate",
+    badge: "Lead Capture",
+    desc: "Property brochure dispatch, site visit booking & lead scoring",
+    icon: Building2
+  }
 ];
 
 export default function Navbar() {
@@ -82,26 +145,29 @@ export default function Navbar() {
                   <div className="px-3 py-1.5 text-[11px] font-bold text-[#8C8285] uppercase tracking-wider">
                     Supported Messaging Platforms
                   </div>
-                  {CHANNELS.map((channel) => (
-                    <Link
-                      key={channel.name}
-                      href={channel.path}
-                      className="p-3 rounded-xl hover:bg-[#FFF5F5] flex items-start gap-3.5 transition-colors group/item"
-                    >
-                      <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center text-white shrink-0 shadow-sm mt-0.5"
-                        style={{ backgroundColor: channel.color }}
+                  {CHANNELS.map((channel) => {
+                    const IconComp = channel.icon;
+                    return (
+                      <Link
+                        key={channel.name}
+                        href={channel.path}
+                        className="p-3 rounded-xl hover:bg-[#FFF5F5] flex items-start gap-3.5 transition-colors group/item"
                       >
-                        <MessageSquare size={16} />
-                      </div>
-                      <div>
-                        <div className="text-sm font-bold text-[#1A1517] group-hover/item:text-[#C81E3A] transition-colors flex items-center justify-between">
-                          {channel.name}
+                        <div
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-white shrink-0 shadow-sm mt-0.5"
+                          style={{ backgroundColor: channel.color }}
+                        >
+                          <IconComp size={16} />
                         </div>
-                        <p className="text-xs text-[#5C5255] mt-0.5 leading-snug">{channel.desc}</p>
-                      </div>
-                    </Link>
-                  ))}
+                        <div>
+                          <div className="text-sm font-bold text-[#1A1517] group-hover/item:text-[#C81E3A] transition-colors flex items-center justify-between">
+                            {channel.name}
+                          </div>
+                          <p className="text-xs text-[#5C5255] mt-0.5 leading-snug">{channel.desc}</p>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -112,30 +178,39 @@ export default function Navbar() {
                 Solutions
                 <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-200" />
               </button>
-              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 w-[420px]">
+              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 w-[440px]">
                 <div className="bg-white rounded-2xl shadow-xl border border-[#EFEBE4] p-3 flex flex-col gap-1.5">
                   <div className="px-3 py-1.5 text-[11px] font-bold text-[#8C8285] uppercase tracking-wider flex items-center justify-between">
                     <span>Industry Vertical Workflows</span>
-                    <span className="text-[#C81E3A] font-bold">Pre-Trained AI</span>
+                    <span className="text-[#8B1531] font-bold text-[11px] bg-[#FFF5F5] border border-[#FFE8EA] px-2 py-0.5 rounded-full">
+                      Pre-Trained AI
+                    </span>
                   </div>
-                  {SOLUTIONS.map((solution) => (
-                    <Link
-                      key={solution.name}
-                      href={solution.path}
-                      className="p-3 rounded-xl hover:bg-[#FFF5F5] flex items-start gap-3 transition-colors group/item"
-                    >
-                      <div className="w-2 h-2 rounded-full bg-[#E63946] mt-2 shrink-0 group-hover/item:scale-125 transition-transform" />
-                      <div className="flex-1">
-                        <div className="text-sm font-bold text-[#1A1517] group-hover/item:text-[#C81E3A] transition-colors flex items-center justify-between">
-                          <span>{solution.name}</span>
-                          <span className="text-[10px] font-bold bg-[#FFE8EA] text-[#8B1531] px-2 py-0.5 rounded-full">
-                            {solution.badge}
-                          </span>
+                  {SOLUTIONS.map((solution) => {
+                    const IconComp = solution.icon;
+                    return (
+                      <Link
+                        key={solution.name}
+                        href={solution.path}
+                        className="p-3 rounded-xl hover:bg-[#FFF5F5] flex items-start gap-3.5 transition-colors group/item"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-[#FFF5F5] border border-[#FFE8EA] flex items-center justify-center text-[#E63946] shrink-0 mt-0.5 group-hover/item:bg-[#E63946] group-hover/item:text-white transition-colors">
+                          <IconComp size={16} />
                         </div>
-                        <p className="text-xs text-[#5C5255] mt-0.5">{solution.desc}</p>
-                      </div>
-                    </Link>
-                  ))}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-sm font-bold text-[#1A1517] group-hover/item:text-[#C81E3A] transition-colors truncate">
+                              {solution.name}
+                            </span>
+                            <span className="text-[11px] font-bold bg-[#FFF5F5] text-[#8B1531] border border-[#FFE8EA] px-2.5 py-0.5 rounded-full shrink-0">
+                              {solution.badge}
+                            </span>
+                          </div>
+                          <p className="text-xs text-[#5C5255] mt-0.5 leading-snug">{solution.desc}</p>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             </div>

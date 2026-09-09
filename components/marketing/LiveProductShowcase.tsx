@@ -156,7 +156,7 @@ export default function LiveProductShowcase() {
 
           {/* Details & Features Column */}
           <div className="lg:col-span-4 space-y-6">
-            <div className="inline-flex items-center gap-2 bg-[#FFE8EA] text-[#8B1531] px-3 py-1 rounded-full text-xs font-bold">
+            <div className="inline-flex items-center gap-2 bg-[#FFF5F5] border border-[#FFE8EA] text-[#8B1531] px-3 py-1 rounded-full text-xs font-bold">
               {activeContent.badge}
             </div>
 
