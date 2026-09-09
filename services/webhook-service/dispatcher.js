@@ -59,23 +59,28 @@ export async function dispatchOutboundMessage(supabase, message, log = console) 
 
   try {
     // 3. Distributed atomic DB claim:
-    // Only ONE worker across all servers/instances can successfully transition
-    // external_message_id from NULL to 'dispatching_...'.
-    const lockId = `dispatching_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-    const { data: claimedRows, error: claimError } = await supabase
-      .from('messages')
-      .update({ external_message_id: lockId })
-      .eq('id', message.id)
-      .is('external_message_id', null)
-      .select('id');
+    // If message was pre-claimed upon insert by ai-agent.js, honor that lock.
+    // Otherwise, atomically transition external_message_id from NULL to 'dispatching_...'.
+    const isPreClaimed = message.external_message_id && message.external_message_id.startsWith('dispatching_');
+    if (isPreClaimed) {
+      claimed = true;
+      log.info?.(`[dispatcher] Message ${message.id} pre-claimed with lock ${message.external_message_id}. Preparing dispatch.`);
+    } else {
+      const lockId = `dispatching_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      const { data: claimedRows, error: claimError } = await supabase
+        .from('messages')
+        .update({ external_message_id: lockId })
+        .eq('id', message.id)
+        .is('external_message_id', null)
+        .select('id');
 
-    if (claimError || !claimedRows || claimedRows.length === 0) {
-      log.info?.(`[dispatcher] Message ${message.id} already claimed by another process or dispatched. Aborting duplicate send.`);
-      return;
+      if (claimError || !claimedRows || claimedRows.length === 0) {
+        log.info?.(`[dispatcher] Message ${message.id} already claimed by another process or dispatched. Aborting duplicate send.`);
+        return;
+      }
+      claimed = true;
+      log.info?.(`[dispatcher] Atomic claim acquired for message ${message.id}. Preparing dispatch.`);
     }
-    claimed = true;
-
-    log.info?.(`[dispatcher] Atomic claim acquired for message ${message.id}. Preparing dispatch.`);
 
     // 4. Get Conversation details
     const { data: conv, error: convError } = await supabase

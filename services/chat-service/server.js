@@ -82,295 +82,362 @@ const parseMediaContent = (content) => {
   };
 };
 
+// In-memory set to prevent concurrent dispatches in chat-service
+const _chatDispatchingMsgIds = new Set();
+
 // Helper function to dispatch outbound message to Meta API
 async function dispatchOutboundMessage(message) {
-  if (message.sender_type === 'customer') return;
+  // CRITICAL: chat-service MUST ONLY dispatch human agent messages
+  // Bot messages are handled solely by ai-agent.js in webhook-service
+  if (!message || message.sender_type !== 'agent') return;
 
   // Deduplication check: if message was already dispatched to Meta, skip
-  if (message.external_message_id) {
+  if (message.external_message_id && !message.external_message_id.startsWith('dispatching_')) {
     fastify.log.info(`[chat-service] Message ${message.id} already has external_message_id ${message.external_message_id}. Skipping duplicate.`);
     return message.external_message_id;
   }
 
-  fastify.log.info(`[chat-service] Processing dispatch for outbound message ID: ${message.id}`);
-
-  // 1. Get Conversation details
-  const { data: conv, error: convError } = await supabase
-    .from('conversations')
-    .select('*')
-    .eq('id', message.conversation_id)
-    .single();
-
-  if (convError || !conv) throw new Error("Conversation not found");
-
-  if (conv.platform === 'web_widget') {
-    fastify.log.info(`[chat-service] Message is for web_widget (delivered in-browser), skipping outbound provider dispatch.`);
-    return null;
+  // In-memory concurrency guard
+  if (_chatDispatchingMsgIds.has(message.id)) {
+    fastify.log.info(`[chat-service] Message ${message.id} is already actively being dispatched. Skipping.`);
+    return;
   }
+  _chatDispatchingMsgIds.add(message.id);
 
-  // 2. Get Integration details for this tenant
-  const { data: integration, error: intError } = await supabase
-    .from('integrations')
-    .select('*')
-    .eq('tenant_id', conv.tenant_id)
-    .eq('platform', conv.platform)
-    .single();
+  let claimed = false;
 
-  if (intError || !integration) throw new Error("Integration not found for tenant");
-
-  const externalPhoneId = (integration.external_account_id || integration.credentials?.phone_number_id || process.env.META_PHONE_NUMBER_ID || '').trim();
-  const customerPhone = conv.external_conversation_id?.trim();
-  let rawToken = integration.credentials?.access_token || integration.access_token || process.env.META_ACCESS_TOKEN || '';
-
-  if (conv.platform === 'messenger') {
-    rawToken = integration.credentials?.access_token || integration.access_token || process.env.MESSENGER_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN || '';
-  }
-  if (conv.platform === 'instagram') {
-    rawToken = integration.credentials?.access_token || integration.access_token || process.env.INSTAGRAM_ACCESS_TOKEN || process.env.MESSENGER_ACCESS_TOKEN || '';
-  }
-
-  let accessToken = (decrypt(rawToken) || rawToken)?.trim();
-
-  if (!accessToken) throw new Error("No Meta access token found");
-  if (!externalPhoneId) throw new Error("No External Account ID found for platform " + conv.platform);
-
-  // 3. Send via Meta Graph API
-  const mediaInfo = parseMediaContent(message.content);
-
-  if (conv.platform === 'whatsapp') {
-    let payload = {};
-
-    if (mediaInfo) {
-      fastify.log.info(`[whatsapp] Outbound media message: ${mediaInfo.fileName}`);
-      let mediaId = '';
-
-      if (mediaInfo.isBase64) {
-        // Upload base64 media directly to Meta
-        const uploadUrl = `https://graph.facebook.com/v19.0/${externalPhoneId}/media`;
-        const buffer = Buffer.from(mediaInfo.base64Data, 'base64');
-        const blob = new Blob([buffer], { type: mediaInfo.mimeType });
-        const formData = new FormData();
-        formData.append('messaging_product', 'whatsapp');
-        formData.append('type', mediaInfo.mimeType);
-        formData.append('file', blob, mediaInfo.fileName);
-
-        fastify.log.info(`[whatsapp] Uploading binary to Meta: ${mediaInfo.fileName} (${mediaInfo.mimeType})`);
-        const uploadResponse = await fetch(uploadUrl, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${accessToken}` },
-          body: formData
-        });
-
-        const uploadResult = await uploadResponse.json();
-        if (!uploadResponse.ok) {
-          throw new Error(`WhatsApp Media Upload Failed: ${JSON.stringify(uploadResult)}`);
-        }
-        mediaId = uploadResult.id;
-        fastify.log.info(`[whatsapp] Uploaded. ID: ${mediaId}`);
-      } else {
-        mediaId = mediaInfo.fileUrl;
-      }
-
-      const typeMap = {
-        images: 'image',
-        videos: 'video',
-        audio: 'audio',
-        documents: 'document'
-      };
-      const waType = typeMap[mediaInfo.category] || 'document';
-      
-      payload = {
-        messaging_product: 'whatsapp',
-        to: customerPhone,
-        type: waType,
-        [waType]: mediaInfo.isBase64 ? { id: mediaId } : { link: mediaId }
-      };
-
-      if (waType === 'document') {
-        payload.document.filename = mediaInfo.fileName;
-      } else if (mediaInfo.caption) {
-        // WhatsApp captions are limited to 1024 characters
-        payload[waType].caption = mediaInfo.caption.length > 1024 
-          ? mediaInfo.caption.substring(0, 1020) + '...' 
-          : mediaInfo.caption;
-      }
+  try {
+    // Distributed atomic DB claim:
+    const isPreClaimed = message.external_message_id && message.external_message_id.startsWith('dispatching_');
+    if (isPreClaimed) {
+      claimed = true;
     } else {
-      let isInteractive = false;
-      let bodyText = message.content;
-      const btnRegex = /\[Buttons:\s*([^\]]+)\]/i;
-      const btnMatch = message.content.match(btnRegex);
+      const lockId = `dispatching_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      const { data: claimedRows, error: claimError } = await supabase
+        .from('messages')
+        .update({ external_message_id: lockId })
+        .eq('id', message.id)
+        .is('external_message_id', null)
+        .select('id');
 
-      if (btnMatch) {
-        isInteractive = true;
-        const buttonsRaw = btnMatch[1].split('|').map(b => b.trim()).filter(b => b.length > 0).slice(0, 3);
-        bodyText = message.content.replace(btnRegex, '').trim();
+      if (claimError || !claimedRows || claimedRows.length === 0) {
+        fastify.log.info(`[chat-service] Message ${message.id} already claimed or dispatched by another worker. Aborting duplicate send.`);
+        return;
+      }
+      claimed = true;
+    }
 
-        payload = {
-          messaging_product: 'whatsapp',
-          to: customerPhone,
-          type: 'interactive',
-          interactive: {
-            type: 'button',
-            body: { text: bodyText.substring(0, 1024) || 'Please select an option:' },
-            action: {
-              buttons: buttonsRaw.map((btn, idx) => ({
-                type: 'reply',
-                reply: { id: `btn_${idx}`, title: btn.substring(0, 20) }
-              }))
-            }
+    fastify.log.info(`[chat-service] Processing dispatch for outbound message ID: ${message.id}`);
+
+    // 1. Get Conversation details
+    const { data: conv, error: convError } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('id', message.conversation_id)
+      .single();
+
+    if (convError || !conv) throw new Error("Conversation not found");
+
+    if (conv.platform === 'web_widget') {
+      fastify.log.info(`[chat-service] Message is for web_widget (delivered in-browser), skipping outbound provider dispatch.`);
+      return null;
+    }
+
+    // 2. Get Integration details for this tenant
+    const { data: integration, error: intError } = await supabase
+      .from('integrations')
+      .select('*')
+      .eq('tenant_id', conv.tenant_id)
+      .eq('platform', conv.platform)
+      .single();
+
+    if (intError || !integration) throw new Error("Integration not found for tenant");
+
+    const externalPhoneId = (integration.external_account_id || integration.credentials?.phone_number_id || process.env.META_PHONE_NUMBER_ID || '').trim();
+    const customerPhone = conv.external_conversation_id?.trim();
+    let rawToken = integration.credentials?.access_token || integration.access_token || process.env.META_ACCESS_TOKEN || '';
+
+    if (conv.platform === 'messenger') {
+      rawToken = integration.credentials?.access_token || integration.access_token || process.env.MESSENGER_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN || '';
+    }
+    if (conv.platform === 'instagram') {
+      rawToken = integration.credentials?.access_token || integration.access_token || process.env.INSTAGRAM_ACCESS_TOKEN || process.env.MESSENGER_ACCESS_TOKEN || '';
+    }
+
+    let accessToken = (decrypt(rawToken) || rawToken)?.trim();
+
+    if (!accessToken) throw new Error("No Meta access token found");
+    if (!externalPhoneId) throw new Error("No External Account ID found for platform " + conv.platform);
+
+    // 3. Send via Meta Graph API
+    const mediaInfo = parseMediaContent(message.content);
+
+    if (conv.platform === 'whatsapp') {
+      let payload = {};
+
+      if (mediaInfo) {
+        fastify.log.info(`[whatsapp] Outbound media message: ${mediaInfo.fileName}`);
+        let mediaId = '';
+
+        if (mediaInfo.isBase64) {
+          // Upload base64 media directly to Meta
+          const uploadUrl = `https://graph.facebook.com/v19.0/${externalPhoneId}/media`;
+          const buffer = Buffer.from(mediaInfo.base64Data, 'base64');
+          const blob = new Blob([buffer], { type: mediaInfo.mimeType });
+          const formData = new FormData();
+          formData.append('messaging_product', 'whatsapp');
+          formData.append('type', mediaInfo.mimeType);
+          formData.append('file', blob, mediaInfo.fileName);
+
+          fastify.log.info(`[whatsapp] Uploading binary to Meta: ${mediaInfo.fileName} (${mediaInfo.mimeType})`);
+          const uploadResponse = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${accessToken}` },
+            body: formData
+          });
+
+          const uploadResult = await uploadResponse.json();
+          if (!uploadResponse.ok) {
+            throw new Error(`WhatsApp Media Upload Failed: ${JSON.stringify(uploadResult)}`);
           }
+          mediaId = uploadResult.id;
+          fastify.log.info(`[whatsapp] Uploaded. ID: ${mediaId}`);
+        } else {
+          mediaId = mediaInfo.fileUrl;
+        }
+
+        const typeMap = {
+          images: 'image',
+          videos: 'video',
+          audio: 'audio',
+          documents: 'document'
         };
-      } else {
+        const waType = typeMap[mediaInfo.category] || 'document';
+        
         payload = {
           messaging_product: 'whatsapp',
           to: customerPhone,
-          type: 'text',
-          text: { body: message.content }
+          type: waType,
+          [waType]: mediaInfo.isBase64 ? { id: mediaId } : { link: mediaId }
         };
-      }
-    }
 
-    const url = `https://graph.facebook.com/v19.0/${externalPhoneId}/messages`;
-    fastify.log.info(`[whatsapp] Dispatching to ${customerPhone} via ${url}`);
-
-    const metaResponse = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
-
-    const result = await metaResponse.json();
-    
-    if (!metaResponse.ok) {
-      throw new Error(`Meta Graph API Error: ${JSON.stringify(result)}`);
-    } else {
-      const waMessageId = result.messages[0].id;
-      fastify.log.info(`[whatsapp] Successfully sent! ID: ${waMessageId}`);
-      await supabase.from('messages').update({ external_message_id: waMessageId }).eq('id', message.id);
-      return waMessageId;
-    }
-  } else if (conv.platform === 'messenger' || conv.platform === 'instagram') {
-    let metaResponse;
-
-    // FIX: Messenger & Instagram Send API uses /me/messages, NOT /{page_id}/messages
-    // The access_token determines which page/IG account is the sender
-    const sendUrl = `https://graph.facebook.com/v19.0/me/messages?access_token=${accessToken}`;
-    fastify.log.info(`[${conv.platform}] Using Send API: /me/messages, recipient: ${customerPhone}`);
-
-    if (mediaInfo) {
-      fastify.log.info(`[${conv.platform}] Outbound media: ${mediaInfo.fileName}`);
-      const typeMap = {
-        images: 'image',
-        videos: 'video',
-        audio: 'audio',
-        documents: 'file'
-      };
-      const attachmentType = typeMap[mediaInfo.category] || 'file';
-
-      if (mediaInfo.isBase64) {
-        // Upload media to Meta Attachments API first
-        const uploadUrl = `https://graph.facebook.com/v19.0/${externalPhoneId}/message_attachments?access_token=${accessToken}`;
-        const buffer = Buffer.from(mediaInfo.base64Data, 'base64');
-        const blob = new Blob([buffer], { type: mediaInfo.mimeType });
-        
-        const uploadForm = new FormData();
-        uploadForm.append('message', JSON.stringify({ 
-          attachment: { 
-            type: attachmentType, 
-            payload: { is_reusable: true } 
-          } 
-        }));
-        uploadForm.append('filedata', blob, mediaInfo.fileName);
-
-        fastify.log.info(`[${conv.platform}] Uploading message attachment: ${mediaInfo.fileName}`);
-        const uploadResponse = await fetch(uploadUrl, {
-          method: 'POST',
-          body: uploadForm
-        });
-
-        const uploadResult = await uploadResponse.json();
-        if (!uploadResponse.ok) {
-          throw new Error(`Meta Message Attachment Upload Failed: ${JSON.stringify(uploadResult)}`);
+        if (waType === 'document') {
+          payload.document.filename = mediaInfo.fileName;
+        } else if (mediaInfo.caption) {
+          // WhatsApp captions are limited to 1024 characters
+          payload[waType].caption = mediaInfo.caption.length > 1024 
+            ? mediaInfo.caption.substring(0, 1020) + '...' 
+            : mediaInfo.caption;
         }
-        const attachmentId = uploadResult.attachment_id;
-        fastify.log.info(`[${conv.platform}] Uploaded. ID: ${attachmentId}`);
+      } else {
+        let isInteractive = false;
+        let bodyText = message.content;
+        const btnRegex = /\[Buttons:\s*([^\]]+)\]/i;
+        const btnMatch = message.content.match(btnRegex);
 
-        // Send the message using attachment_id
-        metaResponse = await fetch(sendUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            recipient: { id: customerPhone },
-            message: {
-              attachment: {
-                type: attachmentType,
-                payload: { attachment_id: attachmentId }
+        if (btnMatch) {
+          isInteractive = true;
+          const buttonsRaw = btnMatch[1].split('|').map(b => b.trim()).filter(b => b.length > 0).slice(0, 3);
+          bodyText = message.content.replace(btnRegex, '').trim();
+
+          payload = {
+            messaging_product: 'whatsapp',
+            to: customerPhone,
+            type: 'interactive',
+            interactive: {
+              type: 'button',
+              body: { text: bodyText.substring(0, 1024) || 'Please select an option:' },
+              action: {
+                buttons: buttonsRaw.map((btn, idx) => ({
+                  type: 'reply',
+                  reply: { id: `btn_${idx}`, title: btn.substring(0, 20) }
+                }))
               }
             }
-          })
-        });
+          };
+        } else {
+          payload = {
+            messaging_product: 'whatsapp',
+            to: customerPhone,
+            type: 'text',
+            text: { body: message.content }
+          };
+        }
+      }
+
+      const url = `https://graph.facebook.com/v19.0/${externalPhoneId}/messages`;
+      fastify.log.info(`[whatsapp] Dispatching to ${customerPhone} via ${url}`);
+
+      const metaResponse = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await metaResponse.json();
+      
+      if (!metaResponse.ok) {
+        throw new Error(`Meta Graph API Error: ${JSON.stringify(result)}`);
       } else {
-        // Hosted URL payload
+        const waMessageId = result.messages[0].id;
+        fastify.log.info(`[whatsapp] Successfully sent via Meta. WhatsApp Message ID: ${waMessageId}`);
         
-        // If there's a caption, send it first as a text message since Messenger attachments don't support native captions
-        if (mediaInfo.caption) {
-          await fetch(sendUrl, {
+        // Update message with external ID
+        await supabase
+          .from('messages')
+          .update({ external_message_id: waMessageId })
+          .eq('id', message.id);
+        return waMessageId;
+      }
+    } else if (conv.platform === 'messenger' || conv.platform === 'instagram') {
+      let metaResponse;
+
+      const sendUrl = `https://graph.facebook.com/v19.0/me/messages?access_token=${accessToken}`;
+      fastify.log.info(`[${conv.platform}] Using Send API: /me/messages, recipient: ${customerPhone}`);
+
+      if (mediaInfo) {
+        fastify.log.info(`[${conv.platform}] Outbound media: ${mediaInfo.fileName}`);
+        const typeMap = {
+          images: 'image',
+          videos: 'video',
+          audio: 'audio',
+          documents: 'file'
+        };
+        const attachmentType = typeMap[mediaInfo.category] || 'file';
+
+        if (mediaInfo.isBase64) {
+          // Upload media to Meta Attachments API first
+          const uploadUrl = `https://graph.facebook.com/v19.0/${externalPhoneId}/message_attachments?access_token=${accessToken}`;
+          const buffer = Buffer.from(mediaInfo.base64Data, 'base64');
+          const blob = new Blob([buffer], { type: mediaInfo.mimeType });
+          
+          const uploadForm = new FormData();
+          uploadForm.append('message', JSON.stringify({ 
+            attachment: { 
+              type: attachmentType, 
+              payload: { is_reusable: true } 
+            } 
+          }));
+          uploadForm.append('filedata', blob, mediaInfo.fileName);
+
+          fastify.log.info(`[${conv.platform}] Uploading message attachment: ${mediaInfo.fileName}`);
+          const uploadResponse = await fetch(uploadUrl, {
+            method: 'POST',
+            body: uploadForm
+          });
+
+          const uploadResult = await uploadResponse.json();
+          if (!uploadResponse.ok) {
+            throw new Error(`Meta Message Attachment Upload Failed: ${JSON.stringify(uploadResult)}`);
+          }
+          const attachmentId = uploadResult.attachment_id;
+          fastify.log.info(`[${conv.platform}] Uploaded. ID: ${attachmentId}`);
+
+          metaResponse = await fetch(sendUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               recipient: { id: customerPhone },
-              message: { text: mediaInfo.caption }
+              message: {
+                attachment: {
+                  type: attachmentType,
+                  payload: { attachment_id: attachmentId }
+                }
+              }
+            })
+          });
+        } else {
+          // URL-based media attachment
+          metaResponse = await fetch(sendUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              recipient: { id: customerPhone },
+              message: {
+                attachment: {
+                  type: attachmentType,
+                  payload: {
+                    url: mediaInfo.fileUrl,
+                    is_reusable: true
+                  }
+                }
+              }
             })
           });
         }
+      } else {
+        // Handle Interactive Buttons for Messenger/Instagram
+        const btnRegex = /\[Buttons:\s*([^\]]+)\]/i;
+        const btnMatch = message.content.match(btnRegex);
 
-        metaResponse = await fetch(sendUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            recipient: { id: customerPhone },
-            message: {
-              attachment: {
-                type: attachmentType,
-                payload: { url: mediaInfo.fileUrl, is_reusable: true }
+        if (btnMatch) {
+          const buttonsRaw = btnMatch[1].split('|').map(b => b.trim()).filter(b => b.length > 0).slice(0, 3);
+          const bodyText = message.content.replace(btnRegex, '').trim();
+
+          metaResponse = await fetch(sendUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              recipient: { id: customerPhone },
+              message: {
+                attachment: {
+                  type: 'template',
+                  payload: {
+                    template_type: 'button',
+                    text: bodyText.substring(0, 640) || 'Please select an option:',
+                    buttons: buttonsRaw.map((btn, idx) => ({
+                      type: 'postback',
+                      title: btn.substring(0, 20),
+                      payload: `btn_${idx}`
+                    }))
+                  }
+                }
               }
-            }
-          })
-        });
-      }
-      // Regular text
-      let bodyText = message.content;
-      const btnRegex = /\[Buttons:\s*([^\]]+)\]/i;
-      if (btnRegex.test(bodyText)) {
-        bodyText = bodyText.replace(btnRegex, '').trim();
+            })
+          });
+        } else {
+          // Regular text
+          let bodyText = message.content;
+          if (btnRegex.test(bodyText)) {
+            bodyText = bodyText.replace(btnRegex, '').trim();
+          }
+
+          fastify.log.info(`[${conv.platform}] Sending text reply to ${customerPhone}: "${bodyText.substring(0, 80)}..."`);
+          metaResponse = await fetch(sendUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              recipient: { id: customerPhone },
+              message: { text: bodyText }
+            })
+          });
+        }
       }
 
-      fastify.log.info(`[${conv.platform}] Sending text reply to ${customerPhone}: "${bodyText.substring(0, 80)}..."`);
-      metaResponse = await fetch(sendUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recipient: { id: customerPhone },
-          message: { text: bodyText }
-        })
-      });
-    }
-
-    const result = await metaResponse.json();
-    if (!metaResponse.ok) {
-      throw new Error(`Meta Graph API Error: ${JSON.stringify(result)}`);
+      const result = await metaResponse.json();
+      if (!metaResponse.ok) {
+        throw new Error(`Meta Graph API Error: ${JSON.stringify(result)}`);
+      } else {
+        const msgId = result.message_id || result.messages?.[0]?.id;
+        fastify.log.info(`[${conv.platform}] Successfully sent! ID: ${msgId}`);
+        await supabase.from('messages').update({ external_message_id: msgId }).eq('id', message.id);
+        return msgId;
+      }
     } else {
-      const msgId = result.message_id || result.messages?.[0]?.id;
-      fastify.log.info(`[${conv.platform}] Successfully sent! ID: ${msgId}`);
-      await supabase.from('messages').update({ external_message_id: msgId }).eq('id', message.id);
-      return msgId;
+      fastify.log.warn(`Platform ${conv.platform} is not fully supported for outbound yet.`);
+      throw new Error(`Unsupported platform: ${conv.platform}`);
     }
-  } else {
-    fastify.log.warn(`Platform ${conv.platform} is not fully supported for outbound yet.`);
-    throw new Error(`Unsupported platform: ${conv.platform}`);
+  } catch (err) {
+    fastify.log.error(`[chat-service] Dispatch failed for message ${message.id}: ${err.message}`);
+    if (claimed) {
+      await supabase.from('messages').update({ external_message_id: null }).eq('id', message.id).catch(() => {});
+    }
+    throw err;
+  } finally {
+    setTimeout(() => _chatDispatchingMsgIds.delete(message.id), 15000);
   }
 }
 
@@ -441,7 +508,15 @@ const startRealtimeSubscription = () => {
       },
       async (payload) => {
         try {
-          await dispatchOutboundMessage(payload.new);
+          const newMsg = payload.new;
+          // CRITICAL DEDUPLICATION FILTER:
+          // 1. NEVER dispatch bot messages (they are dispatched solely by ai-agent.js in webhook-service)
+          // 2. NEVER dispatch customer messages (they are inbound messages)
+          // 3. Skip if external_message_id is already set (already dispatched or locked)
+          if (!newMsg || newMsg.sender_type !== 'agent' || newMsg.external_message_id) {
+            return;
+          }
+          await dispatchOutboundMessage(newMsg);
         } catch (err) {
           fastify.log.error(`[realtime] Outbound dispatch failed: ${err.message}`);
         }
@@ -449,7 +524,7 @@ const startRealtimeSubscription = () => {
     )
     .subscribe((status) => {
       if (status === 'SUBSCRIBED') {
-        fastify.log.info('Successfully subscribed to Supabase Realtime for outbound messages');
+        fastify.log.info('Successfully subscribed to Supabase Realtime for human agent outbound messages');
       }
     });
 };

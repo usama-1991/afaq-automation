@@ -1112,12 +1112,14 @@ export async function processAIAgent(ctx) {
        ).catch(err => console.error('[FCM] Error sending handoff push:', err));
     }
 
-    // 6. Insert bot message into DB and immediately dispatch to Meta API
+    // 6. Insert bot message into DB with pre-acquired atomic lock, then dispatch to Meta API
+    const preLockId = `dispatching_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const { data: insertedMsg, error: insertError } = await supabase.from('messages').insert({
       tenant_id: ctx.tenant_id,
       conversation_id: ctx.conversation_id,
       sender_type: 'bot',
       content: ai_reply,
+      external_message_id: preLockId,
       model_used: 'gpt-4o-mini',
       prompt_tokens,
       completion_tokens,
