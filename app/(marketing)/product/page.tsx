@@ -5,6 +5,7 @@ import {
   MessageSquare,
   Zap,
   Shield,
+  ShieldCheck,
   BarChart3,
   Users,
   Sparkles,

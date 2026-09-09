@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare, Bot, ShoppingBag, BarChart3, Users, Settings, Sparkles, CheckCircle2, ArrowRight } from "lucide-react";
+import { MessageSquare, Bot, ShoppingBag, BarChart3, Users, Settings, Sparkles, CheckCircle2, ArrowRight, ShieldCheck } from "lucide-react";
 
 const SCREENSHOT_TABS = [
   {
