@@ -40,7 +40,36 @@ function parseMediaContent(content: string): ParsedMedia | null {
       fileUrl = mdMatch[2];
       caption = content.replace(mdMatch[0], '').trim();
     } else {
-      return null;
+      // 3. Direct Image URL anywhere in content (.jpg, .jpeg, .png, .webp, .gif)
+      const imgUrlRegex = /(https?:\/\/[^\s<>"')]+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s<>"')]*)?)/i;
+      const imgMatch = content.match(imgUrlRegex);
+      if (imgMatch) {
+        category = 'images';
+        fileName = 'image.jpg';
+        fileUrl = imgMatch[1];
+        caption = content
+          .replace(imgMatch[0], '')
+          .replace(/🔗\s*(?:Link|URL)?:?/gi, '')
+          .replace(/🖼️\s*(?:Image|Photo)?:?/gi, '')
+          .replace(/📎/g, '')
+          .trim();
+      } else {
+        // 4. Direct Document URL (.pdf)
+        const pdfUrlRegex = /(https?:\/\/[^\s<>"')]+\.pdf(?:\?[^\s<>"')]*)?)/i;
+        const pdfMatch = content.match(pdfUrlRegex);
+        if (pdfMatch) {
+          category = 'documents';
+          fileName = 'document.pdf';
+          fileUrl = pdfMatch[1];
+          caption = content
+            .replace(pdfMatch[0], '')
+            .replace(/🔗\s*(?:Link|URL)?:?/gi, '')
+            .replace(/📄\s*(?:Document|PDF)?:?/gi, '')
+            .trim();
+        } else {
+          return null;
+        }
+      }
     }
   }
 

@@ -126,8 +126,8 @@ https://www.ittisalo.com/images/creatives/ittisalo-brochure.jpg
 https://www.ittisalo.com/images/creatives/ittisalo-founder-banner.jpg
 *Solutions Overview:*
 https://www.ittisalo.com/images/creatives/ittisalo-solutions-spread.jpg
-*Get Started / Free Trial:*
-https://app.ittisalo.com/register`
+*Get Started / Login:*
+https://app.ittisalo.com/login`
   },
   {
     tenant_id: TENANT_ID,
@@ -158,8 +158,8 @@ https://www.ittisalo.com/images/creatives/ittisalo-founder-banner.jpg
 - *Solutions & Capabilities Overview (Industry Workflows):*
 https://www.ittisalo.com/images/creatives/ittisalo-solutions-spread.jpg
 
-- *App Registration / Portal:*
-https://app.ittisalo.com/register
+- *App Login / Portal:*
+https://app.ittisalo.com/login
 
 - *Website & Pricing:*
 https://www.ittisalo.com/pricing
@@ -196,11 +196,11 @@ A: The AI responds in under 1 second, ensuring your leads never wait or bounce t
 A: The conversation is instantly flagged for human handoff, and an agent from your team can take over seamlessly in the shared inbox.
 
 *Q: How do I sign up or get started?*
-A: You can register directly at https://app.ittisalo.com/register or our onboarding team will set up your WhatsApp API within 30 minutes.`
+A: You can get started directly by logging into https://app.ittisalo.com/login or our onboarding team will set up your WhatsApp API within 30 minutes.`
   }
 ];
 
-const NEW_AGENT_PROMPT = `You are the Ittisalo Sales & Support Consultant on WhatsApp and omnichannel channels. Your goal is to guide inbound prospects consultatively and lead them to sign up at app.ittisalo.com/register.
+const NEW_AGENT_PROMPT = `You are the Ittisalo Sales & Support Consultant on WhatsApp and omnichannel channels. Your goal is to guide inbound prospects consultatively and lead them to log in / sign up at app.ittisalo.com/login.
 
 --- CONVERSATIONAL STYLE & RULES ---
 1. EXTREME BREVITY: Keep all replies very concise (2-3 sentences max). Never dump long walls of text or bullet dumps.
@@ -214,13 +214,13 @@ const NEW_AGENT_PROMPT = `You are the Ittisalo Sales & Support Consultant on Wha
      * 1,000 to 10,000 inquiries/mo: Growth Plan (PKR 20,000/month).
      * 10,000+ inquiries/mo: Enterprise Plan.
      Offer to share the brochure or answer questions.
-3. SHARING BROCHURE & LINKS: When asked for brochure, pricing, or registration, share the raw clickable URLs:
+3. SHARING BROCHURE & LINKS: When asked for brochure, pricing, or registration/login, share the raw clickable URLs:
    *Ittisalo Product Brochure:*
    https://www.ittisalo.com/images/creatives/ittisalo-brochure.jpg
    *Founder Plan Details:*
    https://www.ittisalo.com/images/creatives/ittisalo-founder-banner.jpg
-   *Get Started:*
-   https://app.ittisalo.com/register
+   *Get Started / Login:*
+   https://app.ittisalo.com/login
 4. LANGUAGE ADAPTATION: If the customer writes in English, reply in warm English. If the customer writes in Urdu or Roman Urdu (e.g., "mujhe details chahiye"), reply naturally in Roman Urdu.
 5. OBJECTION HANDLING: Always highlight: Official Meta Cloud API (100% Anti-Ban), 24/7 AI deflection, Shared Multi-Agent Inbox, and Shopify/WooCommerce integrations.
 6. HUMAN HANDOFF: If a customer requests human help or supervisor contact, provide WhatsApp +92 310 3604110 / +92 336 0479649.`;

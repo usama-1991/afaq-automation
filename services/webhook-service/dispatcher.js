@@ -33,6 +33,51 @@ function parseMediaContent(content) {
     };
   }
 
+  // 3. Format: Direct Image URL anywhere in content (.jpg, .jpeg, .png, .webp, .gif)
+  const imgUrlRegex = /(https?:\/\/[^\s<>"')]+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s<>"')]*)?)/i;
+  const imgMatch = content.match(imgUrlRegex);
+  if (imgMatch) {
+    const fileUrl = imgMatch[1];
+    let caption = content
+      .replace(imgMatch[0], '')
+      .replace(/🔗\s*(?:Link|URL)?:?/gi, '')
+      .replace(/🖼️\s*(?:Image|Photo)?:?/gi, '')
+      .replace(/📎/g, '')
+      .trim();
+
+    return {
+      category: 'images',
+      fileName: 'image.jpg',
+      fileUrl: fileUrl,
+      isBase64: false,
+      base64Data: '',
+      mimeType: 'image/jpeg',
+      caption: caption.length > 1024 ? caption.substring(0, 1020) + '...' : caption
+    };
+  }
+
+  // 4. Format: Direct Document URL (.pdf)
+  const pdfUrlRegex = /(https?:\/\/[^\s<>"')]+\.pdf(?:\?[^\s<>"')]*)?)/i;
+  const pdfMatch = content.match(pdfUrlRegex);
+  if (pdfMatch) {
+    const fileUrl = pdfMatch[1];
+    let caption = content
+      .replace(pdfMatch[0], '')
+      .replace(/🔗\s*(?:Link|URL)?:?/gi, '')
+      .replace(/📄\s*(?:Document|PDF)?:?/gi, '')
+      .trim();
+
+    return {
+      category: 'documents',
+      fileName: 'document.pdf',
+      fileUrl: fileUrl,
+      isBase64: false,
+      base64Data: '',
+      mimeType: 'application/pdf',
+      caption: caption.length > 1024 ? caption.substring(0, 1020) + '...' : caption
+    };
+  }
+
   return null;
 }
 
@@ -170,13 +215,23 @@ export async function dispatchOutboundMessage(supabase, message, log = console) 
       let payload = {};
 
       if (mediaInfo) {
-        payload = {
-          messaging_product: 'whatsapp',
-          to: customerPhone,
-          type: 'image',
-          image: { link: mediaInfo.fileUrl }
-        };
-        if (mediaInfo.caption) payload.image.caption = mediaInfo.caption;
+        if (mediaInfo.category === 'documents') {
+          payload = {
+            messaging_product: 'whatsapp',
+            to: customerPhone,
+            type: 'document',
+            document: { link: mediaInfo.fileUrl, filename: mediaInfo.fileName || 'document.pdf' }
+          };
+          if (mediaInfo.caption) payload.document.caption = mediaInfo.caption;
+        } else {
+          payload = {
+            messaging_product: 'whatsapp',
+            to: customerPhone,
+            type: 'image',
+            image: { link: mediaInfo.fileUrl }
+          };
+          if (mediaInfo.caption) payload.image.caption = mediaInfo.caption;
+        }
       } else {
         const btnRegex = /\[Buttons:\s*([^\]]+)\]/i;
         const btnMatch = message.content.match(btnRegex);
@@ -241,13 +296,29 @@ export async function dispatchOutboundMessage(supabase, message, log = console) 
       const sendUrl = `https://graph.facebook.com/v21.0/me/messages?access_token=${accessToken}`;
       log.info?.(`[${conv.platform}] Sending to ${customerPhone} via /me/messages`);
 
-      // Clean up any button syntax for Messenger text
-      const cleanText = (message.content || '').replace(/\[Buttons:\s*([^\]]+)\]/i, '').trim();
+      let payload = {};
+      if (mediaInfo) {
+        payload = {
+          recipient: { id: customerPhone },
+          message: {
+            attachment: {
+              type: mediaInfo.category === 'documents' ? 'file' : 'image',
+              payload: {
+                url: mediaInfo.fileUrl,
+                is_reusable: true
+              }
+            }
+          }
+        };
+      } else {
+        // Clean up any button syntax for Messenger text
+        const cleanText = (message.content || '').replace(/\[Buttons:\s*([^\]]+)\]/i, '').trim();
 
-      const payload = {
-        recipient: { id: customerPhone },
-        message: { text: cleanText }
-      };
+        payload = {
+          recipient: { id: customerPhone },
+          message: { text: cleanText }
+        };
+      }
 
       const metaRes = await fetch(sendUrl, {
         method: 'POST',
