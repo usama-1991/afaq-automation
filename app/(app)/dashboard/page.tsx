@@ -65,7 +65,8 @@ const StatCard = memo(function StatCard({
       boxShadow: 'var(--shadow-sm)',
       display: 'flex', flexDirection: 'column', gap: 16,
       transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-      cursor: 'default', position: 'relative', overflow: 'hidden'
+      cursor: 'default', position: 'relative', overflow: 'hidden',
+      minWidth: 0, width: '100%', boxSizing: 'border-box'
     }}
     className="niche-stat-card hover:shadow-md hover:-translate-y-0.5"
     >
@@ -126,6 +127,7 @@ const SectionCard = memo(function SectionCard({ title, subtitle, children, actio
       background: 'white', borderRadius: 18, padding: '24px',
       border: '1px solid var(--border)',
       boxShadow: 'var(--shadow-sm)',
+      minWidth: 0, width: '100%', boxSizing: 'border-box', overflow: 'hidden'
     }} className="hover:shadow-md transition-shadow duration-200">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
         <div>
@@ -545,9 +547,17 @@ export default function DashboardPage() {
           const convMsgs = (msgs || []).filter((m: any) => m.conversation_id === conv.id);
           convMsgs.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
           const lastMsg = convMsgs[0];
+          const rawText = lastMsg?.content || 'Inquiry initiated';
+          const cleanText = rawText
+            .replace(/https?:\/\/[^\s]+/g, '🔗 [Media/Link]')
+            .replace(/\[Media:[^\]]+\]/g, '🖼️ [Media]')
+            .replace(/\[Buttons:[^\]]+\]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+
           return {
             ...conv,
-            lastMessage: lastMsg?.content || 'Inquiry initiated',
+            lastMessage: cleanText.length > 120 ? cleanText.slice(0, 120) + '…' : cleanText,
             lastSender: lastMsg?.sender_type || 'customer',
             lastTime: lastMsg?.created_at || conv.updated_at || conv.created_at,
             messageCount: convMsgs.length,
@@ -678,11 +688,11 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="dashboard-page-wrap" style={{ padding: '32px 32px 50px', minHeight: '100%', background: '#faf9f9' }}>
+    <div className="dashboard-page-wrap" style={{ padding: '20px 20px 40px', minHeight: '100%', background: '#faf9f9', width: '100%', maxWidth: '100%', boxSizing: 'border-box', minWidth: 0 }}>
       
       {/* ── Top Header ── */}
-      <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 30 }}>
-        <div>
+      <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, width: '100%', minWidth: 0 }}>
+        <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 12, color: '#9ca3af', fontWeight: 650, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{dateLabel}</div>
           <h1 className="dashboard-greeting" style={{ fontSize: 28, fontWeight: 900, color: DARK, letterSpacing: '-0.7px', lineHeight: 1.1 }}>
             {greeting}{tenantInfo?.business_name ? `, ${tenantInfo.business_name}` : (displayName ? `,${displayName}` : '')} 👋
@@ -701,6 +711,7 @@ export default function DashboardPage() {
             fontSize: 13, fontWeight: 650, color: '#4b5563',
             boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
             transition: 'all 0.2s',
+            flexShrink: 0
           }}
           className="refresh-stats-btn"
         >
@@ -710,7 +721,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Niche-Specific Stat Cards ── */}
-      <div className="stat-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+      <div className="stat-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16, marginBottom: 24, width: '100%' }}>
         {nicheId === 'restaurant' ? (
           <>
             <StatCard label="Orders Today" value={restaurantOrders.length > 0 ? restaurantOrders.length : '—'} sub={restaurantOrders.length > 0 ? `${getTrend(restaurantOrders.length).trend} more than yesterday` : 'WhatsApp orders in queue'} icon={ShoppingBag} color={RED} bg={RED_LIGHT} {...getTrend(restaurantOrders.length)} />
@@ -798,10 +809,10 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Core Niche Dashboard Layouts ── */}
-      <div className="dashboard-layout-grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 24 }}>
+      <div className="dashboard-layout-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: 16, marginBottom: 24, width: '100%', minWidth: 0 }}>
         
         {/* Left Column: All Niche-Specific Workspace Cards */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0, width: '100%' }}>
           
           {/* ========================================================================= */}
           {/* NICHE 1: Restaurant/Food */}
@@ -1383,25 +1394,25 @@ export default function DashboardPage() {
                   </button>
                 }
               >
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+                <div className="dashboard-channels-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12, width: '100%' }}>
                   {/* WhatsApp */}
-                  <div style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.06)', background: '#faf9f9' }}>
+                  <div style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.06)', background: '#faf9f9', minWidth: 0, overflow: 'hidden' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                        <div style={{ width: 28, height: 28, borderRadius: 8, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#15803d' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: 8, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#15803d', flexShrink: 0 }}>
                           <PhoneCall size={14} />
                         </div>
-                        <span style={{ fontSize: 13, fontWeight: 800, color: '#111827' }}>WhatsApp</span>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>WhatsApp</span>
                       </div>
                       <span style={{
-                        fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10,
+                        fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10, flexShrink: 0,
                         background: tenantInfo?.wa_phone_number_id ? '#ecfdf5' : '#fef2f2',
                         color: tenantInfo?.wa_phone_number_id ? '#15803d' : '#b91c1c'
                       }}>
                         {tenantInfo?.wa_phone_number_id ? '● Active' : 'Offline'}
                       </span>
                     </div>
-                    <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 500 }}>
+                    <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {tenantInfo?.wa_phone_number_id ? `ID: ${String(tenantInfo.wa_phone_number_id).slice(-6)}` : 'Connect in Settings'}
                     </div>
                     <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11.5 }}>
@@ -1411,23 +1422,23 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Messenger */}
-                  <div style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.06)', background: '#faf9f9' }}>
+                  <div style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.06)', background: '#faf9f9', minWidth: 0, overflow: 'hidden' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                        <div style={{ width: 28, height: 28, borderRadius: 8, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1d4ed8' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: 8, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1d4ed8', flexShrink: 0 }}>
                           <MessageCircle size={14} />
                         </div>
-                        <span style={{ fontSize: 13, fontWeight: 800, color: '#111827' }}>Messenger</span>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Messenger</span>
                       </div>
                       <span style={{
-                        fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10,
+                        fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10, flexShrink: 0,
                         background: (tenantInfo?.fb_page_id || tenantInfo?.facebook_page_id) ? '#ecfdf5' : '#fef2f2',
                         color: (tenantInfo?.fb_page_id || tenantInfo?.facebook_page_id) ? '#15803d' : '#b91c1c'
                       }}>
                         {(tenantInfo?.fb_page_id || tenantInfo?.facebook_page_id) ? '● Active' : 'Offline'}
                       </span>
                     </div>
-                    <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 500 }}>
+                    <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {(tenantInfo?.fb_page_id || tenantInfo?.facebook_page_id) ? `Page: ${String(tenantInfo?.fb_page_id || tenantInfo?.facebook_page_id).slice(-6)}` : 'Connect Facebook'}
                     </div>
                     <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11.5 }}>
@@ -1437,22 +1448,22 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Web Live Chat Widget */}
-                  <div style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.06)', background: '#faf9f9' }}>
+                  <div style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.06)', background: '#faf9f9', minWidth: 0, overflow: 'hidden' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                        <div style={{ width: 28, height: 28, borderRadius: 8, background: RED_LIGHT, display: 'flex', alignItems: 'center', justifyContent: 'center', color: RED }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: 8, background: RED_LIGHT, display: 'flex', alignItems: 'center', justifyContent: 'center', color: RED, flexShrink: 0 }}>
                           <Globe size={14} />
                         </div>
-                        <span style={{ fontSize: 13, fontWeight: 800, color: '#111827' }}>Web Widget</span>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Web Widget</span>
                       </div>
                       <span style={{
-                        fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10,
+                        fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10, flexShrink: 0,
                         background: '#ecfdf5', color: '#15803d'
                       }}>
                         ● Active
                       </span>
                     </div>
-                    <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 500 }}>Live website chat</div>
+                    <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Live website chat</div>
                     <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11.5 }}>
                       <span style={{ color: '#9ca3af' }}>Threads</span>
                       <strong style={{ color: '#111827' }}>{recentConversations.filter(c => c.platform === 'web_widget' || c.platform === 'website').length}</strong>
@@ -1460,23 +1471,23 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Instagram */}
-                  <div style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.06)', background: '#faf9f9' }}>
+                  <div style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.06)', background: '#faf9f9', minWidth: 0, overflow: 'hidden' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                        <div style={{ width: 28, height: 28, borderRadius: 8, background: '#fdf4ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a21caf' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: 8, background: '#fdf4ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a21caf', flexShrink: 0 }}>
                           <Sparkles size={14} />
                         </div>
-                        <span style={{ fontSize: 13, fontWeight: 800, color: '#111827' }}>Instagram</span>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Instagram</span>
                       </div>
                       <span style={{
-                        fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10,
+                        fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10, flexShrink: 0,
                         background: tenantInfo?.ig_page_id ? '#ecfdf5' : '#f3f4f6',
                         color: tenantInfo?.ig_page_id ? '#15803d' : '#6b7280'
                       }}>
                         {tenantInfo?.ig_page_id ? '● Active' : 'Available'}
                       </span>
                     </div>
-                    <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 500 }}>Direct messaging API</div>
+                    <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Direct messaging API</div>
                     <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11.5 }}>
                       <span style={{ color: '#9ca3af' }}>Threads</span>
                       <strong style={{ color: '#111827' }}>{recentConversations.filter(c => c.platform === 'instagram').length}</strong>
@@ -1574,7 +1585,7 @@ export default function DashboardPage() {
 
                               <div style={{
                                 fontSize: 12.5, color: '#4b5563', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                display: 'flex', alignItems: 'center', gap: 6
+                                display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, width: '100%'
                               }}>
                                 {isBot ? (
                                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: RED, fontWeight: 700, fontSize: 11, flexShrink: 0 }}>
@@ -1585,7 +1596,7 @@ export default function DashboardPage() {
                                     <Users size={12} /> Customer:
                                   </span>
                                 )}
-                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
                                   {conv.lastMessage}
                                 </span>
                               </div>
@@ -1617,9 +1628,9 @@ export default function DashboardPage() {
                 title="🚀 Customer Inquiry & Lead Pipeline" 
                 subtitle="Universal stage tracking from incoming queries through autonomous AI handling to resolution"
               >
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                <div className="dashboard-pipeline-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12, width: '100%' }}>
                   {/* Column 1: Inbound Queries */}
-                  <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12, border: '1px solid rgba(0,0,0,0.04)' }}>
+                  <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12, border: '1px solid rgba(0,0,0,0.04)', minWidth: 0, overflow: 'hidden' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                       <span style={{ fontSize: 12, fontWeight: 800, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                         Inbound Queries
@@ -1635,10 +1646,10 @@ export default function DashboardPage() {
                           onClick={() => router.push(`/conversations?id=${c.id}`)}
                           style={{
                             padding: 10, background: '#fff', borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)',
-                            cursor: 'pointer', transition: 'box-shadow 0.15s'
+                            cursor: 'pointer', transition: 'box-shadow 0.15s', minWidth: 0, overflow: 'hidden'
                           }}
                         >
-                          <div style={{ fontSize: 12.5, fontWeight: 750, color: '#111827' }}>{c.customer_name || 'Inbound Lead'}</div>
+                          <div style={{ fontSize: 12.5, fontWeight: 750, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.customer_name || 'Inbound Lead'}</div>
                           <div style={{ fontSize: 11, color: '#6b7280', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {c.lastMessage}
                           </div>
@@ -1657,7 +1668,7 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Column 2: In AI Handling */}
-                  <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12, border: '1px solid rgba(0,0,0,0.04)' }}>
+                  <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12, border: '1px solid rgba(0,0,0,0.04)', minWidth: 0, overflow: 'hidden' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                       <span style={{ fontSize: 12, fontWeight: 800, color: RED, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                         In AI Handling
@@ -1673,12 +1684,12 @@ export default function DashboardPage() {
                           onClick={() => router.push(`/conversations?id=${c.id}`)}
                           style={{
                             padding: 10, background: '#fff', borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)',
-                            cursor: 'pointer', transition: 'box-shadow 0.15s'
+                            cursor: 'pointer', transition: 'box-shadow 0.15s', minWidth: 0, overflow: 'hidden'
                           }}
                         >
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: 12.5, fontWeight: 750, color: '#111827' }}>{c.customer_name || 'Contact'}</span>
-                            <span style={{ fontSize: 9.5, fontWeight: 800, background: '#ecfdf5', color: '#15803d', padding: '1px 5px', borderRadius: 6 }}>AUTONOMOUS</span>
+                            <span style={{ fontSize: 12.5, fontWeight: 750, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.customer_name || 'Contact'}</span>
+                            <span style={{ fontSize: 9.5, fontWeight: 800, background: '#ecfdf5', color: '#15803d', padding: '1px 5px', borderRadius: 6, flexShrink: 0 }}>AUTONOMOUS</span>
                           </div>
                           <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {c.lastMessage}
@@ -1698,7 +1709,7 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Column 3: Qualified / Resolved */}
-                  <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12, border: '1px solid rgba(0,0,0,0.04)' }}>
+                  <div style={{ background: '#faf9f9', padding: 12, borderRadius: 12, border: '1px solid rgba(0,0,0,0.04)', minWidth: 0, overflow: 'hidden' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                       <span style={{ fontSize: 12, fontWeight: 800, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                         Resolved & Closed
@@ -1714,12 +1725,12 @@ export default function DashboardPage() {
                           onClick={() => router.push(`/conversations?id=${c.id}`)}
                           style={{
                             padding: 10, background: '#fff', borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)',
-                            cursor: 'pointer', transition: 'box-shadow 0.15s'
+                            cursor: 'pointer', transition: 'box-shadow 0.15s', minWidth: 0, overflow: 'hidden'
                           }}
                         >
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: 12.5, fontWeight: 750, color: '#111827' }}>{c.customer_name || 'Customer'}</span>
-                            <CheckCircle size={13} color="#15803d" />
+                            <span style={{ fontSize: 12.5, fontWeight: 750, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.customer_name || 'Customer'}</span>
+                            <CheckCircle size={13} color="#15803d" style={{ flexShrink: 0 }} />
                           </div>
                           <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {c.lastMessage}
@@ -1745,7 +1756,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Right Column: AI Stats + Channel Overview + Chart */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0, width: '100%' }}>
 
           <SectionCard 
             title="🤖 AI Agent Intelligence" 
