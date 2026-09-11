@@ -496,7 +496,7 @@ The journey has just begun. 🚀`;
       <div style={{ minHeight: '100vh', background: '#090d16', color: '#f3f4f6', fontFamily: 'Inter, system-ui, sans-serif', paddingBottom: 100 }}>
         
         {/* Top Header Bar */}
-        <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b', padding: '24px 32px' }}>
+        <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b', padding: 'clamp(16px, 3vw, 24px) clamp(14px, 3vw, 32px)' }}>
           <div style={{ maxWidth: 1360, margin: '0 auto' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 20 }}>
               
@@ -595,7 +595,7 @@ The journey has just begun. 🚀`;
             </div>
 
             {/* Navigation Tabs Bar */}
-            <div style={{ display: 'flex', gap: 24, marginTop: 24, borderBottom: '1px solid #1e293b' }}>
+            <div className="admin-tabs-row" style={{ display: 'flex', gap: 20, marginTop: 24, borderBottom: '1px solid #1e293b', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 2 }}>
               {[
                 { id: 'overview', label: 'Overview', icon: Activity },
                 { id: 'brands', label: 'Brands', icon: Store },
@@ -636,10 +636,10 @@ The journey has just begun. 🚀`;
         </div>
 
         {/* Main Body Content */}
-        <div style={{ maxWidth: 1360, margin: '32px auto 0', padding: '0 32px' }}>
+        <div style={{ maxWidth: 1360, margin: '24px auto 0', padding: '0 clamp(14px, 3vw, 32px)' }}>
           
           {/* Top KPI Metric Cards Row (Identical to LinkedIn Screenshot Reference) */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginBottom: 32 }}>
+          <div className="admin-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20, marginBottom: 32 }}>
             
             {/* Card 1: Total Brands */}
             <motion.div
@@ -734,7 +734,7 @@ The journey has just begun. 🚀`;
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               
               {/* Daily Revenue & AI Token Trends Charts Row */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
+              <div className="admin-charts-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
                 
                 {/* Revenue Trend Area Chart */}
                 <div style={{ background: '#0f172a', borderRadius: 16, border: '1px solid #1e293b', padding: 24 }}>
@@ -806,7 +806,7 @@ The journey has just begun. 🚀`;
               </div>
 
               {/* Secondary Stats Row: AI Latency, Bot Resolution, Escalation Rate */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+              <div className="admin-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
                 
                 <div style={{ background: '#0f172a', borderRadius: 14, padding: 20, border: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: 16 }}>
                   <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -858,8 +858,8 @@ The journey has just begun. 🚀`;
                   </button>
                 </div>
 
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <div className="mobile-table-scroll" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                  <table style={{ width: '100%', minWidth: 650, borderCollapse: 'collapse', textAlign: 'left' }}>
                     <thead>
                       <tr style={{ background: '#1e293b', borderBottom: '1px solid #334155' }}>
                         <th style={{ padding: '12px 24px', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Rank & Brand</th>
@@ -991,8 +991,8 @@ The journey has just begun. 🚀`;
 
               {/* Detailed Brands Table */}
               <div style={{ background: '#0f172a', borderRadius: 16, border: '1px solid #1e293b', overflow: 'hidden' }}>
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <div className="mobile-table-scroll" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                  <table style={{ width: '100%', minWidth: 800, borderCollapse: 'collapse', textAlign: 'left' }}>
                     <thead>
                       <tr style={{ background: '#1e293b', borderBottom: '1px solid #334155' }}>
                         <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Workspace & Brand</th>
@@ -1096,7 +1096,7 @@ The journey has just begun. 🚀`;
           {activeTab === 'commerce' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+              <div className="admin-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
                 <div style={{ background: '#0f172a', borderRadius: 16, padding: 24, border: '1px solid #1e293b' }}>
                   <div style={{ fontSize: 13, color: '#94a3b8', fontWeight: 700, marginBottom: 8 }}>Average Order Value (AOV)</div>
                   <div style={{ fontSize: 32, fontWeight: 900, color: '#ffffff' }}>
@@ -1145,7 +1145,7 @@ The journey has just begun. 🚀`;
           {activeTab === 'tokens' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+              <div className="admin-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
                 
                 <div style={{ background: '#0f172a', borderRadius: 16, padding: 24, border: '1px solid #1e293b' }}>
                   <div style={{ fontSize: 13, color: '#94a3b8', fontWeight: 700, marginBottom: 8 }}>Prompt Tokens (Context & Knowledge)</div>
@@ -1174,7 +1174,7 @@ The journey has just begun. 🚀`;
               </div>
 
               {/* Tokens Daily Consumption Chart & Model Distribution */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
+              <div className="admin-charts-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
                 
                 <div style={{ background: '#0f172a', borderRadius: 16, border: '1px solid #1e293b', padding: 24 }}>
                   <h3 style={{ fontSize: 16, fontWeight: 800, color: '#ffffff', margin: 0, marginBottom: 4 }}>Daily Token Consumption (Millions)</h3>
@@ -1242,7 +1242,7 @@ The journey has just begun. 🚀`;
 
           {/* TAB 5: INTEGRATIONS */}
           {activeTab === 'integrations' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+            <div className="admin-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
               {[
                 { name: 'WhatsApp Business API', connected: `${globalMetrics.activeBrands} Active Brands`, type: 'Meta Cloud API', icon: Globe, status: 'Healthy' },
                 { name: 'Shopify E-Commerce', connected: `${Math.round(globalMetrics.activeBrands * 0.65)} Stores Syncing`, type: 'GraphQL & Webhooks', icon: Store, status: 'Healthy' },
@@ -1275,7 +1275,7 @@ The journey has just begun. 🚀`;
           {activeTab === 'escalations' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+              <div className="admin-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
                 <div style={{ background: '#0f172a', borderRadius: 16, padding: 24, border: '1px solid #1e293b' }}>
                   <div style={{ fontSize: 13, color: '#94a3b8', fontWeight: 700, marginBottom: 8 }}>Total Handled by AI</div>
                   <div style={{ fontSize: 32, fontWeight: 900, color: '#10b981' }}>
@@ -1410,7 +1410,7 @@ The journey has just begun. 🚀`;
                 <button onClick={() => setDetailTenantModal(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}><X size={20} /></button>
               </div>
 
-              <div style={{ padding: 24, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div style={{ padding: 'clamp(16px, 3vw, 24px)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
                 
                 <div style={{ background: '#1e293b', padding: 16, borderRadius: 12 }}>
                   <div style={{ fontSize: 12, color: '#94a3b8' }}>Total GMV Driven</div>

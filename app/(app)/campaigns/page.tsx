@@ -158,11 +158,11 @@ export default function CampaignsPage() {
   const readRate = totalDelivered > 0 ? Math.round((totalRead / totalDelivered) * 100) : 0;
 
   return (
-    <div className="campaigns-page-wrap" style={{ padding: '28px', background: '#faf9f9', minHeight: 'calc(100vh - 98px)' }}>
+    <div className="campaigns-page-wrap" style={{ background: '#faf9f9', minHeight: 'calc(100vh - 98px)' }}>
       
-      <div className="campaigns-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+      <div className="campaigns-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 800, color: '#111827', letterSpacing: '-0.4px', margin: 0 }}>
+          <h1 style={{ fontSize: 'clamp(18px, 3vw, 20px)', fontWeight: 800, color: '#111827', letterSpacing: '-0.4px', margin: 0 }}>
             Campaign Broadcasting
           </h1>
           <p style={{ fontSize: 12.5, color: '#6b7280', marginTop: 3 }}>
@@ -177,66 +177,66 @@ export default function CampaignsPage() {
             background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff',
             border: 'none', borderRadius: 9, cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: 6,
-            boxShadow: '0 4px 14px rgba(220,38,38,0.2)',
+            boxShadow: '0 4px 14px rgba(220,38,38,0.2)', minHeight: 44
           }}
         >
           <Plus size={15} /> Create Broadcast Campaign
         </button>
       </div>
 
-      <div className="campaigns-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
+      <div className="campaigns-stats-grid" style={{ marginBottom: 28 }}>
         
         {/* Total Sent */}
-        <div style={{ background: '#fff', border: '1px solid rgba(220,38,38,0.06)', borderRadius: 14, padding: '20px 24px', boxShadow: '0 2px 8px rgba(0,0,0,0.01)' }}>
+        <div style={{ background: '#fff', border: '1px solid rgba(220,38,38,0.06)', borderRadius: 14, padding: '18px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.01)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 12, fontWeight: 750, color: '#6b7280', textTransform: 'uppercase' }}>Total Dispatched</span>
             <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Send size={13} color="#dc2626" />
             </div>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: '#111827', marginTop: 8 }}>{totalSent}</div>
+          <div style={{ fontSize: 'clamp(20px, 3vw, 24px)', fontWeight: 800, color: '#111827', marginTop: 8 }}>{totalSent}</div>
           <div style={{ fontSize: 11, color: '#10b981', fontWeight: 600, marginTop: 4 }}>
             ● Broadcaster Live
           </div>
         </div>
 
         {/* Delivery Rate */}
-        <div style={{ background: '#fff', border: '1px solid rgba(220,38,38,0.06)', borderRadius: 14, padding: '20px 24px', boxShadow: '0 2px 8px rgba(0,0,0,0.01)' }}>
+        <div style={{ background: '#fff', border: '1px solid rgba(220,38,38,0.06)', borderRadius: 14, padding: '18px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.01)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 12, fontWeight: 750, color: '#6b7280', textTransform: 'uppercase' }}>Delivery Rate</span>
             <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <CheckCircle2 size={13} color="#dc2626" />
             </div>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: '#111827', marginTop: 8 }}>{deliveryRate}%</div>
+          <div style={{ fontSize: 'clamp(20px, 3vw, 24px)', fontWeight: 800, color: '#111827', marginTop: 8 }}>{deliveryRate}%</div>
           <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>
             {totalDelivered} Successful deliveries
           </div>
         </div>
 
         {/* Read Rate */}
-        <div style={{ background: '#fff', border: '1px solid rgba(220,38,38,0.06)', borderRadius: 14, padding: '20px 24px', boxShadow: '0 2px 8px rgba(0,0,0,0.01)' }}>
+        <div style={{ background: '#fff', border: '1px solid rgba(220,38,38,0.06)', borderRadius: 14, padding: '18px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.01)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 12, fontWeight: 750, color: '#6b7280', textTransform: 'uppercase' }}>Read Rate (Open)</span>
             <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Megaphone size={13} color="#dc2626" />
             </div>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: '#111827', marginTop: 8 }}>{readRate}%</div>
+          <div style={{ fontSize: 'clamp(20px, 3vw, 24px)', fontWeight: 800, color: '#111827', marginTop: 8 }}>{readRate}%</div>
           <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>
             {totalRead} Messages read
           </div>
         </div>
 
         {/* Failed Delivery */}
-        <div style={{ background: '#fff', border: '1px solid rgba(220,38,38,0.06)', borderRadius: 14, padding: '20px 24px', boxShadow: '0 2px 8px rgba(0,0,0,0.01)' }}>
+        <div style={{ background: '#fff', border: '1px solid rgba(220,38,38,0.06)', borderRadius: 14, padding: '18px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.01)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 12, fontWeight: 750, color: '#6b7280', textTransform: 'uppercase' }}>Bounced / Failed</span>
             <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <AlertCircle size={13} color="#ef4444" />
             </div>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: '#ef4444', marginTop: 8 }}>{totalFailed}</div>
+          <div style={{ fontSize: 'clamp(20px, 3vw, 24px)', fontWeight: 800, color: '#ef4444', marginTop: 8 }}>{totalFailed}</div>
           <div style={{ fontSize: 11, color: '#ef4444', marginTop: 4 }}>
             {totalSent > 0 ? Math.round((totalFailed / totalSent) * 100) : 0}% bounce rating
           </div>
@@ -251,15 +251,15 @@ export default function CampaignsPage() {
         boxShadow: '0 2px 10px rgba(0,0,0,0.01)',
         overflow: 'hidden'
       }}>
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(220,38,38,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(220,38,38,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
           <h3 style={{ fontSize: 14.5, fontWeight: 800, color: '#111827', margin: 0 }}>Campaign Broadcast History</h3>
           <span style={{ fontSize: 11, background: '#fafafa', border: '1px solid #e5e7eb', padding: '3px 8px', borderRadius: 20, color: '#6b7280', fontWeight: 600 }}>
             {campaigns.length} total campaigns
           </span>
         </div>
 
-        <div className="campaigns-table-wrap" style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <div className="mobile-table-scroll" style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: 640 }}>
             <thead>
               <tr style={{ background: '#faf9f9', borderBottom: '1px solid rgba(220,38,38,0.04)' }}>
                 <th style={{ padding: '14px 24px', fontSize: 11.5, fontWeight: 750, color: '#4b5563', textTransform: 'uppercase' }}>Campaign Name</th>
@@ -346,13 +346,13 @@ export default function CampaignsPage() {
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 9999
+          zIndex: 9999, padding: 16
         }}>
           <div className="campaign-modal-box" style={{
-            background: '#fff', width: 560, borderRadius: 16,
-            padding: '24px 28px', border: '1px solid rgba(220,38,38,0.1)',
+            background: '#fff', width: 'min(560px, calc(100vw - 32px))', borderRadius: 16,
+            padding: 'clamp(16px, 4vw, 24px)', border: '1px solid rgba(220,38,38,0.1)',
             boxShadow: '0 15px 45px rgba(0,0,0,0.2)',
-            animation: 'fadeUp 0.15s ease-out'
+            animation: 'fadeUp 0.15s ease-out', maxHeight: '90vh', overflowY: 'auto'
           }}>
             {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -360,7 +360,7 @@ export default function CampaignsPage() {
                 <Megaphone size={18} color="#dc2626" />
                 Launch New Bulk Broadcast Campaign
               </h3>
-              <button onClick={() => setShowCreate(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+              <button onClick={() => setShowCreate(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, minHeight: 40, minWidth: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <X size={18} color="#6b7280" />
               </button>
             </div>
@@ -373,17 +373,17 @@ export default function CampaignsPage() {
                 <input 
                   type="text" required placeholder="e.g. End of Season Flash Sale Blast"
                   value={campName} onChange={e => setCampName(e.target.value)}
-                  style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.1)', borderRadius: 9, outline: 'none' }}
+                  style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.1)', borderRadius: 9, outline: 'none', minHeight: 44 }}
                 />
               </div>
 
-              <div className="campaign-modal-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="campaign-modal-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
                 <div>
                   <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 6 }}>Select Approved Template</label>
                   <select 
                     required
                     value={selectedTpl} onChange={e => setSelectedTpl(e.target.value)}
-                    style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.1)', borderRadius: 9, outline: 'none', background: '#fff' }}
+                    style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.1)', borderRadius: 9, outline: 'none', background: '#fff', minHeight: 44 }}
                   >
                     <option value="">-- Choose Template --</option>
                     {tplList.map(tpl => (
@@ -397,7 +397,7 @@ export default function CampaignsPage() {
                   <select 
                     required
                     value={selectedSegment} onChange={e => setSelectedSegment(e.target.value)}
-                    style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.1)', borderRadius: 9, outline: 'none', background: '#fff' }}
+                    style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.1)', borderRadius: 9, outline: 'none', background: '#fff', minHeight: 44 }}
                   >
                     <option>All Contacts</option>
                     <option>VIP Customers</option>
@@ -410,8 +410,8 @@ export default function CampaignsPage() {
               <div>
                 <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 8 }}>Broadcasting Delivery Schedule</label>
                 
-                <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer' }}>
+                <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer', minHeight: 36 }}>
                     <input 
                       type="radio" 
                       name="schedule" 
@@ -421,7 +421,7 @@ export default function CampaignsPage() {
                     />
                     Send immediately
                   </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer', minHeight: 36 }}>
                     <input 
                       type="radio" 
                       name="schedule" 
@@ -434,21 +434,21 @@ export default function CampaignsPage() {
                 </div>
 
                 {scheduleType === 'scheduled' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '12px 14px', background: '#fafafa', borderRadius: 9, border: '1px dashed #e5e7eb' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, padding: '12px 14px', background: '#fafafa', borderRadius: 9, border: '1px dashed #e5e7eb' }}>
                     <div>
                       <label style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: 4 }}>Date</label>
                       <input 
-                        type="date" required
+                        type="date"
                         value={scheduleDate} onChange={e => setScheduleDate(e.target.value)}
-                        style={{ width: '100%', padding: '6px 10px', fontSize: 12, border: '1px solid #d1d5db', borderRadius: 6 }}
+                        style={{ width: '100%', padding: '8px 10px', fontSize: 12.5, border: '1px solid #d1d5db', borderRadius: 7, outline: 'none', background: '#fff', minHeight: 40 }}
                       />
                     </div>
                     <div>
                       <label style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: 4 }}>Time</label>
                       <input 
-                        type="time" required
+                        type="time"
                         value={scheduleTime} onChange={e => setScheduleTime(e.target.value)}
-                        style={{ width: '100%', padding: '6px 10px', fontSize: 12, border: '1px solid #d1d5db', borderRadius: 6 }}
+                        style={{ width: '100%', padding: '8px 10px', fontSize: 12.5, border: '1px solid #d1d5db', borderRadius: 7, outline: 'none', background: '#fff', minHeight: 40 }}
                       />
                     </div>
                   </div>

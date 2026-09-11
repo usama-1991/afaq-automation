@@ -641,8 +641,8 @@ export default function ContactsPage() {
         <div className="split-right-panel" style={{ flex: 1, background: '#fff5f5', overflowY: 'auto' }}>
           
           {/* Top profile view */}
-          <div className="contact-profile-header" style={{ background: '#fff', borderBottom: '1px solid rgba(220,38,38,0.1)', padding: '24px 28px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
+          <div className="contact-profile-header" style={{ background: '#fff', borderBottom: '1px solid rgba(220,38,38,0.1)', padding: 'clamp(16px, 3vw, 24px)' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18, flexWrap: 'wrap' }}>
               <div style={{ 
                 width: 58, height: 58, borderRadius: '50%', 
                 background: selected.optedOut 
@@ -654,8 +654,8 @@ export default function ContactsPage() {
               }}>
                 {selected.name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()}
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
                   <h2 style={{ fontSize: 19.5, fontWeight: 750, color: '#111827', margin: 0, textDecoration: selected.optedOut ? 'line-through' : 'none' }}>
                     {selected.name}
                   </h2>
@@ -673,15 +673,15 @@ export default function ContactsPage() {
                   ))}
                 </div>
               </div>
-              <div className="contact-profile-actions" style={{ display: 'flex', gap: 8 }}>
+              <div className="contact-profile-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button
                   disabled={selected.optedOut}
                   onClick={() => router.push(`/conversations?conversation=${selected.id}`)}
                   style={{ 
-                    display: 'flex', alignItems: 'center', gap: 6, padding: '8px 15px', fontSize: 12.5, fontWeight: 600, 
+                    display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', fontSize: 12.5, fontWeight: 600, 
                     background: selected.optedOut ? '#d1d5db' : 'linear-gradient(135deg, #dc2626, #b91c1c)', 
                     color: '#fff', border: 'none', borderRadius: 8, cursor: selected.optedOut ? 'default' : 'pointer',
-                    boxShadow: selected.optedOut ? 'none' : '0 2px 6px rgba(220,38,38,0.2)' 
+                    boxShadow: selected.optedOut ? 'none' : '0 2px 6px rgba(220,38,38,0.2)', minHeight: 40
                   }}>
                   <MessageSquare size={13} /> Chat Thread
                 </button>
@@ -689,9 +689,10 @@ export default function ContactsPage() {
                   disabled={selected.optedOut}
                   onClick={() => router.push(`/conversations?conversation=${selected.id}`)}
                   style={{ 
-                    display: 'flex', alignItems: 'center', gap: 6, padding: '8px 15px', fontSize: 12.5, fontWeight: 600, 
+                    display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', fontSize: 12.5, fontWeight: 600, 
                     background: '#fff', color: selected.optedOut ? '#9ca3af' : '#374151', 
-                    border: '1px solid rgba(220,38,38,0.15)', borderRadius: 8, cursor: selected.optedOut ? 'default' : 'pointer' 
+                    border: '1px solid rgba(220,38,38,0.15)', borderRadius: 8, cursor: selected.optedOut ? 'default' : 'pointer',
+                    minHeight: 40
                   }}>
                   <Phone size={13} /> Call
                 </button>
@@ -855,11 +856,11 @@ export default function ContactsPage() {
 
       {/* MODAL 1: Add manual contact modal */}
       {showAdd && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowAdd(false)}>
-          <div style={{ background: '#fff', borderRadius: 16, padding: '24px 28px', width: 400, boxShadow: '0 20px 50px rgba(0,0,0,0.15)' }} onClick={e => e.stopPropagation()}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => setShowAdd(false)}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: 'clamp(16px, 4vw, 24px)', width: 'min(400px, calc(100vw - 32px))', boxShadow: '0 20px 50px rgba(0,0,0,0.15)', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
               <h3 style={{ fontSize: 16.5, fontWeight: 750, color: '#111827', margin: 0 }}>Add New CRM Contact</h3>
-              <button onClick={() => setShowAdd(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}><X size={16} color="#9ca3af" /></button>
+              <button onClick={() => setShowAdd(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', minHeight: 40, minWidth: 40, alignItems: 'center', justifyContent: 'center' }}><X size={18} color="#9ca3af" /></button>
             </div>
             
             {[
@@ -870,7 +871,7 @@ export default function ContactsPage() {
               <div key={f.label} style={{ marginBottom: 12 }}>
                 <label style={{ fontSize: 12.5, fontWeight: 650, color: '#374151', display: 'block', marginBottom: 5 }}>{f.label}</label>
                 <input value={f.value} onChange={e => f.setter(e.target.value)} placeholder={f.placeholder}
-                  style={{ width: '100%', padding: '9px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, background: '#fafafa', fontFamily: 'inherit', color: '#111', outline: 'none' }} />
+                  style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, background: '#fafafa', fontFamily: 'inherit', color: '#111', outline: 'none', minHeight: 44 }} />
               </div>
             ))}
 
@@ -884,12 +885,12 @@ export default function ContactsPage() {
                       key={tag}
                       onClick={() => active ? setNewTags(newTags.filter(t => t !== tag)) : setNewTags([...newTags, tag])}
                       style={{
-                        fontSize: 10.5, padding: '4px 10px', borderRadius: 20,
+                        fontSize: 10.5, padding: '5px 12px', borderRadius: 20,
                         border: active ? '1.5px solid #dc2626' : '1px dashed rgba(220,38,38,0.25)',
                         background: active ? '#fef2f2' : 'transparent',
                         color: active ? '#dc2626' : '#6b7280',
                         fontWeight: active ? 600 : 500,
-                        cursor: 'pointer'
+                        cursor: 'pointer', minHeight: 32
                       }}
                     >
                       {tag}
@@ -899,9 +900,9 @@ export default function ContactsPage() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
-              <button onClick={() => setShowAdd(false)} style={{ flex: 1, padding: '9px', fontSize: 13, fontWeight: 600, border: '1px solid rgba(220,38,38,0.2)', borderRadius: 9, background: '#fff', color: '#6b7280', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleAdd} style={{ flex: 1, padding: '9px', fontSize: 13, fontWeight: 600, background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', boxShadow: '0 3px 8px rgba(220,38,38,0.25)' }}>Save Contact</button>
+            <div style={{ display: 'flex', gap: 8, marginTop: 18, flexWrap: 'wrap' }}>
+              <button onClick={() => setShowAdd(false)} style={{ flex: 1, padding: '10px', fontSize: 13, fontWeight: 600, border: '1px solid rgba(220,38,38,0.2)', borderRadius: 9, background: '#fff', color: '#6b7280', cursor: 'pointer', minHeight: 44 }}>Cancel</button>
+              <button onClick={handleAdd} style={{ flex: 1, padding: '10px', fontSize: 13, fontWeight: 600, background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', boxShadow: '0 3px 8px rgba(220,38,38,0.25)', minHeight: 44 }}>Save Contact</button>
             </div>
           </div>
         </div>
@@ -909,8 +910,8 @@ export default function ContactsPage() {
 
       {/* MODAL 2: Bulk CSV Contact Importer */}
       {showCSV && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { if(!isImporting) setShowCSV(false); }}>
-          <div style={{ background: '#fff', borderRadius: 16, padding: '24px 28px', width: 580, maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.18)' }} onClick={e => e.stopPropagation()}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => { if(!isImporting) setShowCSV(false); }}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: 'clamp(16px, 4vw, 24px)', width: 'min(580px, calc(100vw - 32px))', maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.18)' }} onClick={e => e.stopPropagation()}>
             
             {/* Modal Title */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -918,7 +919,7 @@ export default function ContactsPage() {
                 <Upload size={18} color="#dc2626" /> Bulk CSV Contact Importer
               </h3>
               {!isImporting && (
-                <button onClick={() => setShowCSV(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
+                <button onClick={() => setShowCSV(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', minHeight: 40, minWidth: 40, alignItems: 'center', justifyContent: 'center' }}>
                   <X size={18} color="#9ca3af" />
                 </button>
               )}
@@ -969,7 +970,7 @@ export default function ContactsPage() {
 
                   {/* Mapping Fields */}
                   <h4 style={{ fontSize: 13, fontWeight: 700, color: '#1f2937', marginBottom: 10, marginTop: 0 }}>Map CSV Columns to CRM Fields:</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 18 }}>
                     {[
                       { field: 'name', label: 'Full Name Column *', required: true },
                       { field: 'phone', label: 'Phone Number Column *', required: true },
@@ -981,7 +982,7 @@ export default function ContactsPage() {
                         <select 
                           value={columnMap[m.field]} 
                           onChange={e => setColumnMap({ ...columnMap, [m.field]: e.target.value })}
-                          style={{ width: '100%', padding: '7px 10px', fontSize: 12, border: '1px solid rgba(220,38,38,0.2)', borderRadius: 7, outline: 'none', background: '#fff' }}
+                          style={{ width: '100%', padding: '8px 10px', fontSize: 12, border: '1px solid rgba(220,38,38,0.2)', borderRadius: 7, outline: 'none', background: '#fff', minHeight: 40 }}
                         >
                           <option value="">-- Choose Column --</option>
                           {csvHeaders.map(h => <option key={h} value={h}>{h}</option>)}

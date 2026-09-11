@@ -195,17 +195,18 @@ export default function CreateTemplatePage() {
       <div style={{
         position: 'sticky', top: 0, zIndex: 40,
         background: '#fff', borderBottom: '1px solid #e5e7eb',
-        padding: '14px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '12px clamp(14px, 3vw, 28px)', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        flexWrap: 'wrap', gap: 12
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button
             onClick={() => router.push('/templates')}
-            style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: '#374151', fontWeight: 600 }}
+            style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: '#374151', fontWeight: 600, minHeight: 38 }}
           >
             <ArrowLeft size={14} /> Back
           </button>
           <div>
-            <h1 style={{ fontSize: 17, fontWeight: 800, color: '#111827', margin: 0, letterSpacing: '-0.3px' }}>
+            <h1 style={{ fontSize: 'clamp(15px, 3vw, 17px)', fontWeight: 800, color: '#111827', margin: 0, letterSpacing: '-0.3px' }}>
               Create New Template
             </h1>
             <p style={{ fontSize: 12, color: '#9ca3af', margin: 0 }}>
@@ -218,7 +219,7 @@ export default function CreateTemplatePage() {
           <button
             type="button"
             onClick={() => setShowPrev(p => !p)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', fontSize: 13, fontWeight: 600, background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 9, cursor: 'pointer', color: '#374151' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', fontSize: 13, fontWeight: 600, background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 9, cursor: 'pointer', color: '#374151', minHeight: 38 }}
           >
             {showPrev ? <EyeOff size={14} /> : <Eye size={14} />}
             {showPrev ? 'Hide Preview' : 'Show Preview'}
@@ -228,13 +229,13 @@ export default function CreateTemplatePage() {
 
       {/* ── Body ── */}
       <form onSubmit={handleSubmit}>
-        <div style={{ display: 'flex', gap: 0, maxWidth: 1200, margin: '0 auto', padding: '28px 28px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, maxWidth: 1200, margin: '0 auto', padding: 'clamp(14px, 3vw, 28px)' }}>
 
           {/* ── LEFT: Form ── */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20, paddingRight: showPrev ? 32 : 0 }}>
+          <div style={{ flex: '1 1 320px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
 
             {/* Template Name + Language */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
               <div>
                 <label style={labelStyle}>Template Name <span style={{ color: '#dc2626' }}>*</span></label>
                 <input
@@ -372,7 +373,7 @@ export default function CreateTemplatePage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {buttons.map((btn, i) => (
-                  <div key={btn.id} style={{ display: 'grid', gridTemplateColumns: '140px 1fr auto', gap: 10, padding: '12px 14px', background: '#fafafa', border: '1.5px solid #e5e7eb', borderRadius: 9, alignItems: 'flex-end' }}>
+                  <div key={btn.id} className="template-btn-config-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, padding: '12px 14px', background: '#fafafa', border: '1.5px solid #e5e7eb', borderRadius: 9, alignItems: 'flex-end' }}>
                     <div>
                       <label style={{ fontSize: 11.5, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 4 }}>Type</label>
                       <select
@@ -454,7 +455,7 @@ export default function CreateTemplatePage() {
 
           {/* ── RIGHT: Live Preview ── */}
           {showPrev && (
-            <div style={{ width: 300, flexShrink: 0 }}>
+            <div style={{ width: 'min(320px, 100%)', flex: '1 1 280px' }}>
               <div style={{ position: 'sticky', top: 88 }}>
                 <p style={{ fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
                   WhatsApp Preview

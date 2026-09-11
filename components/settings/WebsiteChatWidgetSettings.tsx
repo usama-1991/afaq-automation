@@ -272,9 +272,7 @@ export function WebsiteChatWidgetSettings() {
       </div>
 
       {/* Main Split: Form Controls (Left) vs Interactive Live Preview (Right) */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'minmax(320px, 1fr) minmax(360px, 420px)',
+      <div className="settings-chat-widget-grid" style={{
         gap: 24,
         alignItems: 'start'
       }}>

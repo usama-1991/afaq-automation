@@ -1772,7 +1772,7 @@ export default function AgentsPage() {
                     </div>
 
                     {/* Import / Sync Control Action Cards */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 20 }}>
                       <div 
                         onClick={() => setShowAddProdModal(true)}
                         style={{ 
@@ -1829,7 +1829,7 @@ export default function AgentsPage() {
                     </div>
 
                     {/* Live Products Directory Grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: 14 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: 14 }}>
                       {products.map((prod) => {
                         const qty = prod.stock_quantity !== undefined && prod.stock_quantity !== null ? prod.stock_quantity : (prod.stock_status === 'instock' ? 10 : 0);
                         const isOutOfStock = qty <= 0 || prod.stock_status === 'outofstock';
@@ -1957,13 +1957,13 @@ export default function AgentsPage() {
                       />
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+                    <div className="team-form-grid" style={{ marginBottom: 20 }}>
                       <div>
                         <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 6 }}>Role</label>
                         <select 
                           value={addRole} 
                           onChange={e => setAddRole(e.target.value as any)}
-                          style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.1)', borderRadius: 9, background: '#fff', outline: 'none' }}
+                          style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.1)', borderRadius: 9, background: '#fff', outline: 'none', minHeight: 44 }}
                         >
                           <option>Agent</option>
                           <option>Manager</option>
@@ -1979,22 +1979,22 @@ export default function AgentsPage() {
                           required 
                           value={addCapacity} 
                           onChange={e => setAddCapacity(Number(e.target.value))}
-                          style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.1)', borderRadius: 9, outline: 'none' }}
+                          style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid rgba(220,38,38,0.1)', borderRadius: 9, outline: 'none', minHeight: 44 }}
                         />
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                       <button 
                         type="button" 
                         onClick={() => setShowAddTeam(false)}
-                        style={{ padding: '10px 20px', fontSize: 13, fontWeight: 600, border: '1px solid #e5e7eb', background: '#fff', color: '#4b5563', borderRadius: 9, cursor: 'pointer' }}
+                        style={{ padding: '10px 20px', fontSize: 13, fontWeight: 600, border: '1px solid #e5e7eb', background: '#fff', color: '#4b5563', borderRadius: 9, cursor: 'pointer', minHeight: 44 }}
                       >
                         Cancel
                       </button>
                       <button 
                         type="submit" 
-                        style={{ padding: '10px 24px', fontSize: 13, fontWeight: 700, background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', boxShadow: '0 3px 10px rgba(220,38,38,0.2)' }}
+                        style={{ padding: '10px 24px', fontSize: 13, fontWeight: 700, background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', boxShadow: '0 3px 10px rgba(220,38,38,0.2)', minHeight: 44 }}
                       >
                         Add to Team
                       </button>
@@ -2006,8 +2006,8 @@ export default function AgentsPage() {
               <div>
                 <div style={{ 
                   background: '#fff', borderBottom: '1px solid rgba(220,38,38,0.06)', 
-                  padding: '16px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
-                  position: 'sticky', top: 0, zIndex: 10 
+                  padding: '16px clamp(14px, 3vw, 28px)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+                  position: 'sticky', top: 0, zIndex: 10, flexWrap: 'wrap', gap: 12
                 }}>
                   <div>
                     <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 2 }}>
@@ -2015,8 +2015,8 @@ export default function AgentsPage() {
                     </div>
                     <h2 style={{ fontSize: 17, fontWeight: 700, color: '#111827', letterSpacing: '-0.3px' }}>Agent Capacity Settings</h2>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: '#f9fafb', borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: '#f9fafb', borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)', minHeight: 40 }}>
                       <span style={{ fontSize: 11.5, fontWeight: 600, color: selectedTeamMember.online ? '#10b981' : '#6b7280' }}>
                         {selectedTeamMember.online ? 'ONLINE' : 'OFFLINE'}
                       </span>
@@ -2024,7 +2024,7 @@ export default function AgentsPage() {
                     </div>
                     <button 
                       onClick={() => handleDeleteTeamMember(selectedTeamMember.id)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', fontSize: 13, fontWeight: 600, background: '#fff', color: '#ef4444', border: '1px solid #fecaca', borderRadius: 9, cursor: 'pointer' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', fontSize: 13, fontWeight: 600, background: '#fff', color: '#ef4444', border: '1px solid #fecaca', borderRadius: 9, cursor: 'pointer', minHeight: 40 }}
                     >
                       <Trash2 size={13} /> Remove Agent
                     </button>
@@ -2034,7 +2034,7 @@ export default function AgentsPage() {
                         display: 'flex', alignItems: 'center', gap: 6, padding: '9px 18px', fontSize: 13, fontWeight: 700, 
                         background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff', 
                         border: 'none', borderRadius: 9, cursor: 'pointer', 
-                        boxShadow: '0 3px 10px rgba(220,38,38,0.2)' 
+                        boxShadow: '0 3px 10px rgba(220,38,38,0.2)', minHeight: 40
                       }}
                     >
                       <Save size={13} /> Save Settings
@@ -2042,8 +2042,8 @@ export default function AgentsPage() {
                   </div>
                 </div>
 
-                <div style={{ padding: '28px', maxWidth: 800 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
+                <div style={{ padding: 'clamp(14px, 3vw, 28px)', maxWidth: 800 }}>
+                  <div className="team-stats-grid" style={{ marginBottom: 24 }}>
                     <div style={{ background: '#fff', border: '1px solid rgba(220,38,38,0.06)', padding: '18px 20px', borderRadius: 14, display: 'flex', alignItems: 'center', gap: 16, boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
                       <div style={{ width: 44, height: 44, borderRadius: 10, background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Activity size={22} color="#dc2626" />
@@ -2078,7 +2078,7 @@ export default function AgentsPage() {
                   <div style={{ background: '#fff', borderRadius: 14, padding: '24px', border: '1px solid rgba(220,38,38,0.06)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)', marginBottom: 24 }}>
                     <SectionHeader icon="⚙️" label="Agent Configuration Details" />
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+                    <div className="team-form-grid" style={{ marginBottom: 20 }}>
                       <div>
                         <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 6 }}>Full Display Name</label>
                         <input 
@@ -2174,7 +2174,8 @@ export default function AgentsPage() {
         }}>
           <div style={{ 
             background: '#fff', borderRadius: 16, width: '100%', maxWidth: 580, 
-            padding: '28px', boxShadow: '0 20px 50px rgba(0,0,0,0.2)' 
+            padding: 'clamp(16px, 4vw, 28px)', boxShadow: '0 20px 50px rgba(0,0,0,0.2)',
+            maxHeight: '90vh', overflowY: 'auto'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -2199,11 +2200,11 @@ export default function AgentsPage() {
                   value={prodName} 
                   onChange={e => setProdName(e.target.value)} 
                   placeholder="e.g. 32oz Rectangle Black Meal Prep Container or Product Title"
-                  style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid #d1d5db', borderRadius: 8, outline: 'none' }}
+                  style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid #d1d5db', borderRadius: 8, outline: 'none', minHeight: 44 }}
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginBottom: 14 }}>
                 <div>
                   <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 6 }}>Category / Brand</label>
                   <input 
@@ -2211,7 +2212,7 @@ export default function AgentsPage() {
                     value={prodCategory} 
                     onChange={e => setProdCategory(e.target.value)} 
                     placeholder="General, Containers..."
-                    style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid #d1d5db', borderRadius: 8, outline: 'none' }}
+                    style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid #d1d5db', borderRadius: 8, outline: 'none', minHeight: 44 }}
                   />
                 </div>
                 <div>
@@ -2222,7 +2223,7 @@ export default function AgentsPage() {
                     value={prodPrice} 
                     onChange={e => setProdPrice(e.target.value ? Number(e.target.value) : '')} 
                     placeholder="29"
-                    style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid #d1d5db', borderRadius: 8, outline: 'none' }}
+                    style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid #d1d5db', borderRadius: 8, outline: 'none', minHeight: 44 }}
                   />
                 </div>
                 <div>
@@ -2234,7 +2235,7 @@ export default function AgentsPage() {
                     value={prodQuantity} 
                     onChange={e => setProdQuantity(e.target.value ? Number(e.target.value) : 0)} 
                     placeholder="10"
-                    style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid #d1d5db', borderRadius: 8, outline: 'none' }}
+                    style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid #d1d5db', borderRadius: 8, outline: 'none', minHeight: 44 }}
                   />
                 </div>
               </div>
@@ -2289,7 +2290,8 @@ export default function AgentsPage() {
         }}>
           <div style={{ 
             background: '#fff', borderRadius: 16, width: '100%', maxWidth: 520, 
-            padding: '28px', boxShadow: '0 20px 50px rgba(0,0,0,0.2)' 
+            padding: 'clamp(16px, 4vw, 28px)', boxShadow: '0 20px 50px rgba(0,0,0,0.2)',
+            maxHeight: '90vh', overflowY: 'auto'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -2300,7 +2302,7 @@ export default function AgentsPage() {
                   Sync Meta WhatsApp Commerce Catalog
                 </h3>
               </div>
-              <button onClick={() => setShowMetaSyncModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+              <button onClick={() => setShowMetaSyncModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <X size={20} color="#9ca3af" />
               </button>
             </div>
@@ -2313,18 +2315,18 @@ export default function AgentsPage() {
               <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 6 }}>Meta Commerce Catalog ID (Optional)</label>
               <input 
                 type="text" 
-                value={metaCatalogId}
-                onChange={e => setMetaCatalogId(e.target.value)}
+                value={metaCatalogId} 
+                onChange={e => setMetaCatalogId(e.target.value)} 
                 placeholder="e.g. 10928374659201"
-                style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid #d1d5db', borderRadius: 8, outline: 'none' }}
+                style={{ width: '100%', padding: '10px 14px', fontSize: 13, border: '1.5px solid #d1d5db', borderRadius: 8, outline: 'none', minHeight: 44 }}
               />
             </div>
 
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
               <button 
                 type="button" 
                 onClick={() => setShowMetaSyncModal(false)}
-                style={{ padding: '10px 18px', fontSize: 13, fontWeight: 600, border: '1px solid #d1d5db', background: '#fff', color: '#4b5563', borderRadius: 8, cursor: 'pointer' }}
+                style={{ padding: '10px 18px', fontSize: 13, fontWeight: 600, border: '1px solid #d1d5db', background: '#fff', color: '#4b5563', borderRadius: 8, cursor: 'pointer', minHeight: 44 }}
               >
                 Cancel
               </button>
@@ -2334,7 +2336,7 @@ export default function AgentsPage() {
                 style={{ 
                   padding: '10px 24px', fontSize: 13, fontWeight: 700, 
                   background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', 
-                  border: 'none', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 
+                  border: 'none', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, minHeight: 44
                 }}
               >
                 {isMetaSyncing ? <RefreshCw size={14} className="animate-spin" /> : <RefreshCw size={14} />}
@@ -2353,7 +2355,7 @@ export default function AgentsPage() {
         }}>
           <div style={{ 
             background: '#fff', borderRadius: 16, width: '100%', maxWidth: 740, maxHeight: '90vh', 
-            overflowY: 'auto', padding: '28px', boxShadow: '0 20px 50px rgba(0,0,0,0.2)' 
+            overflowY: 'auto', padding: 'clamp(16px, 4vw, 28px)', boxShadow: '0 20px 50px rgba(0,0,0,0.2)' 
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

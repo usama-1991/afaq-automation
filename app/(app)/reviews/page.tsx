@@ -50,13 +50,13 @@ export default function ReviewsPage() {
   if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Loading reviews...</div>;
 
   return (
-    <div style={{ padding: '30px 40px', maxWidth: 1200, margin: '0 auto', fontFamily: 'Inter, sans-serif' }}>
-      <header style={{ marginBottom: 40 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700, margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 10 }}>
+    <div style={{ padding: 'clamp(16px, 4vw, 30px) clamp(14px, 3vw, 40px)', maxWidth: 1200, margin: '0 auto', fontFamily: 'Inter, sans-serif' }}>
+      <header style={{ marginBottom: 32 }}>
+        <h1 style={{ fontSize: 'clamp(20px, 4vw, 28px)', fontWeight: 700, margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 10 }}>
           <Star color="#f59e0b" fill="#f59e0b" />
           Customer Reviews
         </h1>
-        <p style={{ color: '#6b7280', margin: 0, fontSize: 15 }}>
+        <p style={{ color: '#6b7280', margin: 0, fontSize: 14 }}>
           Monitor the feedback collected from customers after their orders are delivered.
         </p>
       </header>
@@ -70,7 +70,7 @@ export default function ReviewsPage() {
           </p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: 20 }}>
           {reviews.map(review => (
             <div key={review.id} style={{
               background: '#fff', borderRadius: 16, padding: 24,

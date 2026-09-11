@@ -266,7 +266,7 @@ export default function MediaPage() {
 
       {/* ── CARD VISUAL GRID ── */}
       {filteredMedia.length > 0 ? (
-        <div className="media-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+        <div className="media-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
           {filteredMedia.map(file => {
             const isImage = file.category === 'Images';
             const isDoc = file.category === 'Documents';

@@ -792,11 +792,11 @@ function SettingsInner() {
   };
 
   return (
-    <div className="settings-page-wrap" style={{ padding: '24px 28px', maxWidth: 1000 }}>
+    <div className="settings-page-wrap" style={{ padding: 'clamp(14px, 3vw, 24px) clamp(12px, 3vw, 28px)', maxWidth: 1000 }}>
       {/* Page Header */}
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#111827', letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h1 style={{ fontSize: 'clamp(20px, 3vw, 24px)', fontWeight: 800, color: '#111827', letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Settings size={24} color="#dc2626" /> System Settings
           </h1>
           <p style={{ fontSize: 13.5, color: '#6b7280', marginTop: 3 }}>Configure your Ittisalo channels, integrations, and preferences.</p>
@@ -825,12 +825,13 @@ function SettingsInner() {
               onClick={() => setTab(t)}
               className="settings-tab-btn"
               style={{
-                padding: '10px 20px', fontSize: 13,
+                padding: '8px 14px', fontSize: 13,
                 fontWeight: active ? 700 : 500,
                 color: active ? '#dc2626' : '#6b7280',
                 background: 'none', border: 'none',
                 borderBottom: active ? '2.5px solid #dc2626' : '2.5px solid transparent',
                 marginBottom: -1.5, cursor: 'pointer', transition: 'all 0.15s',
+                minHeight: 40
               }}
               onMouseEnter={e => { if(!active) e.currentTarget.style.color = '#dc2626'; }}
               onMouseLeave={e => { if(!active) e.currentTarget.style.color = '#6b7280'; }}
@@ -857,7 +858,7 @@ function SettingsInner() {
                 Updating your niche recalibrates the AI model, matching tone, custom system instructions, and analytics counters.
               </p>
               
-              <div className="settings-niche-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+              <div className="settings-niche-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(95px, 1fr))', gap: 10 }}>
                 {niches.map(n => {
                   const selected = niche.id === n.id;
                   return (
@@ -895,7 +896,7 @@ function SettingsInner() {
               </div>
               <Field label="Business Name" value={businessName} onChange={setBusinessName} />
               <Field label="Owner Name" value={ownerName} onChange={setOwnerName} />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
                 <Field label="Legal Name" value={legalName} onChange={setLegalName} hint="For Meta verification" />
                 <div>
                   <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 5 }}>Timezone</label>

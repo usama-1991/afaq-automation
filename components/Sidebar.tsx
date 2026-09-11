@@ -113,8 +113,21 @@ function Sidebar() {
     { href: '/settings',      icon: Settings,        label: 'Settings' },
   ], []);
 
-  const allNav = useMemo(() => [...clusterCore, ...clusterCommerce, ...clusterIntelligence, ...clusterSettings], [clusterCore, clusterCommerce, clusterIntelligence, clusterSettings]);
-  const MOBILE_NAV = useMemo(() => allNav.slice(0, 5), [allNav]);
+  const allNav = useMemo(() => [
+    ...clusterCore,
+    ...clusterCommerce,
+    ...clusterIntelligence,
+    ...clusterSettings
+  ], [clusterCore, clusterCommerce, clusterIntelligence, clusterSettings]);
+
+  // Explicit Mobile Nav according to spec: Overview / Chats / Contacts / Orders / Campaigns / More
+  const MOBILE_NAV = useMemo(() => [
+    { href: '/dashboard',     icon: LayoutDashboard, label: 'Overview' },
+    { href: '/conversations', icon: MessageSquare,   label: 'Chats', count: unreadChats },
+    { href: '/contacts',      icon: Users,           label: 'Contacts' },
+    { href: '/orders',        icon: ShoppingBag,     label: 'Orders', count: pendingOrders },
+    { href: '/campaigns',     icon: Megaphone,       label: 'Campaigns' },
+  ], [unreadChats, pendingOrders]);
 
   useEffect(() => {
     const fetchRole = async () => {
@@ -348,7 +361,8 @@ function Sidebar() {
             style={{
               position: 'absolute', bottom: 0, left: 0, right: 0,
               background: '#fff', borderRadius: '20px 20px 0 0',
-              padding: '20px 16px 32px',
+              padding: '20px 16px calc(24px + env(safe-area-inset-bottom, 0px))',
+              maxHeight: '85vh', overflowY: 'auto',
               animation: 'slideInUp 0.28s ease',
               boxShadow: '0 -8px 32px rgba(0,0,0,0.15)',
             }}

@@ -134,47 +134,50 @@ export default function ReportsPage() {
   ];
 
   return (
-    <div style={{ padding: '28px 32px', background: '#f8fafc', minHeight: '100vh' }}>
+    <div className="reports-page-wrap" style={{ background: '#f8fafc', minHeight: '100vh' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
+      <div className="reports-header-row" style={{ marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px', margin: 0 }}>Reports & Analytics</h1>
+          <h1 className="reports-header-heading" style={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px', margin: 0 }}>Reports & Analytics</h1>
           <p style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Real-time performance metrics for your workspace</p>
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div className="reports-time-controls">
           {/* Time Range */}
-          <div style={{ display: 'flex', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 3, gap: 2 }}>
+          <div style={{ display: 'flex', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 3, gap: 2, flexWrap: 'wrap' }}>
             {(['24h', '7d', '30d'] as const).map(r => (
               <button key={r} onClick={() => setTimeRange(r)} style={{
-                padding: '6px 14px', fontSize: 12.5, fontWeight: 700, borderRadius: 7,
+                padding: '8px 14px', fontSize: 12.5, fontWeight: 700, borderRadius: 7,
                 background: timeRange === r ? '#0f172a' : 'transparent',
                 color: timeRange === r ? '#fff' : '#64748b',
-                border: 'none', cursor: 'pointer', transition: 'all 0.15s'
+                border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+                minHeight: 38
               }}>{r === '24h' ? '24H' : r === '7d' ? '7 Days' : '30 Days'}</button>
             ))}
           </div>
           <button onClick={() => exportCSV('summary')} style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', fontSize: 12.5, fontWeight: 600,
-            background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, cursor: 'pointer', color: '#374151'
+            background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, cursor: 'pointer', color: '#374151',
+            minHeight: 38
           }}><Download size={14} /> Export CSV</button>
           <button onClick={handleRefresh} style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', fontSize: 12.5, fontWeight: 600,
-            background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, cursor: 'pointer', color: '#374151'
+            background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, cursor: 'pointer', color: '#374151',
+            minHeight: 38
           }}><RefreshCw size={14} style={{ animation: isRefreshing ? 'spin 0.8s linear infinite' : 'none' }} /> Refresh</button>
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+      <div className="reports-stats-grid" style={{ marginBottom: 24 }}>
         {stats.map((s, i) => (
-          <div key={i} style={{ background: '#fff', borderRadius: 14, padding: '20px 22px', border: '1px solid #f1f5f9', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+          <div key={i} style={{ background: '#fff', borderRadius: 14, padding: '18px 20px', border: '1px solid #f1f5f9', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.label}</span>
               <div style={{ width: 32, height: 32, borderRadius: 9, background: `${s.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <s.icon size={15} color={s.color} />
               </div>
             </div>
-            <div style={{ fontSize: 28, fontWeight: 900, color: '#0f172a', letterSpacing: '-1px' }}>{s.val}</div>
+            <div className="reports-stat-value" style={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-1px' }}>{s.val}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 6 }}>
               {s.up ? <ArrowUpRight size={13} color="#10b981" /> : <ArrowDownRight size={13} color="#ef4444" />}
               <span style={{ fontSize: 11.5, fontWeight: 700, color: s.up ? '#10b981' : '#ef4444' }}>{s.delta}</span>
@@ -185,10 +188,10 @@ export default function ReportsPage() {
       </div>
 
       {/* Chart + Channel Split */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20, marginBottom: 24 }}>
+      <div className="reports-main-grid" style={{ marginBottom: 24 }}>
         {/* Line Chart */}
-        <div style={{ background: '#fff', borderRadius: 14, padding: '24px', border: '1px solid #f1f5f9', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid #f1f5f9', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 8 }}>
             <div>
               <h3 style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', margin: 0 }}>Message Volume Trend</h3>
               <p style={{ fontSize: 12, color: '#94a3b8', margin: '2px 0 0' }}>Inbound vs outbound across all channels</p>
@@ -214,7 +217,7 @@ export default function ReportsPage() {
               <path d="M0 88 L60 78 L120 90 L180 65 L240 55 L300 75 L380 50" fill="none" stroke="#e2e8f0" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 10.5, color: '#94a3b8', fontWeight: 600 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 10.5, color: '#94a3b8', fontWeight: 600, overflowX: 'auto', gap: 4 }}>
             {timeRange === '24h' ? ['12AM','4AM','8AM','12PM','4PM','8PM','12AM'].map(t => <span key={t}>{t}</span>)
               : timeRange === '7d' ? ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => <span key={d}>{d}</span>)
               : ['Wk1','Wk2','Wk3','Wk4'].map(w => <span key={w}>{w}</span>)}
@@ -222,9 +225,9 @@ export default function ReportsPage() {
         </div>
 
         {/* Channel Breakdown */}
-        <div style={{ background: '#fff', borderRadius: 14, padding: '24px', border: '1px solid #f1f5f9', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+        <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid #f1f5f9', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
           <h3 style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>Channel Breakdown</h3>
-          <p style={{ fontSize: 12, color: '#94a3b8', margin: '0 0 24px' }}>Message volume by channel</p>
+          <p style={{ fontSize: 12, color: '#94a3b8', margin: '0 0 20px' }}>Message volume by channel</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             {channelBreakdown.map(ch => (
               <div key={ch.id}>
@@ -246,14 +249,15 @@ export default function ReportsPage() {
 
       {/* Agent Table */}
       <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #f1f5f9', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
           <div>
             <h3 style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', margin: 0 }}>Team Performance</h3>
             <p style={{ fontSize: 12, color: '#94a3b8', margin: '2px 0 0' }}>Resolution rates and CSAT by team member</p>
           </div>
           <button onClick={() => exportCSV('agents')} style={{
-            display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', fontSize: 12, fontWeight: 600,
-            background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 7, cursor: 'pointer', color: '#475569'
+            display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', fontSize: 12, fontWeight: 600,
+            background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 7, cursor: 'pointer', color: '#475569',
+            minHeight: 38
           }}><Download size={13} /> Export CSV</button>
         </div>
         {agentsList.length === 0 ? (
@@ -261,8 +265,8 @@ export default function ReportsPage() {
             No team data available yet. Team metrics populate as conversations are handled.
           </div>
         ) : (
-          <div style={{ overflowX: 'auto', width: '100%' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="mobile-table-scroll" style={{ width: '100%' }}>
+            <table className="reports-agent-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
             <thead>
               <tr style={{ background: '#f8fafc' }}>
                 {['Team Member', 'Role', 'Chats Resolved', 'Avg Response', 'CSAT', 'Workload'].map(h => (

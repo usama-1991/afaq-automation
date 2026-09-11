@@ -334,43 +334,43 @@ export default function OrdersPage() {
   };
 
   return (
-    <div style={{ background: '#f9fafb', minHeight: 'calc(100vh - 98px)', padding: '32px' }}>
+    <div className="orders-page-wrap" style={{ background: '#f9fafb', minHeight: 'calc(100vh - 98px)' }}>
       
       {/* ── Page Header & Stats ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
+      <div className="orders-header-row" style={{ marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#111827', margin: 0, letterSpacing: '-0.5px' }}>{renderTitle()}</h1>
+          <h1 style={{ fontSize: 'clamp(20px, 3vw, 24px)', fontWeight: 800, color: '#111827', margin: 0, letterSpacing: '-0.5px' }}>{renderTitle()}</h1>
           <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>Manage, track, and update your {tableName.replace('_', ' ')}.</p>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
-          <button onClick={downloadCSV} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', transition: 'all 0.15s' }}>
+          <button onClick={downloadCSV} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', transition: 'all 0.15s', minHeight: 44 }}>
             <FileSpreadsheet size={16} color="#10b981" /> Export CSV
           </button>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20, marginBottom: 32 }}>
-        <div style={{ background: '#fff', padding: '20px', borderRadius: 16, border: '1px solid #f3f4f6', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+      <div className="orders-summary-grid" style={{ marginBottom: 24 }}>
+        <div style={{ background: '#fff', padding: '18px 20px', borderRadius: 16, border: '1px solid #f3f4f6', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
             <div style={{ background: '#fef2f2', padding: 8, borderRadius: 10, color: '#dc2626' }}><ShoppingBag size={18} /></div>
             <span style={{ fontSize: 13, fontWeight: 600, color: '#6b7280' }}>Total Records</span>
           </div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#111827' }}>{metrics.total}</div>
+          <div style={{ fontSize: 'clamp(22px, 3vw, 28px)', fontWeight: 800, color: '#111827' }}>{metrics.total}</div>
         </div>
-        <div style={{ background: '#fff', padding: '20px', borderRadius: 16, border: '1px solid #f3f4f6', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+        <div style={{ background: '#fff', padding: '18px 20px', borderRadius: 16, border: '1px solid #f3f4f6', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
             <div style={{ background: '#fffbeb', padding: 8, borderRadius: 10, color: '#d97706' }}><Clock size={18} /></div>
             <span style={{ fontSize: 13, fontWeight: 600, color: '#6b7280' }}>Action Required</span>
           </div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#111827' }}>{metrics.pending}</div>
+          <div style={{ fontSize: 'clamp(22px, 3vw, 28px)', fontWeight: 800, color: '#111827' }}>{metrics.pending}</div>
         </div>
         {tableName === 'orders' && (
-          <div style={{ background: '#fff', padding: '20px', borderRadius: 16, border: '1px solid #f3f4f6', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+          <div style={{ background: '#fff', padding: '18px 20px', borderRadius: 16, border: '1px solid #f3f4f6', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
               <div style={{ background: '#f0fdf4', padding: 8, borderRadius: 10, color: '#16a34a' }}><DollarSign size={18} /></div>
               <span style={{ fontSize: 13, fontWeight: 600, color: '#6b7280' }}>Estimated Revenue</span>
             </div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#111827' }}>
+            <div style={{ fontSize: 'clamp(22px, 3vw, 28px)', fontWeight: 800, color: '#111827' }}>
               <span style={{ fontSize: 18, color: '#6b7280', marginRight: 4 }}>{data.find(d => d.currency)?.currency || 'USD'}</span>
               {metrics.revenue.toLocaleString()}
             </div>
@@ -382,25 +382,25 @@ export default function OrdersPage() {
       <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e5e7eb', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
         
         {/* Table Toolbar */}
-        <div style={{ padding: '16px 24px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fafafa' }}>
-          <div style={{ position: 'relative', width: 320 }}>
+        <div className="orders-toolbar-row" style={{ borderBottom: '1px solid #f3f4f6', background: '#fafafa' }}>
+          <div className="orders-search-input" style={{ position: 'relative' }}>
             <Search size={15} color="#9ca3af" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
             <input 
               value={search} 
               onChange={e => setSearch(e.target.value)} 
               placeholder="Search customers by name or phone..." 
-              style={{ width: '100%', padding: '10px 14px 10px 40px', fontSize: 13, border: '1.5px solid #e5e7eb', borderRadius: 10, outline: 'none', transition: 'border-color 0.2s' }} 
+              style={{ width: '100%', padding: '10px 14px 10px 40px', fontSize: 13, border: '1.5px solid #e5e7eb', borderRadius: 10, outline: 'none', transition: 'border-color 0.2s', minHeight: 44 }} 
               onFocus={e => e.currentTarget.style.borderColor = '#dc2626'}
               onBlur={e => e.currentTarget.style.borderColor = '#e5e7eb'}
             />
           </div>
-          <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#4b5563', cursor: 'pointer' }}>
+          <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#4b5563', cursor: 'pointer', minHeight: 44 }}>
             <Filter size={14} /> Filter
           </button>
         </div>
 
         {/* Table */}
-        <div style={{ overflowX: 'auto', minHeight: 400 }}>
+        <div className="mobile-table-scroll" style={{ minHeight: 400 }}>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300, color: '#9ca3af' }}>
               <Loader2 size={28} style={{ animation: 'spin 1s linear infinite' }} />
@@ -411,7 +411,7 @@ export default function OrdersPage() {
               <div style={{ fontSize: 14, fontWeight: 500 }}>No records found matching your search.</div>
             </div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: 640 }}>
               <thead>
                 <tr style={{ background: '#fff', borderBottom: '1px solid #e5e7eb' }}>
                   <th style={{ padding: '16px 24px', fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Customer</th>
@@ -503,26 +503,26 @@ export default function OrdersPage() {
             style={{ width: '100%', maxWidth: 500, background: '#f9fafb', height: '100%', boxShadow: '-5px 0 25px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', animation: 'slideIn 0.25s ease-out' }}
           >
             {/* Drawer Header */}
-            <div style={{ padding: '24px 28px', background: '#fff', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ padding: 'clamp(16px, 4vw, 24px)', background: '#fff', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <span style={{ fontSize: 11, fontWeight: 700, color: getStatusColor(selectedRecord.status || selectedRecord.stage).text, background: getStatusColor(selectedRecord.status || selectedRecord.stage).bg, padding: '4px 10px', borderRadius: 20, border: `1px solid ${getStatusColor(selectedRecord.status || selectedRecord.stage).border}`, display: 'inline-block', marginBottom: 12 }}>
                   {(selectedRecord.status || selectedRecord.stage || 'PENDING').replace(/_/g, ' ').toUpperCase()}
                 </span>
-                <h2 style={{ fontSize: 22, fontWeight: 800, color: '#111827', margin: '0 0 6px 0' }}>
+                <h2 style={{ fontSize: 'clamp(18px, 3vw, 22px)', fontWeight: 800, color: '#111827', margin: '0 0 6px 0' }}>
                   {selectedRecord.customer_name || selectedRecord.patient_name || 'Record Details'}
                 </h2>
-                <div style={{ fontSize: 13, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ fontSize: 13, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Phone size={13} /> {selectedRecord.customer_phone || selectedRecord.patient_phone}</span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Clock size={13} /> {new Date(selectedRecord.created_at).toLocaleString()}</span>
                 </div>
               </div>
-              <button onClick={() => setSelectedRecord(null)} style={{ background: '#f3f4f6', border: 'none', width: 32, height: 32, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#6b7280' }}>
-                <X size={16} />
+              <button onClick={() => setSelectedRecord(null)} style={{ background: '#f3f4f6', border: 'none', width: 36, height: 36, borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#6b7280', flexShrink: 0 }}>
+                <X size={18} />
               </button>
             </div>
 
             {/* Drawer Body */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: 'clamp(16px, 4vw, 24px)', display: 'flex', flexDirection: 'column', gap: 20 }}>
               
               {/* Bifurcated Content Cards */}
               

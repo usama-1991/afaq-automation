@@ -83,7 +83,7 @@ const StatCard = memo(function StatCard({
         <div style={{ fontSize: 11.5, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
           {label}
         </div>
-        <div style={{ fontSize: 36, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-1px', lineHeight: 1.1 }} className="tabular-nums num">
+        <div style={{ fontSize: 'clamp(22px, 3.5vw, 36px)', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.5px', lineHeight: 1.15, wordBreak: 'break-word' }} className="tabular-nums num">
           {isEmpty ? (
             <span style={{ fontSize: 22, fontWeight: 500, color: '#9ca3af', fontStyle: 'italic', fontVariantNumeric: 'normal' }}>
               No activity
@@ -173,9 +173,9 @@ function ActionCenterDashboard({ userName }: { userName: string }) {
   const qrLink = tenantInfo?.business_phone ? `https://wa.me/${tenantInfo.business_phone.replace(/[^0-9]/g, '')}` : null;
 
   return (
-    <div style={{ padding: '32px 32px 50px', minHeight: '100%', background: '#faf9f9', maxWidth: 1100, margin: '0 auto' }}>
+    <div className="dashboard-page-wrap" style={{ minHeight: '100%', background: '#faf9f9', maxWidth: 1100, margin: '0 auto' }}>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 800, color: '#111827', letterSpacing: '-0.5px' }}>
+        <h1 style={{ fontSize: 'clamp(20px, 3vw, 24px)', fontWeight: 800, color: '#111827', letterSpacing: '-0.5px' }}>
           Hey {tenantInfo?.business_name || userName}, Welcome to Ittisalo!
         </h1>
         <p style={{ fontSize: 14, color: '#6b7280', marginTop: 4 }}>
@@ -184,7 +184,7 @@ function ActionCenterDashboard({ userName }: { userName: string }) {
       </div>
 
       {/* Top 3 Action Blocks */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
+      <div className="dashboard-action-blocks-grid" style={{ marginBottom: 16 }}>
         {/* WhatsApp Block */}
         <div style={{ background: '#10b981', borderRadius: 16, padding: '24px', color: '#fff', boxShadow: '0 4px 14px rgba(16,185,129,0.2)' }}>
           <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 8 }}>
@@ -197,7 +197,7 @@ function ActionCenterDashboard({ userName }: { userName: string }) {
           </div>
           <button 
             onClick={() => router.push('/settings?tab=Channels+%26+APIs')}
-            style={{ background: '#fff', color: '#10b981', border: 'none', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            style={{ background: '#fff', color: '#10b981', border: 'none', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}
           >
             {waConnected ? 'Manage WhatsApp API' : 'Connect WhatsApp Business'}
           </button>
@@ -211,7 +211,7 @@ function ActionCenterDashboard({ userName }: { userName: string }) {
           </div>
           <button 
             onClick={() => router.push('/campaigns')}
-            style={{ background: '#fff', color: '#3b82f6', border: 'none', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            style={{ background: '#fff', color: '#3b82f6', border: 'none', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}
           >
             Go to Campaigns
           </button>
@@ -240,7 +240,7 @@ function ActionCenterDashboard({ userName }: { userName: string }) {
           </div>
           <button 
             onClick={() => router.push('/upgrade')}
-            style={{ background: '#111827', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+            style={{ background: '#111827', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 44 }}
           >
             <Sparkles size={14} /> {tenantInfo?.plan_status === 'active' ? 'Manage Plan' : 'Explore Plans & Upgrade'}
           </button>
@@ -248,7 +248,7 @@ function ActionCenterDashboard({ userName }: { userName: string }) {
       </div>
 
       {/* Middle Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 16 }}>
+      <div className="dashboard-action-middle-grid" style={{ marginBottom: 16 }}>
         {/* Social Media Gradient Block */}
         <div style={{ background: 'linear-gradient(135deg, #f5f3ff, #fdf2f8)', border: '1px solid #fbcfe8', borderRadius: 16, padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
           <div style={{ fontSize: 16, fontWeight: 800, color: '#111827', marginBottom: 8 }}>
@@ -1267,7 +1267,7 @@ export default function DashboardPage() {
           {nicheId === 'salon' && (
             <>
               <SectionCard title="Stylist Appointment Schedule" subtitle="Stylist calendar slots confirmed via customer WhatsApp interactions">
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10 }}>
                   {Object.entries(salonSchedule).map(([stylist, hours]) => (
                     <div key={stylist} style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
                       <div style={{ fontSize: 12, fontWeight: 800, color: RED, textTransform: 'uppercase', marginBottom: 10, textAlign: 'center' }}>{stylist}</div>
@@ -1291,7 +1291,7 @@ export default function DashboardPage() {
                 </div>
               </SectionCard>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="dashboard-pipeline-grid" style={{ gap: 16 }}>
                 <SectionCard title="🌸 Bridal Pipeline Inquiries">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {[
@@ -1322,7 +1322,7 @@ export default function DashboardPage() {
                             setUpcomingReminders(prev => prev.map(r => r.id === rem.id ? { ...r, sent: true } : r));
                           }}
                           disabled={rem.sent}
-                          style={{ padding: '4px 10px', background: rem.sent ? GREEN : RED, color: '#fff', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: rem.sent ? 'default' : 'pointer' }}
+                          style={{ padding: '4px 10px', background: rem.sent ? GREEN : RED, color: '#fff', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: rem.sent ? 'default' : 'pointer', minHeight: 36 }}
                         >
                           {rem.sent ? 'Sent' : 'Remind'}
                         </button>
@@ -1340,7 +1340,7 @@ export default function DashboardPage() {
           {nicheId === 'clinic' && (
             <>
               <SectionCard title="Doctor-wise Patient Consultation Grid" subtitle="Active OPD patient queues mapped dynamically by specialist doctor shifts">
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
                   {Object.entries(medicalDoctors).map(([doctor, list]) => (
                     <div key={doctor} style={{ background: '#faf9f9', padding: 12, borderRadius: 12 }}>
                       <div style={{ fontSize: 11.5, fontWeight: 800, color: RED, textTransform: 'uppercase', marginBottom: 10, textAlign: 'center' }}>{doctor}</div>

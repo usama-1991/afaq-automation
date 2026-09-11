@@ -464,7 +464,7 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        <div style={{ background: '#fff', borderRadius: 16, padding: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.07)' }}>
+        <div style={{ background: '#fff', borderRadius: 16, padding: 'clamp(18px, 4vw, 32px)', boxShadow: '0 4px 24px rgba(0,0,0,0.07)' }}>
           {/* STEP 1 */}
           {step === 1 && (
             <div className="step-content animate-in">
@@ -493,7 +493,7 @@ export default function OnboardingPage() {
                 <input value={businessName} onChange={e => setBusinessName(e.target.value)} placeholder="Your Business Name" style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none' }} />
               </div>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 16 }}>
                 <div>
                   <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Legal Name <span style={{ color: '#9ca3af', fontWeight: 400 }}>(Optional)</span></label>
                   <input value={legalName} onChange={e => setLegalName(e.target.value)} placeholder="For Meta verification" style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none' }} />
@@ -746,7 +746,7 @@ export default function OnboardingPage() {
               </div>
               <p style={{ fontSize: 14, color: '#4b5563', marginBottom: 24 }}>Configure how your AI interacts with customers.</p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 16 }}>
                 <div>
                   <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>Bot Persona / Tone</label>
                   <select value={aiTone} onChange={e => setAiTone(e.target.value)} style={{ width: '100%', padding: '11px 14px', fontSize: 13.5, border: '1.5px solid rgba(220,38,38,0.2)', borderRadius: 9, outline: 'none', background: '#fff' }}>

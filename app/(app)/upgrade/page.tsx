@@ -15,36 +15,36 @@ export default function PricingPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#faf9f9', padding: '40px 20px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#faf9f9', padding: 'clamp(20px, 4vw, 40px) clamp(14px, 3vw, 24px)', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         
         <button 
           onClick={() => router.push('/dashboard')}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: '#6b7280', fontSize: 14, fontWeight: 600, cursor: 'pointer', marginBottom: 30 }}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: '#6b7280', fontSize: 14, fontWeight: 600, cursor: 'pointer', marginBottom: 30, minHeight: 40 }}
         >
           <ArrowLeft size={16} /> Back to Dashboard
         </button>
 
-        <div style={{ textAlign: 'center', marginBottom: 50 }}>
-          <h1 style={{ fontSize: 36, fontWeight: 900, color: '#111827', letterSpacing: '-1px', marginBottom: 12 }}>
+        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+          <h1 style={{ fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 900, color: '#111827', letterSpacing: '-1px', marginBottom: 12 }}>
             Simple, Transparent Pricing
           </h1>
-          <p style={{ fontSize: 16, color: '#4b5563', maxWidth: 600, margin: '0 auto' }}>
+          <p style={{ fontSize: 'clamp(14px, 2.5vw, 16px)', color: '#4b5563', maxWidth: 600, margin: '0 auto' }}>
             Choose the plan that fits your business. Upgrade anytime as you grow.
           </p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+        <div className="pricing-plans-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
           
           {/* Starter Plan */}
-          <div style={{ background: '#fff', borderRadius: 24, padding: '32px', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: '#fff', borderRadius: 24, padding: 'clamp(20px, 4vw, 32px)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column' }}>
             <div style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 8 }}>Starter</div>
             <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 24 }}>Perfect for small businesses getting started with WhatsApp AI.</div>
             <div style={{ marginBottom: 30 }}>
               <span style={{ fontSize: 36, fontWeight: 900, color: '#111827', letterSpacing: '-1px' }}>Rs 4,999</span>
               <span style={{ fontSize: 14, color: '#6b7280', fontWeight: 500 }}>/mo</span>
             </div>
-            <button onClick={() => handleUpgrade('Starter')} style={{ width: '100%', padding: '12px', borderRadius: 12, background: '#f3f4f6', color: '#374151', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 32 }}>
+            <button onClick={() => handleUpgrade('Starter')} style={{ width: '100%', padding: '12px', borderRadius: 12, background: '#f3f4f6', color: '#374151', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 32, minHeight: 44 }}>
               {tenantInfo?.plan === 'starter' ? 'Current Plan' : 'Choose Starter'}
             </button>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
@@ -65,7 +65,7 @@ export default function PricingPage() {
           </div>
 
           {/* Growth Plan */}
-          <div style={{ background: '#111827', borderRadius: 24, padding: '32px', border: '1px solid #374151', boxShadow: '0 12px 30px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', position: 'relative', transform: 'scale(1.05)', zIndex: 10 }}>
+          <div className="pricing-featured-card" style={{ background: '#111827', borderRadius: 24, padding: 'clamp(20px, 4vw, 32px)', border: '1px solid #374151', boxShadow: '0 12px 30px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 10 }}>
             <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff', padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Most Popular</div>
             <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 8 }}>Growth</div>
             <div style={{ fontSize: 14, color: '#9ca3af', marginBottom: 24 }}>For growing brands that need multi-channel support.</div>
@@ -73,7 +73,7 @@ export default function PricingPage() {
               <span style={{ fontSize: 36, fontWeight: 900, color: '#fff', letterSpacing: '-1px' }}>Rs 9,999</span>
               <span style={{ fontSize: 14, color: '#9ca3af', fontWeight: 500 }}>/mo</span>
             </div>
-            <button onClick={() => handleUpgrade('Growth')} style={{ width: '100%', padding: '12px', borderRadius: 12, background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 32 }}>
+            <button onClick={() => handleUpgrade('Growth')} style={{ width: '100%', padding: '12px', borderRadius: 12, background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 32, minHeight: 44 }}>
               {tenantInfo?.plan === 'growth' ? 'Current Plan' : 'Upgrade to Growth'}
             </button>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
@@ -96,14 +96,14 @@ export default function PricingPage() {
           </div>
 
           {/* Enterprise Plan */}
-          <div style={{ background: '#fff', borderRadius: 24, padding: '32px', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: '#fff', borderRadius: 24, padding: 'clamp(20px, 4vw, 32px)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column' }}>
             <div style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 8 }}>Enterprise</div>
             <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 24 }}>Maximum limits and priority support for large operations.</div>
             <div style={{ marginBottom: 30 }}>
               <span style={{ fontSize: 36, fontWeight: 900, color: '#111827', letterSpacing: '-1px' }}>Rs 24,999</span>
               <span style={{ fontSize: 14, color: '#6b7280', fontWeight: 500 }}>/mo</span>
             </div>
-            <button onClick={() => handleUpgrade('Enterprise')} style={{ width: '100%', padding: '12px', borderRadius: 12, background: '#fef2f2', color: '#dc2626', border: '1px solid rgba(220,38,38,0.2)', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 32 }}>
+            <button onClick={() => handleUpgrade('Enterprise')} style={{ width: '100%', padding: '12px', borderRadius: 12, background: '#fef2f2', color: '#dc2626', border: '1px solid rgba(220,38,38,0.2)', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 32, minHeight: 44 }}>
               {tenantInfo?.plan === 'enterprise' ? 'Current Plan' : 'Contact for Enterprise'}
             </button>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>

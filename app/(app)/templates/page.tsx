@@ -139,8 +139,8 @@ export default function TemplatesPage() {
         </button>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2, maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
           {['All', 'Approved', 'Pending', 'Rejected'].map(status => {
             const act = selectedStatus === status;
             return (
@@ -152,7 +152,8 @@ export default function TemplatesPage() {
                   background: act ? '#dc2626' : '#fff',
                   color: act ? '#fff' : '#4b5563',
                   border: act ? '1px solid #dc2626' : '1px solid #e5e7eb', cursor: 'pointer', transition: 'all 0.12s',
-                  whiteSpace: 'nowrap', boxShadow: act ? '0 2px 6px rgba(220,38,38,0.15)' : 'none'
+                  whiteSpace: 'nowrap', boxShadow: act ? '0 2px 6px rgba(220,38,38,0.15)' : 'none',
+                  minHeight: 36
                 }}
               >
                 {status === 'Pending' ? 'Pending Review' : status}
@@ -161,7 +162,7 @@ export default function TemplatesPage() {
           })}
         </div>
 
-        <div style={{ position: 'relative', width: 280 }}>
+        <div style={{ position: 'relative', width: 'min(280px, 100%)', flex: '1 1 200px' }}>
           <Search size={15} color="#9ca3af" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
           <input 
             type="text" 
@@ -183,8 +184,8 @@ export default function TemplatesPage() {
         boxShadow: '0 2px 10px rgba(0,0,0,0.01)',
         overflow: 'hidden'
       }}>
-        <div className="templates-table-wrap" style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <div className="templates-table-wrap mobile-table-scroll" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
+          <table style={{ width: '100%', minWidth: 600, borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ background: '#faf9f9', borderBottom: '1px solid rgba(220,38,38,0.04)' }}>
                 <th style={{ padding: '14px 24px', fontSize: 11.5, fontWeight: 750, color: '#4b5563', textTransform: 'uppercase' }}>Template Name</th>
@@ -268,10 +269,11 @@ export default function TemplatesPage() {
           zIndex: 9999
         }}>
           <div className="template-modal-box" style={{
-            background: '#fff', width: 440, borderRadius: 16,
-            padding: '24px 28px', border: '1px solid rgba(220,38,38,0.1)',
+            background: '#fff', width: 'min(440px, calc(100vw - 32px))', borderRadius: 16,
+            padding: 'clamp(16px, 4vw, 28px)', border: '1px solid rgba(220,38,38,0.1)',
             boxShadow: '0 15px 45px rgba(0,0,0,0.2)',
-            animation: 'fadeUp 0.15s ease-out'
+            animation: 'fadeUp 0.15s ease-out',
+            maxHeight: '90vh', overflowY: 'auto'
           }}>
             {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>

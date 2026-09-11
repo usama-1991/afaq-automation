@@ -738,13 +738,13 @@ function ConversationsInner() {
                 </div>
               </div>
               {/* Handoff action buttons */}
-              <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
 
                 {/* ── Assigned-to badge ── */}
                 {selected.assigned_to && (() => {
                   const agent = teamMembers.find(m => m.id === selected.assigned_to);
                   return agent ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fef2f2', border: '1px solid rgba(220,38,38,0.2)', borderRadius: 20, padding: '4px 10px 4px 6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fef2f2', border: '1px solid rgba(220,38,38,0.2)', borderRadius: 20, padding: '4px 10px 4px 6px', minHeight: 36 }}>
                       <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'linear-gradient(135deg,#dc2626,#ef4444)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
                         {(agent.full_name || agent.email || '?').slice(0,2).toUpperCase()}
                       </div>
@@ -766,7 +766,7 @@ function ConversationsInner() {
                       disabled={assignLoading}
                       style={{
                         display: 'flex', alignItems: 'center', gap: 5,
-                        padding: '6px 12px', borderRadius: 8,
+                        padding: '6px 12px', borderRadius: 8, minHeight: 36,
                         border: '1px solid rgba(220,38,38,0.2)', cursor: 'pointer',
                         background: showAssignDropdown ? '#fef2f2' : '#fff',
                         color: '#dc2626', fontSize: 12, fontWeight: 700,
@@ -781,7 +781,7 @@ function ConversationsInner() {
                     {showAssignDropdown && (
                       <div style={{
                         position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 300,
-                        background: '#fff', borderRadius: 12, width: 220,
+                        background: '#fff', borderRadius: 12, width: 'min(220px, calc(100vw - 32px))',
                         boxShadow: '0 8px 24px rgba(0,0,0,0.13)', border: '1px solid rgba(220,38,38,0.1)',
                         overflow: 'hidden',
                       }}>
@@ -1034,7 +1034,7 @@ function ConversationsInner() {
                       position: 'absolute',
                       bottom: 34,
                       left: 0,
-                      width: 320,
+                      width: 'min(320px, calc(100vw - 32px))',
                       background: '#fff',
                       border: '1px solid rgba(220,38,38,0.12)',
                       borderRadius: 12,

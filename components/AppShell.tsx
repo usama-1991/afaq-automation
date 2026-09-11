@@ -426,7 +426,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           
           {/* Main Content Area */}
           <main className="main-content-area" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', width: '100%', maxWidth: '100%', minWidth: 0, background: '#faf9f9', position: 'relative' }}>
-            <div style={{ padding: '24px', width: '100%', maxWidth: '100%', boxSizing: 'border-box', minWidth: 0 }}>
+            <div className={
+              pathname === '/conversations' || pathname.startsWith('/conversations/') ||
+              pathname === '/contacts' || pathname.startsWith('/contacts/') ||
+              pathname === '/agents' || pathname.startsWith('/agents/')
+                ? "app-content-inner-fullscreen"
+                : "app-content-inner"
+            }>
               {!isAdminRoute && !isLocked && <MetaGateBanner />}
               {!isAdminRoute && isLocked && pathname !== '/pricing' && !pathname.startsWith('/settings') ? (
                 <TrialExpiredPaywall />
