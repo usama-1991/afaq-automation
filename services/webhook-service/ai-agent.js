@@ -892,6 +892,7 @@ export async function processAIAgent(ctx) {
               const eventBody = {
                 summary: `${recordData.treatment_type || 'Appointment'} - ${recordData.patient_name}`,
                 description: `Phone: ${recordData.patient_phone}\nConversation ID: ${ctx.conversation_id}\nBooked via WhatsApp AI`,
+                status: 'confirmed',
                 start: { 
                   dateTime: startDateTimeStr,
                   timeZone: calTimeZone
@@ -902,7 +903,8 @@ export async function processAIAgent(ctx) {
                 },
               };
 
-              const existingGoogleEventId = recordData.google_event_id || existingAppointment?.google_event_id;
+              const isPrevCanceled = existingAppointment?.status === 'canceled';
+              const existingGoogleEventId = !isPrevCanceled ? (recordData.google_event_id || existingAppointment?.google_event_id) : null;
               let gRes;
 
               if (existingGoogleEventId) {
@@ -929,8 +931,8 @@ export async function processAIAgent(ctx) {
               
               if (gRes.ok) {
                 const gData = await gRes.json();
-                await supabase.from('appointments').update({ google_event_id: gData.id, source: 'google' }).eq('conversation_id', ctx.conversation_id);
-                console.log(`[AI-Agent] ✅ Successfully pushed to Google Calendar (Event ID: ${gData.id})`);
+                await supabase.from('appointments').update({ google_event_id: gData.id, source: 'google', status: 'scheduled' }).eq('conversation_id', ctx.conversation_id);
+                console.log(`[AI-Agent] ✅ Successfully pushed to Google Calendar (Event ID: ${gData.id}, status: ${gData.status})`);
               } else {
                 console.error(`[AI-Agent] Google Calendar sync failed:`, await gRes.text());
               }
