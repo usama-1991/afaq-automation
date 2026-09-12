@@ -319,22 +319,43 @@ function ConversationsInner() {
           setMessages(prev => prev.map(m => m.id === tempId ? { ...m, id: data.id } : m));
         }
       } else {
-        // Public customer reply: Call /api/chat/send
-        const res = await fetch('/api/chat/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            conversationId: selected.id,
-            tenantId: selected.tenant_id,
+        // 1. Insert public agent message into messages table
+        const { data: insertedMsg, error: insertErr } = await supabase
+          .from('messages')
+          .insert([{
+            tenant_id: selected.tenant_id,
+            conversation_id: selected.id,
+            sender_type: 'agent',
             content: content,
-            platform: selected.platform,
-            customerPhone: selected.external_conversation_id,
-          }),
-        });
+          }])
+          .select('id')
+          .single();
 
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error || 'Failed to dispatch message');
+        if (insertErr) throw insertErr;
+
+        if (insertedMsg?.id) {
+          setMessages(prev => prev.map(m => m.id === tempId ? { ...m, id: insertedMsg.id } : m));
+
+          // 2. Dispatch via /api/chat/send with message_id
+          const res = await fetch('/api/chat/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              message_id: insertedMsg.id,
+            }),
+          });
+
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            console.warn('[Dispatch Warning]:', errData.error);
+          }
+
+          // 3. Update conversation last_message_preview and timestamp
+          await supabase.from('conversations').update({
+            last_message_at: new Date().toISOString(),
+            last_message_preview: content.slice(0, 100),
+            updated_at: new Date().toISOString()
+          }).eq('id', selected.id);
         }
 
         // Auto-assign to current user if unassigned

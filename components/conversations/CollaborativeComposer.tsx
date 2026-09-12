@@ -18,6 +18,16 @@ export interface CollaborativeComposerProps {
   sending: boolean;
 }
 
+const DEFAULT_SNIPPETS = [
+  { id: 'def_hello', shortcut: 'hello', title: 'Warm Welcome', content: 'Hello $customer.name! 👋 Thank you for reaching out to $business.name. How may I assist you today?', category: 'Greetings' },
+  { id: 'def_order', shortcut: 'order', title: 'Order Status Check', content: 'Could you please provide your 4-digit Order ID so I can quickly check the real-time shipping status for you?', category: 'Orders' },
+  { id: 'def_hours', shortcut: 'hours', title: 'Business Hours', content: 'Our official operating hours are Monday to Saturday, 9:00 AM – 8:00 PM. Messages received after hours will be answered first thing in the morning!', category: 'General' },
+  { id: 'def_agent', shortcut: 'agent', title: 'Agent Introduction', content: 'My name is $agent.name. I will be handling your inquiry today. Please let me know the details so I can assist you directly.', category: 'Support' },
+  { id: 'def_transfer', shortcut: 'transfer', title: 'Team Transfer', content: 'I am transferring your conversation to our specialized $team.name who can best assist you with this. Please stay connected!', category: 'Support' },
+  { id: 'def_discount', shortcut: 'discount', title: 'Special Discount', content: 'We are delighted to offer you a 10% exclusive discount today! Use promo code SAVE10 at checkout.', category: 'Sales' },
+  { id: 'def_close', shortcut: 'close', title: 'Resolve & Close', content: 'Thank you for contacting $business.name! Please let us know if you need anything else. Have a wonderful day!', category: 'Greetings' },
+];
+
 export const CollaborativeComposer = memo(function CollaborativeComposer({
   onSendMessage,
   onSendMedia,
@@ -45,8 +55,16 @@ export const CollaborativeComposer = memo(function CollaborativeComposer({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Combine custom snippets with default built-in snippets
+  const allSnippets = React.useMemo(() => {
+    const map = new Map();
+    DEFAULT_SNIPPETS.forEach(s => map.set(s.shortcut.toLowerCase(), s));
+    cannedSnippets.forEach(s => map.set(s.shortcut.toLowerCase(), s));
+    return Array.from(map.values());
+  }, [cannedSnippets]);
+
   // Filter snippets based on '/'
-  const filteredSnippets = cannedSnippets.filter(s => 
+  const filteredSnippets = allSnippets.filter(s => 
     s.shortcut.toLowerCase().includes(snippetSearch.toLowerCase()) || 
     s.title.toLowerCase().includes(snippetSearch.toLowerCase())
   );
@@ -64,7 +82,7 @@ export const CollaborativeComposer = memo(function CollaborativeComposer({
     // Check for snippet trigger '/'
     const cursor = e.target.selectionStart;
     const textBeforeCursor = val.slice(0, cursor);
-    const slashMatch = textBeforeCursor.match(/\/([a-zA-Z0-9_-]*)$/);
+    const slashMatch = textBeforeCursor.match(/(?:^|\s)\/([a-zA-Z0-9_-]*)$/);
     if (slashMatch) {
       setShowSnippets(true);
       setSnippetSearch(slashMatch[1]);
@@ -74,7 +92,7 @@ export const CollaborativeComposer = memo(function CollaborativeComposer({
     }
 
     // Check for mention trigger '@' (especially in note mode)
-    const atMatch = textBeforeCursor.match(/@([a-zA-Z0-9_-]*)$/);
+    const atMatch = textBeforeCursor.match(/(?:^|\s)@([a-zA-Z0-9_-]*)$/);
     if (atMatch) {
       setShowMentions(true);
       setMentionSearch(atMatch[1]);
@@ -87,16 +105,19 @@ export const CollaborativeComposer = memo(function CollaborativeComposer({
   // Replace placeholders in snippet content
   const formatSnippet = (content: string) => {
     return content
-      .replace(/\$customer\.name/g, conversation?.customer_name || 'Customer')
+      .replace(/\$customer\.name/g, conversation?.customer_name || 'there')
       .replace(/\$business\.name/g, businessName)
-      .replace(/\$team\.name/g, 'our team');
+      .replace(/\$team\.name/g, 'our team')
+      .replace(/\$agent\.name/g, 'our agent');
   };
 
-  const applySnippet = (snippet: typeof cannedSnippets[0]) => {
+  const applySnippet = (snippet: typeof allSnippets[0]) => {
     const cursor = textareaRef.current?.selectionStart || text.length;
     const textBeforeCursor = text.slice(0, cursor);
     const textAfterCursor = text.slice(cursor);
-    const newBefore = textBeforeCursor.replace(/\/([a-zA-Z0-9_-]*)$/, '');
+    const newBefore = textBeforeCursor.replace(/(?:^|\s)\/([a-zA-Z0-9_-]*)$/, (match, p1, offset, fullStr) => {
+      return match.startsWith(' ') ? ' ' : '';
+    });
     const formatted = formatSnippet(snippet.content);
     setText(newBefore + formatted + ' ' + textAfterCursor);
     setShowSnippets(false);
@@ -168,7 +189,17 @@ export const CollaborativeComposer = memo(function CollaborativeComposer({
   const handleSend = async () => {
     if (!text.trim() || sending) return;
     const isNote = mode === 'note';
-    const messageToSend = text.trim();
+    let messageToSend = text.trim();
+
+    // If messageToSend is a slash command like "/hello", auto-expand it
+    const trimmedSlash = messageToSend.startsWith('/') ? messageToSend.slice(1).toLowerCase() : null;
+    if (trimmedSlash) {
+      const matchSnippet = allSnippets.find(s => s.shortcut.toLowerCase() === trimmedSlash);
+      if (matchSnippet) {
+        messageToSend = formatSnippet(matchSnippet.content);
+      }
+    }
+
     setText('');
     setShowSnippets(false);
     setShowMentions(false);
