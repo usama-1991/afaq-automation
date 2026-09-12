@@ -865,21 +865,40 @@ export async function processAIAgent(ctx) {
                 }
               }
               
-              const startDateTimeStr = `${recordData.appointment_date}T${recordData.appointment_time}`;
+              // Query Google Calendar's configured timeZone so the slot displays at the exact requested time
+              let calTimeZone = recordData.timezone || 'Asia/Karachi';
+              try {
+                const calMetaRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${gcalInt.primary_calendar_id}`, {
+                  headers: { Authorization: `Bearer ${gToken}` }
+                });
+                if (calMetaRes.ok) {
+                  const calMeta = await calMetaRes.json();
+                  if (calMeta.timeZone) {
+                    calTimeZone = calMeta.timeZone;
+                  }
+                }
+              } catch (_) {}
+
+              const isUtcCal = calTimeZone.toUpperCase() === 'UTC';
+              const startDateTimeStr = isUtcCal 
+                ? `${recordData.appointment_date}T${recordData.appointment_time}Z`
+                : `${recordData.appointment_date}T${recordData.appointment_time}`;
               const [hour, minute] = recordData.appointment_time.split(':');
               const endHour = String((parseInt(hour, 10) + 1) % 24).padStart(2, '0');
-              const endDateTimeStr = `${recordData.appointment_date}T${endHour}:${minute}:00`;
+              const endDateTimeStr = isUtcCal
+                ? `${recordData.appointment_date}T${endHour}:${minute}:00Z`
+                : `${recordData.appointment_date}T${endHour}:${minute}:00`;
 
               const eventBody = {
                 summary: `${recordData.treatment_type || 'Appointment'} - ${recordData.patient_name}`,
                 description: `Phone: ${recordData.patient_phone}\nConversation ID: ${ctx.conversation_id}\nBooked via WhatsApp AI`,
                 start: { 
                   dateTime: startDateTimeStr,
-                  timeZone: recordData.timezone || 'Asia/Karachi'
+                  timeZone: calTimeZone
                 },
                 end: { 
                   dateTime: endDateTimeStr,
-                  timeZone: recordData.timezone || 'Asia/Karachi'
+                  timeZone: calTimeZone
                 },
               };
 
