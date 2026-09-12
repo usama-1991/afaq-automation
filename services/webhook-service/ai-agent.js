@@ -124,18 +124,31 @@ export async function processAIAgent(ctx) {
       kbSection = 'KNOWLEDGE BASE: No specific policies found.\n\n';
     }
 
-    // Check for existing order
+    // Check for existing order or appointment
     let existingOrder = null;
-    const { data: orderData } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('conversation_id', ctx.conversation_id)
-      .neq('status', 'cancelled')
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-      
-    if (orderData) existingOrder = orderData;
+    let existingAppointment = null;
+    if (['ecommerce', 'restaurant', 'food_delivery'].includes(ctx.niche)) {
+      const { data: orderData } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('conversation_id', ctx.conversation_id)
+        .neq('status', 'cancelled')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+        
+      if (orderData) existingOrder = orderData;
+    } else if (['dental', 'salon', 'clinic', 'medical'].includes(ctx.niche)) {
+      const { data: apptData } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('conversation_id', ctx.conversation_id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (apptData) existingAppointment = apptData;
+    }
 
     let orderStateBlock = '';
     if (['ecommerce', 'restaurant', 'food_delivery'].includes(ctx.niche)) {
@@ -374,12 +387,12 @@ export async function processAIAgent(ctx) {
     // 5b. Detect Intent & Create Record
     const msg = ctx.normalized_message || '';
     const msgLower = msg.toLowerCase();
-    let previousInfo = existingOrder || {};
-    const previousOrderFinished = previousInfo.status && ['confirmed', 'cancelled', 'completed', 'dispatched', 'delivered'].includes(previousInfo.status);
+    let previousInfo = existingAppointment || existingOrder || {};
+    const previousFinished = previousInfo.status && ['cancelled', 'completed', 'dispatched', 'delivered'].includes(previousInfo.status);
     
     let createRecord = false;
     let recordType = null;
-    let recordData = previousOrderFinished || Object.keys(previousInfo).length === 0
+    let recordData = previousFinished || Object.keys(previousInfo).length === 0
       ? {}
       : JSON.parse(JSON.stringify(previousInfo));
 
@@ -597,21 +610,57 @@ export async function processAIAgent(ctx) {
       const aiConfirmed = /appointment.*?is confirmed|confirmed.*?appointment|all set for your|confirmed for|look forward to seeing you|scheduled for/i.test(ai_reply);
       const userConfirmed = /^\s*(yes|confirm|confirmed|yes,?\s*confirm|sure|proceed|okay|ok|yep|yeah)\b/i.test(msg.trim());
 
-      if (isBookingIntent || msgHasBooking || aiConfirmed || userConfirmed) {
+      if (isBookingIntent || msgHasBooking || aiConfirmed || userConfirmed || existingAppointment) {
         createRecord = true;
         recordType = 'appointment';
 
+        const textToSearch = [
+          msg,
+          ai_reply,
+          ...(history.slice(-4).map(h => h.content || ''))
+        ].join(' ');
+
         // 1. Extract Time
-        const timeMatch = (msg + ' ' + ai_reply).match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm|AM|PM)/i);
         let extractedTime = null;
-        if (timeMatch) {
-          const hour = parseInt(timeMatch[1], 10);
-          const mins = timeMatch[2] ? timeMatch[2] : '00';
-          const isPM = timeMatch[3].toLowerCase() === 'pm';
+
+        // 1a. 12-Hour format with AM/PM (e.g., "3:30 pm", "3pm", "11:00 am")
+        const time12Match = (msg + ' ' + ai_reply).match(/(\b\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i) ||
+                            textToSearch.match(/(\b\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i);
+        if (time12Match) {
+          const hour = parseInt(time12Match[1], 10);
+          const mins = time12Match[2] ? time12Match[2] : '00';
+          const isPM = time12Match[3].toLowerCase() === 'pm';
           const hour24 = isPM && hour !== 12 ? hour + 12 : (!isPM && hour === 12 ? 0 : hour);
           extractedTime = `${String(hour24).padStart(2, '0')}:${mins}:00`;
-        } else {
-          const shiftMatch = (msg + ' ' + ai_reply).match(/(morning|afternoon|evening)/i);
+        }
+
+        // 1b. 24-Hour format (e.g., "15:30", "09:00", "14:00", "15.30")
+        if (!extractedTime) {
+          const time24Match = (msg + ' ' + ai_reply).match(/\b([01]?\d|2[0-3])[:.]([0-5]\d)\b/) ||
+                              textToSearch.match(/\b([01]?\d|2[0-3])[:.]([0-5]\d)\b/);
+          if (time24Match) {
+            const hour24 = parseInt(time24Match[1], 10);
+            const mins = time24Match[2];
+            extractedTime = `${String(hour24).padStart(2, '0')}:${mins}:00`;
+          }
+        }
+
+        // 1c. "at 3" or "around 4" (without AM/PM)
+        if (!extractedTime) {
+          const atTimeMatch = (msg + ' ' + ai_reply).match(/\b(?:at|around)\s+(\d{1,2})(?::(\d{2}))?\b/i) ||
+                              textToSearch.match(/\b(?:at|around)\s+(\d{1,2})(?::(\d{2}))?\b/i);
+          if (atTimeMatch) {
+            let hour = parseInt(atTimeMatch[1], 10);
+            const mins = atTimeMatch[2] || '00';
+            if (hour >= 1 && hour <= 6) hour += 12; // 1-6 assumed PM during business hours
+            extractedTime = `${String(hour).padStart(2, '0')}:${mins}:00`;
+          }
+        }
+
+        // 1d. Shift match (morning, afternoon, evening)
+        if (!extractedTime) {
+          const shiftMatch = (msg + ' ' + ai_reply).match(/(morning|afternoon|evening)/i) ||
+                             textToSearch.match(/(morning|afternoon|evening)/i);
           if (shiftMatch) {
             const shift = shiftMatch[1].toLowerCase();
             extractedTime = shift === 'morning' ? '10:00:00' : (shift === 'afternoon' ? '14:00:00' : '18:00:00');
@@ -620,8 +669,9 @@ export async function processAIAgent(ctx) {
 
         // 2. Extract Date
         let extractedDate = null;
-        // Matches: "20th August", "August 20th", "20 August", "August 20"
-        const specificDateMatch = (msg + ' ' + ai_reply).match(/(\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2}(?:st|nd|rd|th)?)/i);
+        // Matches: "12th September", "September 12th", "20 August", "August 20", "Sep 12", etc.
+        const specificDateMatch = (msg + ' ' + ai_reply).match(/(\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2}(?:st|nd|rd|th)?)/i) ||
+                                  textToSearch.match(/(\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2}(?:st|nd|rd|th)?)/i);
         if (specificDateMatch) {
           const cleanDateStr = specificDateMatch[1].replace(/(st|nd|rd|th)/ig, '').trim();
           const d2 = new Date(`${cleanDateStr} ${new Date().getFullYear()}`);
@@ -633,8 +683,19 @@ export async function processAIAgent(ctx) {
           }
         }
 
+        // 2b. ISO date match (e.g. 2026-09-12)
         if (!extractedDate) {
-          const dayMatch = (msg + ' ' + ai_reply).match(/(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|kal|parso|today|aaj)/i);
+          const isoDateMatch = (msg + ' ' + ai_reply).match(/\b(\d{4}-\d{2}-\d{2})\b/) ||
+                               textToSearch.match(/\b(\d{4}-\d{2}-\d{2})\b/);
+          if (isoDateMatch) {
+            extractedDate = isoDateMatch[1];
+          }
+        }
+
+        // 2c. Relative day match (today, tomorrow, monday..sunday)
+        if (!extractedDate) {
+          const dayMatch = (msg + ' ' + ai_reply).match(/(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|kal|parso|today|aaj)/i) ||
+                           textToSearch.match(/(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|kal|parso|today|aaj)/i);
           if (dayMatch) {
             const dayMap = { today:0, aaj:0, tomorrow:1, kal:1, parso:2, monday:1, tuesday:2, wednesday:3, thursday:4, friday:5, saturday:6, sunday:0 };
             const day = dayMatch[1].toLowerCase();
@@ -659,13 +720,14 @@ export async function processAIAgent(ctx) {
 
         // 3. Extract Treatment Type
         let treatmentType = recordData.treatment_type || recordData.service_type || null;
-        const fullText = (history.map(h => h.content).join(' ') + ' ' + msg + ' ' + ai_reply).toLowerCase();
+        const fullText = (history.map(h => h.content || '').join(' ') + ' ' + msg + ' ' + ai_reply).toLowerCase();
         if (fullText.includes('scaling') || fullText.includes('cleaning') || fullText.includes('polishing')) treatmentType = 'Scaling & Polishing';
         else if (fullText.includes('braces') || fullText.includes('aligners')) treatmentType = 'Braces Consultation';
         else if (fullText.includes('root canal')) treatmentType = 'Root Canal';
         else if (fullText.includes('filling') || fullText.includes('cavity')) treatmentType = 'Dental Filling';
         else if (fullText.includes('whitening') || fullText.includes('bleaching')) treatmentType = 'Teeth Whitening';
         else if (fullText.includes('extraction') || fullText.includes('removal')) treatmentType = 'Tooth Extraction';
+        else if (fullText.includes('consultation') || fullText.includes('checkup') || fullText.includes('doctor')) treatmentType = 'General Consultation';
         else if (!treatmentType) treatmentType = 'General Consultation';
 
         const isConfirmed = ai_intent === 'appointment_confirmed' || aiConfirmed || userConfirmed;
@@ -696,9 +758,9 @@ export async function processAIAgent(ctx) {
           timezone: 'Asia/Karachi',
           status: isConfirmed ? 'scheduled' : 'pending',
           is_new_patient: ctx.is_new_conversation,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          created_at: new Date().toISOString()
         };
+        delete recordData.updated_at; // appointments table has no updated_at column
       }
     }
 
@@ -745,8 +807,10 @@ export async function processAIAgent(ctx) {
         if (ordErr) console.error("[AI-Agent] Order Upsert Error:", ordErr);
         if (ord) upsertedOrderId = ord.id;
       } else if (recordType === 'appointment') {
+        delete recordData.updated_at;
         const { error: apptErr } = await supabase.from('appointments').upsert(recordData, { onConflict: 'conversation_id' });
         if (apptErr) console.error("[AI-Agent] Appointment Upsert Error:", apptErr);
+        else console.log(`[AI-Agent] ✅ Successfully upserted appointment for conv ${ctx.conversation_id}: ${recordData.appointment_date} ${recordData.appointment_time}`);
       } else if (recordType === 'lead') {
         const { error: leadErr } = await supabase.from('leads').upsert(recordData, { onConflict: 'conversation_id' });
         if (leadErr) console.error("[AI-Agent] Lead Upsert Error:", leadErr);
@@ -803,27 +867,46 @@ export async function processAIAgent(ctx) {
               
               const startDateTimeStr = `${recordData.appointment_date}T${recordData.appointment_time}`;
               const [hour, minute] = recordData.appointment_time.split(':');
-              const endHour = String((parseInt(hour) + 1) % 24).padStart(2, '0');
+              const endHour = String((parseInt(hour, 10) + 1) % 24).padStart(2, '0');
               const endDateTimeStr = `${recordData.appointment_date}T${endHour}:${minute}:00`;
 
               const eventBody = {
                 summary: `${recordData.treatment_type || 'Appointment'} - ${recordData.patient_name}`,
-                description: `Phone: ${recordData.patient_phone}\nConversation ID: ${ctx.conversation_id}`,
+                description: `Phone: ${recordData.patient_phone}\nConversation ID: ${ctx.conversation_id}\nBooked via WhatsApp AI`,
                 start: { 
                   dateTime: startDateTimeStr,
-                  timeZone: 'Asia/Karachi'
+                  timeZone: recordData.timezone || 'Asia/Karachi'
                 },
                 end: { 
                   dateTime: endDateTimeStr,
-                  timeZone: 'Asia/Karachi'
+                  timeZone: recordData.timezone || 'Asia/Karachi'
                 },
               };
-              
-              const gRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${gcalInt.primary_calendar_id}/events`, {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${gToken}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify(eventBody),
-              });
+
+              const existingGoogleEventId = recordData.google_event_id || existingAppointment?.google_event_id;
+              let gRes;
+
+              if (existingGoogleEventId) {
+                console.log(`[AI-Agent] Updating existing Google Calendar event: ${existingGoogleEventId}`);
+                gRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${gcalInt.primary_calendar_id}/events/${existingGoogleEventId}`, {
+                  method: 'PATCH',
+                  headers: { Authorization: `Bearer ${gToken}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify(eventBody),
+                });
+                if (gRes.status === 404) {
+                  gRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${gcalInt.primary_calendar_id}/events`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${gToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(eventBody),
+                  });
+                }
+              } else {
+                gRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${gcalInt.primary_calendar_id}/events`, {
+                  method: 'POST',
+                  headers: { Authorization: `Bearer ${gToken}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify(eventBody),
+                });
+              }
               
               if (gRes.ok) {
                 const gData = await gRes.json();
