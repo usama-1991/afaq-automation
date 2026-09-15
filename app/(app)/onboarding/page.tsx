@@ -7,6 +7,7 @@ import { niches } from '@/lib/niches';
 import { Check, ArrowRight, ArrowLeft, Loader2, Upload, MessageSquare, MapPin, Clock, FileText, Settings, Bot, CreditCard, Sparkles } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { encrypt } from '@/lib/crypto';
+import WhatsAppEmbeddedSignup from '@/components/whatsapp/WhatsAppEmbeddedSignup';
 
 export default function OnboardingPage() {
   const { setNicheId, setOnboarded } = useNiche();
@@ -531,7 +532,46 @@ export default function OnboardingPage() {
                 <div style={{ background: '#fef2f2', padding: 8, borderRadius: 8 }}><MessageSquare size={20} color="#dc2626" /></div>
                 <h2 style={{ fontSize: 22, fontWeight: 700, color: '#111827', margin: 0 }}>WhatsApp Business Connection</h2>
               </div>
-              <p style={{ fontSize: 14, color: '#4b5563', marginBottom: 24 }}>Connect your WhatsApp API to enable AI messaging.</p>
+              <p style={{ fontSize: 14, color: '#4b5563', marginBottom: 20 }}>Connect your WhatsApp API to enable AI messaging.</p>
+
+              {/* 1-Click Embedded Signup */}
+              <div style={{
+                background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
+                border: '1.5px solid #86efac',
+                borderRadius: 12,
+                padding: '16px',
+                marginBottom: 20,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#166534' }}>
+                      ⚡ 1-Click Official Meta Connection
+                    </div>
+                    <div style={{ fontSize: 12.5, color: '#15803d', marginTop: 2 }}>
+                      Authorize with Meta in a popup to register your WhatsApp number instantly.
+                    </div>
+                  </div>
+                  <WhatsAppEmbeddedSignup
+                    tenantId={tenantId}
+                    businessName={businessName}
+                    variant="compact"
+                    buttonText="Connect with Meta"
+                    onSuccess={(data) => {
+                      if (data.display_phone_number) setWaPhone(data.display_phone_number);
+                      if (businessName) setWaDisplayName(businessName);
+                      setStep(3); // Advance to next step
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '14px 0' }}>
+                <div style={{ height: 1, flex: 1, background: '#e5e7eb' }} />
+                <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase' }}>
+                  Or enter manually
+                </span>
+                <div style={{ height: 1, flex: 1, background: '#e5e7eb' }} />
+              </div>
 
               <div style={{ marginBottom: 16 }}>
                 <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'block', marginBottom: 6 }}>WhatsApp Number <span style={{ color: '#9ca3af', fontWeight: 400 }}>(Optional - can add later)</span></label>

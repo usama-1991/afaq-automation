@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect, useCallback } from 'react';
 import { CalendarIntegrationsSettings } from '@/components/settings/CalendarIntegrations';
 import { WebsiteChatWidgetSettings } from '@/components/settings/WebsiteChatWidgetSettings';
+import WhatsAppEmbeddedSignup from '@/components/whatsapp/WhatsAppEmbeddedSignup';
 import { useSearchParams } from 'next/navigation';
 import { 
   Check, RefreshCw, Bot, Plug, Settings, Sparkles, 
@@ -1098,6 +1099,50 @@ function SettingsInner() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {/* 1-Click Embedded Signup Box */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
+                  border: '1.5px solid #86efac',
+                  borderRadius: 12,
+                  padding: '16px 18px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: '#166534' }}>
+                        ⚡ 1-Click Official Meta Embedded Signup (Recommended)
+                      </div>
+                      <div style={{ fontSize: 12.5, color: '#15803d', marginTop: 3, maxWidth: 500, lineHeight: 1.4 }}>
+                        Connect your official WhatsApp Business number via Meta&apos;s verified popup. Tokens, webhooks, and phone registration configure automatically.
+                      </div>
+                    </div>
+                    <WhatsAppEmbeddedSignup
+                      tenantId={tenantIdState}
+                      businessName={businessName}
+                      onSuccess={(data) => {
+                        setWaPhoneId(data.phone_number_id);
+                        setWaAccountId(data.waba_id);
+                        showAlert({
+                          title: 'WhatsApp Connected!',
+                          message: `Official WhatsApp Business Cloud API successfully connected! Number ID: ${data.phone_number_id}`,
+                          type: 'success',
+                        });
+                        setTimeout(() => window.location.reload(), 1200);
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0' }}>
+                  <div style={{ height: 1, flex: 1, background: '#e5e7eb' }} />
+                  <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Or Manual / Legacy Setup
+                  </span>
+                  <div style={{ height: 1, flex: 1, background: '#e5e7eb' }} />
+                </div>
+
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
                     <label style={{ fontSize: 12.5, fontWeight: 700, color: '#374151' }}>Meta WhatsApp Business Permanent Token</label>

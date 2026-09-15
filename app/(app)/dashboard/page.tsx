@@ -20,6 +20,7 @@ import { useNiche } from '@/context/NicheContext';
 import { usePlan } from '@/context/PlanContext';
 import { useRouter } from 'next/navigation';
 import { notifyOrderStatusUpdate } from '@/lib/notify-status';
+import WhatsAppEmbeddedSignup from '@/components/whatsapp/WhatsAppEmbeddedSignup';
 
 // ── Design Tokens ─────────────────────────────────────────────
 const RED = '#A8253F';
@@ -195,12 +196,21 @@ function ActionCenterDashboard({ userName }: { userName: string }) {
               ? 'Your official WhatsApp Business number is active and connected with your AI Agent.' 
               : "Connect your official Meta WhatsApp Business Cloud API to start automating chats."}
           </div>
-          <button 
-            onClick={() => router.push('/settings?tab=Channels+%26+APIs')}
-            style={{ background: '#fff', color: '#10b981', border: 'none', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}
-          >
-            {waConnected ? 'Manage WhatsApp API' : 'Connect WhatsApp Business'}
-          </button>
+          {waConnected ? (
+            <button 
+              onClick={() => router.push('/settings?tab=Channels+%26+APIs')}
+              style={{ background: '#fff', color: '#10b981', border: 'none', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}
+            >
+              Manage WhatsApp API
+            </button>
+          ) : (
+            <WhatsAppEmbeddedSignup
+              tenantId={tenantInfo?.id}
+              businessName={tenantInfo?.business_name}
+              variant="light"
+              buttonText="1-Click Connect with Meta"
+            />
+          )}
         </div>
 
         {/* Marketing API Block */}
