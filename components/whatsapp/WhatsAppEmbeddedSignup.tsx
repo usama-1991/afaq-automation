@@ -39,29 +39,34 @@ export default function WhatsAppEmbeddedSignup({
 
   const initFb = useCallback(() => {
     if (typeof window !== 'undefined' && window.FB) {
-      window.FB.init({
-        appId: process.env.NEXT_PUBLIC_META_APP_ID || '1635701210878081',
-        autoLogAppEvents: true,
-        xfbml: true,
-        version: 'v21.0',
-      });
-      setSdkReady(true);
+      try {
+        window.FB.init({
+          appId: process.env.NEXT_PUBLIC_META_APP_ID || '1635701210878081',
+          autoLogAppEvents: true,
+          xfbml: true,
+          version: 'v21.0',
+        });
+        setSdkReady(true);
+        console.log('[Meta Embedded Signup] FB.init initialized successfully.');
+      } catch (err) {
+        console.error('[Meta Embedded Signup] FB.init error:', err);
+      }
     }
   }, []);
 
   useEffect(() => {
-    // 1. Initialize FB once script is ready
-    window.fbAsyncInit = function () {
-      initFb();
-    };
-
-    if (window.FB) {
-      initFb();
+    // 1. Set global fbAsyncInit hook
+    if (typeof window !== 'undefined') {
+      window.fbAsyncInit = function () {
+        initFb();
+      };
+      if (window.FB) {
+        initFb();
+      }
     }
 
     // 2. Session Info Listener for WhatsApp Embedded Signup
     const handleSessionMessage = (event: MessageEvent) => {
-      // Must originate from Facebook
       if (
         event.origin !== 'https://www.facebook.com' &&
         event.origin !== 'https://web.facebook.com'
@@ -91,77 +96,103 @@ export default function WhatsAppEmbeddedSignup({
     setErrorMessage(null);
 
     if (typeof window === 'undefined' || !window.FB) {
-      setErrorMessage('Meta JavaScript SDK is loading. Please try again in a few seconds.');
+      setErrorMessage('Meta SDK is still loading. Please check your internet or ad-blocker and try again.');
       return;
     }
+
+    // Re-ensure FB is initialized right before launching
+    initFb();
 
     setIsConnecting(true);
 
     const configId = process.env.NEXT_PUBLIC_META_CONFIG_ID || '1090812920081216';
 
-    window.FB.login(
-      async (response: any) => {
-        if (response.authResponse && response.authResponse.code) {
-          const oauthCode = response.authResponse.code;
-          const sessionInfo = window.__waSessionInfo || {};
+    // Auto-reset connecting spinner after 15 seconds if browser blocks popup
+    const popupTimeout = setTimeout(() => {
+      setIsConnecting(false);
+      setErrorMessage('Popup did not open. Please check if your browser blocked popups for this site (check address bar).');
+    }, 15000);
 
-          try {
-            console.log('[Meta Embedded Signup] Auth code received. Exchanging on server...');
-            const res = await fetch('/api/integrations/whatsapp/embedded-callback', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                code: oauthCode,
-                tenantId: tenantId,
-                wabaId: sessionInfo.waba_id,
-                phoneNumberId: sessionInfo.phone_number_id,
-              }),
-            });
+    try {
+      // Build extras strictly matching Meta's official Embedded Signup v4 spec
+      const extrasPayload: Record<string, any> = {
+        version: 'v4',
+      };
+      if (businessName && businessName.trim()) {
+        extrasPayload.setup = {
+          business: {
+            name: businessName.trim(),
+          },
+        };
+      }
 
-            const result = await res.json();
+      console.log('[Meta Embedded Signup] Triggering FB.login with config:', configId, extrasPayload);
 
-            if (res.ok && result.success) {
-              setConnectedNumber(result.display_phone_number || result.phone_number_id);
-              if (onSuccess) {
-                onSuccess({
-                  waba_id: result.waba_id,
-                  phone_number_id: result.phone_number_id,
-                  display_phone_number: result.display_phone_number,
-                });
+      window.FB.login(
+        async (response: any) => {
+          clearTimeout(popupTimeout);
+          console.log('[Meta Embedded Signup] FB.login response:', response);
+
+          if (response?.authResponse?.code) {
+            const oauthCode = response.authResponse.code;
+            const sessionInfo = window.__waSessionInfo || {};
+
+            try {
+              console.log('[Meta Embedded Signup] Exchanging code on backend...');
+              const res = await fetch('/api/integrations/whatsapp/embedded-callback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  code: oauthCode,
+                  tenantId: tenantId,
+                  wabaId: sessionInfo.waba_id,
+                  phoneNumberId: sessionInfo.phone_number_id,
+                }),
+              });
+
+              const result = await res.json();
+
+              if (res.ok && result.success) {
+                setConnectedNumber(result.display_phone_number || result.phone_number_id);
+                if (onSuccess) {
+                  onSuccess({
+                    waba_id: result.waba_id,
+                    phone_number_id: result.phone_number_id,
+                    display_phone_number: result.display_phone_number,
+                  });
+                } else {
+                  setTimeout(() => window.location.reload(), 1200);
+                }
               } else {
-                setTimeout(() => window.location.reload(), 1200);
+                const msg = result.error || 'Failed to complete WhatsApp onboarding.';
+                setErrorMessage(msg);
+                if (onError) onError(msg);
               }
-            } else {
-              const msg = result.error || 'Failed to finish WhatsApp onboarding.';
+            } catch (err: any) {
+              const msg = err.message || 'Network error communicating with server.';
               setErrorMessage(msg);
               if (onError) onError(msg);
+            } finally {
+              setIsConnecting(false);
             }
-          } catch (err: any) {
-            const msg = err.message || 'Network error communicating with server.';
-            setErrorMessage(msg);
-            if (onError) onError(msg);
-          } finally {
+          } else {
+            console.warn('[Meta Embedded Signup] User closed modal or cancelled auth.');
             setIsConnecting(false);
           }
-        } else {
-          console.warn('[Meta Embedded Signup] User closed modal or cancelled auth.');
-          setIsConnecting(false);
-        }
-      },
-      {
-        config_id: configId,
-        response_type: 'code',
-        override_default_response_type: true,
-        extras: {
-          version: 'v4',
-          setup: {
-            business: {
-              name: businessName || '',
-            },
-          },
         },
-      }
-    );
+        {
+          config_id: configId,
+          response_type: 'code',
+          override_default_response_type: true,
+          extras: extrasPayload,
+        }
+      );
+    } catch (err: any) {
+      clearTimeout(popupTimeout);
+      setIsConnecting(false);
+      console.error('[Meta Embedded Signup] Exception in FB.login:', err);
+      setErrorMessage(err.message || 'Could not launch Meta login window.');
+    }
   };
 
   // Button style variants
@@ -224,8 +255,10 @@ export default function WhatsAppEmbeddedSignup({
     <div style={{ display: 'inline-block' }}>
       {/* Load Meta Facebook JavaScript SDK */}
       <Script
+        id="facebook-jssdk"
         src="https://connect.facebook.net/en_US/sdk.js"
-        strategy="lazyOnload"
+        strategy="afterInteractive"
+        crossOrigin="anonymous"
         onLoad={initFb}
       />
 
