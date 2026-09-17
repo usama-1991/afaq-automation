@@ -5,8 +5,10 @@ import {
   User, Users, Bot, CheckCircle2, AlertTriangle, 
   ChevronDown, Archive, Clock, MoreVertical, 
   SidebarClose, SidebarOpen, Sparkles, Flame, 
-  Calendar, CreditCard, ShieldCheck, X, Check, Globe
+  Calendar, CreditCard, ShieldCheck, X, Check, Globe,
+  Pencil
 } from 'lucide-react';
+import { supabase } from '@/lib/supabase/client';
 import { LIFECYCLE_STAGES } from './InboxSidebarNav';
 
 export interface ConversationHeaderProps {
@@ -42,6 +44,32 @@ export const ConversationHeader = memo(function ConversationHeader({
   const [showLifecycleMenu, setShowLifecycleMenu] = useState(false);
   const [showAssignMenu, setShowAssignMenu] = useState(false);
   const [updating, setUpdating] = useState(false);
+
+  // Editable customer name
+  const [displayName, setDisplayName] = useState(c.customer_name || 'Website Visitor');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(c.customer_name || '');
+
+  useEffect(() => {
+    setDisplayName(c.customer_name || 'Website Visitor');
+    setNameInput(c.customer_name || '');
+  }, [c.customer_name]);
+
+  const handleSaveName = async () => {
+    if (!nameInput.trim()) {
+      setIsEditingName(false);
+      return;
+    }
+    const newName = nameInput.trim();
+    setDisplayName(newName);
+    c.customer_name = newName;
+    setIsEditingName(false);
+    try {
+      await supabase.from('conversations').update({ customer_name: newName }).eq('id', c.id);
+    } catch (err) {
+      console.error('Failed to update name:', err);
+    }
+  };
 
   const lifecycleRef = useRef<HTMLDivElement>(null);
   const assignRef = useRef<HTMLDivElement>(null);
@@ -115,14 +143,92 @@ export const ConversationHeader = memo(function ConversationHeader({
             color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 14, fontWeight: 700,
           }}>
-            {(c.customer_name || 'Visitor').slice(0, 2).toUpperCase()}
+            {(displayName || 'Visitor').slice(0, 2).toUpperCase()}
           </div>
 
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 15, fontWeight: 700, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {c.customer_name || 'Website Visitor'}
-              </span>
+              {isEditingName ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <input
+                    type="text"
+                    value={nameInput}
+                    onChange={e => setNameInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleSaveName();
+                      if (e.key === 'Escape') setIsEditingName(false);
+                    }}
+                    autoFocus
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: '#111827',
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      border: '1.5px solid #dc2626',
+                      outline: 'none',
+                      background: '#fff',
+                      width: 170,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveName}
+                    title="Save name"
+                    style={{
+                      background: '#16a34a',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 6,
+                      padding: '4px 6px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Check size={13} strokeWidth={3} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingName(false)}
+                    title="Cancel"
+                    style={{
+                      background: '#f3f4f6',
+                      color: '#6b7280',
+                      border: 'none',
+                      borderRadius: 6,
+                      padding: '4px 6px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              ) : (
+                <div 
+                  onClick={() => setIsEditingName(true)}
+                  title="Click to edit contact name"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    cursor: 'pointer',
+                    borderRadius: 6,
+                    padding: '2px 4px',
+                    marginLeft: -4,
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <span style={{ fontSize: 15, fontWeight: 700, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {displayName}
+                  </span>
+                  <Pencil size={12} color="#9ca3af" />
+                </div>
+              )}
 
               {/* Lifecycle Stage Switcher Pill */}
               <div ref={lifecycleRef} style={{ position: 'relative' }}>

@@ -320,10 +320,11 @@ export const InboxSidebarNav = memo(function InboxSidebarNav({
         <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: '#9ca3af', marginBottom: 6 }}>
           Channel Filter
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
           {[
             { id: 'all', label: 'All' },
             { id: 'whatsapp', label: 'WhatsApp' },
+            { id: 'messenger', label: 'Messenger' },
             { id: 'instagram', label: 'Instagram' },
             { id: 'web_widget', label: 'Website' },
           ].map(ch => (
@@ -331,11 +332,12 @@ export const InboxSidebarNav = memo(function InboxSidebarNav({
               key={ch.id}
               onClick={() => onSelectChannel(ch.id)}
               style={{
-                padding: '4px 6px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                padding: '5px 4px', borderRadius: 6, fontSize: 11, fontWeight: 600,
                 textAlign: 'center', cursor: 'pointer', border: '1px solid transparent',
                 background: currentChannel === ch.id ? '#ffffff' : 'transparent',
                 color: currentChannel === ch.id ? '#111827' : '#6b7280',
                 boxShadow: currentChannel === ch.id ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                transition: 'all 0.15s',
               }}
             >
               {ch.label}
