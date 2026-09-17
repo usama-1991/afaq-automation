@@ -107,12 +107,6 @@ export default function WhatsAppEmbeddedSignup({
 
     const configId = process.env.NEXT_PUBLIC_META_CONFIG_ID || '1090812920081216';
 
-    // Auto-reset connecting spinner after 15 seconds if browser blocks popup
-    const popupTimeout = setTimeout(() => {
-      setIsConnecting(false);
-      setErrorMessage('Popup did not open. Please check if your browser blocked popups for this site (check address bar).');
-    }, 15000);
-
     try {
       // Build extras strictly matching Meta's official Embedded Signup v4 spec
       const extrasPayload: Record<string, any> = {
@@ -171,7 +165,6 @@ export default function WhatsAppEmbeddedSignup({
 
       // Pure synchronous callback function for Meta FB.login (Meta strictly forbids AsyncFunction)
       function fbLoginCallback(response: any) {
-        clearTimeout(popupTimeout);
         console.log('[Meta Embedded Signup] FB.login response:', response);
 
         if (response?.authResponse?.code) {
@@ -194,7 +187,6 @@ export default function WhatsAppEmbeddedSignup({
         }
       );
     } catch (err: any) {
-      clearTimeout(popupTimeout);
       setIsConnecting(false);
       console.error('[Meta Embedded Signup] Exception in FB.login:', err);
       setErrorMessage(err.message || 'Could not launch Meta login window.');
@@ -312,6 +304,22 @@ export default function WhatsAppEmbeddedSignup({
               </>
             )}
           </button>
+
+          {isConnecting && !errorMessage && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              color: '#15803d',
+              fontSize: 12,
+              fontWeight: 600,
+              marginTop: 8,
+              maxWidth: 420,
+            }}>
+              <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
+              <span>Meta popup window is active. Please complete the steps in the popup...</span>
+            </div>
+          )}
 
           {errorMessage && (
             <div style={{
