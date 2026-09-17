@@ -18,6 +18,11 @@ const nextConfig: NextConfig = {
         destination: '/legal/terms',
         permanent: true,
       },
+      {
+        source: '/settings/integrations',
+        destination: '/settings?tab=Integrations',
+        permanent: false,
+      },
     ];
   },
 };

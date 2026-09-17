@@ -8,6 +8,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-jakarta" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://www.ittisalo.com'),
   title: "Ittisalo — One AI inbox for every DM your business gets",
   description:
     "Automate responses, take orders, book appointments, and manage conversations 24/7 across WhatsApp, Instagram, and Messenger.",

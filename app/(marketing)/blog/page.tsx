@@ -16,6 +16,17 @@ export const metadata: Metadata = {
 
 export const BLOG_POSTS = [
   {
+    slug: "new-meta-integration-announcement",
+    title: "Ittisalo Unveils Official Meta Tech Partner Integration & WhatsApp Cloud API Embedded Signup",
+    excerpt: "Connect your official WhatsApp Business number, Instagram DM inbox, and Facebook Messenger in under 60 seconds with zero API key hassle and verified green-tick compliance.",
+    date: "September 15, 2026",
+    readTime: "4 min read",
+    author: "Usama Ahmed",
+    authorRole: "Product Lead at Ittisalo",
+    category: "Meta Partner Integration",
+    image: "/images/creatives/meta-partner-announcement.jpg"
+  },
+  {
     slug: "automate-whatsapp-orders-restaurant",
     title: "How to Automate WhatsApp Delivery Orders & Menus for Pakistani Restaurants",
     excerpt: "Discover how top dining spots in Karachi and Lahore handle peak dinner rush DMs, share interactive digital menus, and cut order errors to zero.",

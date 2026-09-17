@@ -13,6 +13,11 @@ type PostDetail = {
   authorRole: string;
   summary: string;
   image: string;
+  diagram?: {
+    image: string;
+    title: string;
+    caption: string;
+  };
   sections: {
     heading: string;
     body: string;
@@ -22,6 +27,58 @@ type PostDetail = {
 };
 
 const BLOG_ARTICLES: Record<string, PostDetail> = {
+  "new-meta-integration-announcement": {
+    slug: "new-meta-integration-announcement",
+    title: "Ittisalo Unveils Official Meta Tech Partner Integration & WhatsApp Cloud API Embedded Signup 2.0",
+    category: "Meta Partner Integration",
+    date: "September 15, 2026",
+    readTime: "4 min read",
+    author: "Usama Ahmed",
+    authorRole: "Product Lead at Ittisalo",
+    summary:
+      "Connect your official WhatsApp Business number, Instagram DM inbox, and Facebook Messenger in under 60 seconds with zero API key hassle, verified green-tick compliance, and enterprise-grade SLA.",
+    image: "/images/creatives/meta-partner-announcement.jpg",
+    diagram: {
+      image: "/images/creatives/meta-embedded-signup-flow.jpg",
+      title: "The 3-Step Meta Embedded Signup 2.0 Workflow",
+      caption: "Businesses connect directly through Meta's verified OAuth modal without leaving the Ittisalo dashboard."
+    },
+    sections: [
+      {
+        heading: "Eliminating the Risks of Unofficial WhatsApp Gateways",
+        body: "For years, businesses attempting to automate customer communications were forced to rely on unofficial QR-code scrapers and third-party phone bridges. These gateways carried massive risks: sudden number bans, missed messages during server reboots, inability to get the official WhatsApp Green Tick, and severe compliance violations under Meta policies. With Ittisalo's official Meta Tech Partner integration, businesses connect directly to Meta's Cloud API hosted on Meta infrastructure.",
+        bulletPoints: [
+          "Zero risk of phone number blocking or disconnection during broadcasts",
+          "Official Green Tick verification eligibility directly through Meta Business Manager",
+          "Sub-second message delivery latency and 99.99% enterprise uptime SLA",
+          "End-to-end encryption compliant with international data protection standards"
+        ]
+      },
+      {
+        heading: "Meta Embedded Signup 2.0: Live in Under 60 Seconds",
+        body: "Previously, setting up the WhatsApp Business API required registering a developer app, generating permanent access tokens, configuring webhook endpoints, and waiting days for manual review. Ittisalo now embeds Meta's native onboarding dialogue right inside your Settings. With a single click, business owners log in to Facebook, select their Business Manager, verify their phone number via SMS/voice code, and immediately start receiving live customer chats.",
+        bulletPoints: [
+          "No developer keys, tokens, or webhook configuration needed",
+          "Bring your existing business phone number or onboard a brand-new virtual line",
+          "Instant synchronization of business profiles, logos, catalog menus, and hours"
+        ]
+      },
+      {
+        heading: "Omnichannel Synergy: WhatsApp, Instagram & Messenger Unified",
+        body: "Customer journeys don't stop at WhatsApp. When a follower comments on your Instagram reel or sends a private DM on Facebook, Ittisalo's Meta Graph API integration detects intent and triggers instant contextual AI responses. Customers can browse your catalog, confirm delivery addresses, or transition seamlessly into WhatsApp checkout with their cart preserved.",
+        bulletPoints: [
+          "Automated comment-to-DM funnels that convert reel engagement into sales",
+          "Story mention auto-responders with personalized discount vouchers",
+          "Unified multi-agent team inbox handling WhatsApp, IG, Messenger, and Web Chat"
+        ]
+      },
+      {
+        heading: "Start Scaling Conversational Commerce Today",
+        body: "Whether you operate a restaurant handling dinner rush orders, a fashion brand managing lawn collection drops, or a clinic scheduling doctor appointments, Ittisalo's Meta integration gives your team the enterprise foundation needed to scale without hiring dozens of support reps."
+      }
+    ],
+    relatedSlugs: ["automate-whatsapp-orders-restaurant", "instagram-comment-to-dm-funnel"]
+  },
   "automate-whatsapp-orders-restaurant": {
     slug: "automate-whatsapp-orders-restaurant",
     title: "How to Automate WhatsApp Delivery Orders & Menus for Pakistani Restaurants",
@@ -216,21 +273,43 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
         <div className="prose prose-lg max-w-none text-[#1A1517] space-y-8">
           {post.sections.map((sec, idx) => (
-            <div key={idx} className="space-y-4 bg-white p-8 rounded-3xl border border-[#EFEBE4] shadow-sm">
-              <h2 className="text-2xl font-bold text-[#1A1517] leading-snug">
-                {sec.heading}
-              </h2>
-              <p className="text-base text-[#5C5255] leading-relaxed font-normal">
-                {sec.body}
-              </p>
-              {sec.bulletPoints && (
-                <div className="space-y-2 pt-2">
-                  {sec.bulletPoints.map((bp, i) => (
-                    <div key={i} className="flex items-start gap-2.5 text-sm font-bold text-[#1A1517]">
-                      <CheckCircle2 size={16} className="text-[#10B981] shrink-0 mt-1" />
-                      <span>{bp}</span>
+            <div key={idx} className="space-y-8">
+              <div className="space-y-4 bg-white p-8 rounded-3xl border border-[#EFEBE4] shadow-sm">
+                <h2 className="text-2xl font-bold text-[#1A1517] leading-snug">
+                  {sec.heading}
+                </h2>
+                <p className="text-base text-[#5C5255] leading-relaxed font-normal">
+                  {sec.body}
+                </p>
+                {sec.bulletPoints && (
+                  <div className="space-y-2 pt-2">
+                    {sec.bulletPoints.map((bp, i) => (
+                      <div key={i} className="flex items-start gap-2.5 text-sm font-bold text-[#1A1517]">
+                        <CheckCircle2 size={16} className="text-[#10B981] shrink-0 mt-1" />
+                        <span>{bp}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {post.diagram && idx === 1 && (
+                <div className="rounded-3xl overflow-hidden border border-[#EFEBE4] bg-white p-5 sm:p-7 shadow-xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="text-base font-bold text-[#1A1517] flex items-center gap-2">
+                      <Sparkles size={18} className="text-[#E63946]" />
+                      <span>{post.diagram.title}</span>
                     </div>
-                  ))}
+                    <span className="text-xs font-bold text-[#10B981] bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full">
+                      Official Meta Cloud API
+                    </span>
+                  </div>
+                  <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-inner">
+                    <img src={post.diagram.image} alt={post.diagram.title} className="w-full object-cover" />
+                  </div>
+                  <p className="text-xs text-[#8C8285] text-center font-medium">
+                    {post.diagram.caption}
+                  </p>
                 </div>
               )}
             </div>

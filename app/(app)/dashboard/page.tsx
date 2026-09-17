@@ -1391,7 +1391,7 @@ export default function DashboardPage() {
                 subtitle="Live status and message routing across your customer communication touchpoints"
                 action={
                   <button
-                    onClick={() => router.push('/settings/integrations')}
+                    onClick={() => router.push('/settings?tab=Integrations')}
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 6,
                       padding: '6px 12px', borderRadius: 8,
@@ -1533,7 +1533,7 @@ export default function DashboardPage() {
                       When customers send messages through WhatsApp, Facebook Messenger, or your Website Chat, they appear here live.
                     </div>
                     <button
-                      onClick={() => router.push('/settings/integrations')}
+                      onClick={() => router.push('/settings?tab=Integrations')}
                       style={{ padding: '8px 16px', background: RED_LIGHT, color: RED, border: `1px solid ${RED}`, borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}
                     >
                       View Integration Status
