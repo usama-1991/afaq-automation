@@ -128,58 +128,64 @@ export default function WhatsAppEmbeddedSignup({
 
       console.log('[Meta Embedded Signup] Triggering FB.login with config:', configId, extrasPayload);
 
-      window.FB.login(
-        async (response: any) => {
-          clearTimeout(popupTimeout);
-          console.log('[Meta Embedded Signup] FB.login response:', response);
+      const handleTokenExchange = async (oauthCode: string, sessionInfo: any) => {
+        try {
+          console.log('[Meta Embedded Signup] Exchanging code on backend...');
+          const res = await fetch('/api/integrations/whatsapp/embedded-callback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              code: oauthCode,
+              tenantId: tenantId,
+              wabaId: sessionInfo.waba_id,
+              phoneNumberId: sessionInfo.phone_number_id,
+            }),
+          });
 
-          if (response?.authResponse?.code) {
-            const oauthCode = response.authResponse.code;
-            const sessionInfo = window.__waSessionInfo || {};
+          const result = await res.json();
 
-            try {
-              console.log('[Meta Embedded Signup] Exchanging code on backend...');
-              const res = await fetch('/api/integrations/whatsapp/embedded-callback', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  code: oauthCode,
-                  tenantId: tenantId,
-                  wabaId: sessionInfo.waba_id,
-                  phoneNumberId: sessionInfo.phone_number_id,
-                }),
+          if (res.ok && result.success) {
+            setConnectedNumber(result.display_phone_number || result.phone_number_id);
+            if (onSuccess) {
+              onSuccess({
+                waba_id: result.waba_id,
+                phone_number_id: result.phone_number_id,
+                display_phone_number: result.display_phone_number,
               });
-
-              const result = await res.json();
-
-              if (res.ok && result.success) {
-                setConnectedNumber(result.display_phone_number || result.phone_number_id);
-                if (onSuccess) {
-                  onSuccess({
-                    waba_id: result.waba_id,
-                    phone_number_id: result.phone_number_id,
-                    display_phone_number: result.display_phone_number,
-                  });
-                } else {
-                  setTimeout(() => window.location.reload(), 1200);
-                }
-              } else {
-                const msg = result.error || 'Failed to complete WhatsApp onboarding.';
-                setErrorMessage(msg);
-                if (onError) onError(msg);
-              }
-            } catch (err: any) {
-              const msg = err.message || 'Network error communicating with server.';
-              setErrorMessage(msg);
-              if (onError) onError(msg);
-            } finally {
-              setIsConnecting(false);
+            } else {
+              setTimeout(() => window.location.reload(), 1200);
             }
           } else {
-            console.warn('[Meta Embedded Signup] User closed modal or cancelled auth.');
-            setIsConnecting(false);
+            const msg = result.error || 'Failed to complete WhatsApp onboarding.';
+            setErrorMessage(msg);
+            if (onError) onError(msg);
           }
-        },
+        } catch (err: any) {
+          const msg = err.message || 'Network error communicating with server.';
+          setErrorMessage(msg);
+          if (onError) onError(msg);
+        } finally {
+          setIsConnecting(false);
+        }
+      };
+
+      // Pure synchronous callback function for Meta FB.login (Meta strictly forbids AsyncFunction)
+      function fbLoginCallback(response: any) {
+        clearTimeout(popupTimeout);
+        console.log('[Meta Embedded Signup] FB.login response:', response);
+
+        if (response?.authResponse?.code) {
+          const oauthCode = response.authResponse.code;
+          const sessionInfo = window.__waSessionInfo || {};
+          handleTokenExchange(oauthCode, sessionInfo);
+        } else {
+          console.warn('[Meta Embedded Signup] User closed modal or cancelled auth.');
+          setIsConnecting(false);
+        }
+      }
+
+      window.FB.login(
+        fbLoginCallback,
         {
           config_id: configId,
           response_type: 'code',
