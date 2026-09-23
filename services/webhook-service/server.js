@@ -340,14 +340,19 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
     }
   }
 
-  // 1d. Handle Interactive Responses
-  if (platform === 'whatsapp' && rawMessageObj?.type === 'interactive') {
-    if (rawMessageObj.interactive.type === 'button_reply') {
-      messageText = rawMessageObj.interactive.button_reply.title;
-    } else if (rawMessageObj.interactive.type === 'list_reply') {
-      messageText = rawMessageObj.interactive.list_reply.title;
+  // 1d. Handle Interactive Responses & Quick Reply Buttons
+  if (platform === 'whatsapp') {
+    if (rawMessageObj?.type === 'button') {
+      messageText = rawMessageObj.button?.text || rawMessageObj.button?.payload || messageText;
+      fastify.log.info(`[whatsapp] Quick reply button clicked: "${messageText}"`);
+    } else if (rawMessageObj?.type === 'interactive') {
+      if (rawMessageObj.interactive?.type === 'button_reply') {
+        messageText = rawMessageObj.interactive.button_reply?.title || rawMessageObj.interactive.button_reply?.id || messageText;
+      } else if (rawMessageObj.interactive?.type === 'list_reply') {
+        messageText = rawMessageObj.interactive.list_reply?.title || rawMessageObj.interactive.list_reply?.id || messageText;
+      }
+      fastify.log.info(`[whatsapp] Interactive reply processed: "${messageText}"`);
     }
-    fastify.log.info(`[whatsapp] Interactive reply processed: "${messageText}"`);
   }
 
   // 2. Find or Create Conversation — scoped to this tenant + customer phone
@@ -886,7 +891,16 @@ fastify.post('/webhook', {
             const contact       = change.value.contacts[0];
             const customerPhone = message.from;
             const customerName  = contact.profile.name;
-            const messageText   = message.text ? message.text.body : '';
+            let messageText = message.text ? message.text.body : '';
+            if (!messageText && message.type === 'button') {
+              messageText = message.button?.text || message.button?.payload || '';
+            } else if (!messageText && message.type === 'interactive') {
+              if (message.interactive?.type === 'button_reply') {
+                messageText = message.interactive.button_reply?.title || message.interactive.button_reply?.id || '';
+              } else if (message.interactive?.type === 'list_reply') {
+                messageText = message.interactive.list_reply?.title || message.interactive.list_reply?.id || '';
+              }
+            }
             const messageId     = message.id;
 
             // Skip if this is an echo (message sent by the business)

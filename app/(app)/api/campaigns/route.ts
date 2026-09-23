@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
   // ── Get recipient contacts from conversations table filtered by segment ──
   let query = supabase
     .from('conversations')
-    .select('external_conversation_id, customer_name, customer_phone, platform, lifecycle_stage, tags')
+    .select('id, external_conversation_id, customer_name, customer_phone, platform, lifecycle_stage, tags')
     .eq('tenant_id', ctx.tenantId)
     .eq('platform', 'whatsapp'); // only WhatsApp supports template messages
 
@@ -76,6 +76,7 @@ export async function POST(request: NextRequest) {
   const { data: conversations } = await query;
 
   const recipients = (conversations ?? []).map(c => ({
+    conversation_id: c.id,
     external_conversation_id: c.external_conversation_id || c.customer_phone || '',
     customer_name: c.customer_name,
     platform: c.platform,
@@ -118,7 +119,7 @@ async function sendCampaignMessages(
   campaignId: string,
   tenantId: string,
   template: Record<string, unknown>,
-  recipients: Array<{ external_conversation_id: string; customer_name: string | null; platform: string }>
+  recipients: Array<{ conversation_id?: string; external_conversation_id: string; customer_name: string | null; platform: string }>
 ) {
   // Use service role client to bypass RLS from this async context
   const { createServiceClient } = await import('@/lib/supabase/service');
@@ -143,6 +144,7 @@ async function sendCampaignMessages(
     let metaMessageId: string | null = null;
     let status = 'sent';
     let errorMessage: string | null = null;
+    let bodyParams: Array<{ type: string; text: string }> = [];
 
     if (!phoneNumberId || !accessToken) {
       status = 'failed';
@@ -165,7 +167,7 @@ async function sendCampaignMessages(
 
         // 2. Body component with exact number of required parameter slots
         if (bodyParamCount > 0) {
-          const bodyParams = bodyParamMatches.map((_, i) => {
+          bodyParams = bodyParamMatches.map((_, i) => {
             if (i === 0) return { type: 'text', text: recipient.customer_name || 'Valued Customer' };
             if (i === 1) return { type: 'text', text: `ORD${Math.floor(1000 + Math.random() * 9000)}` };
             if (i === 2) return { type: 'text', text: '149' };
@@ -213,6 +215,39 @@ async function sendCampaignMessages(
           metaMessageId = metaData?.messages?.[0]?.id ?? null;
           sentCount++;
           console.log(`[campaigns] Successfully sent template message to ${phone}, Meta ID: ${metaMessageId}`);
+
+          // ── Reconstruct and record outbound template message in Inbox ──
+          if (recipient.conversation_id) {
+            let renderedBody = bodyText;
+            bodyParams.forEach((param, idx) => {
+              renderedBody = renderedBody.replace(new RegExp(`\\{\\{${idx + 1}\\}\\}`, 'g'), param.text);
+            });
+
+            let fullContent = '';
+            if (template.header_text) fullContent += `*${template.header_text}*\n\n`;
+            fullContent += renderedBody;
+            if (template.footer_text) fullContent += `\n\n_${template.footer_text}_`;
+
+            await serviceClient.from('messages').insert({
+              conversation_id: recipient.conversation_id,
+              tenant_id: tenantId,
+              sender_type: 'bot',
+              content: fullContent,
+              external_message_id: metaMessageId,
+              is_read: true,
+              metadata: {
+                is_campaign: true,
+                campaign_id: campaignId,
+                template_name: template.name,
+              },
+            });
+
+            await serviceClient.from('conversations').update({
+              last_message_preview: renderedBody,
+              last_message_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }).eq('id', recipient.conversation_id);
+          }
         }
       } catch (err: unknown) {
         status = 'failed';
