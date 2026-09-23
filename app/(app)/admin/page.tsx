@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import SuperAdminGuard from '@/components/SuperAdminGuard';
 import { useConfirm, useAlert } from '@/context/DialogContext';
@@ -158,14 +159,37 @@ function formatCurrency(amount: number, currency: string = 'PKR'): string {
   return `${currency} ${safeAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export default function SuperAdminPage() {
+function SuperAdminPageContent() {
   const confirm = useConfirm();
   const showAlert = useAlert();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [loading, setLoading] = useState(true);
   const [dataMode, setDataMode] = useState<ModeType>('live');
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('30');
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    const tabParam = searchParams.get('tab') as TabType;
+    if (tabParam && ['overview', 'brands', 'commerce', 'tokens', 'integrations', 'escalations', 'audit'].includes(tabParam)) {
+      return tabParam;
+    }
+    return 'overview';
+  });
+
+  // Sync activeTab with URL tab query parameter
+  useEffect(() => {
+    const tabParam = searchParams.get('tab') as TabType;
+    if (tabParam && ['overview', 'brands', 'commerce', 'tokens', 'integrations', 'escalations', 'audit'].includes(tabParam)) {
+      if (tabParam !== activeTab) {
+        setActiveTab(tabParam);
+      }
+    }
+  }, [searchParams, activeTab]);
+
+  const handleTabChange = (tabId: TabType) => {
+    setActiveTab(tabId);
+    router.replace(`/admin?tab=${tabId}`, { scroll: false });
+  };
 
   // Database raw collections
   const [rawTenants, setRawTenants] = useState<Tenant[]>([]);
@@ -952,7 +976,7 @@ The journey has just begun. 🚀`;
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id as TabType)}
+                    onClick={() => handleTabChange(tab.id as TabType)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -2020,5 +2044,17 @@ The journey has just begun. 🚀`;
 
       </div>
     </SuperAdminGuard>
+  );
+}
+
+export default function SuperAdminPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', background: '#090d16', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+        Loading Back Office...
+      </div>
+    }>
+      <SuperAdminPageContent />
+    </Suspense>
   );
 }

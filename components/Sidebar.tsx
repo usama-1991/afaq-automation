@@ -2,8 +2,12 @@
 
 import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { Star, LayoutDashboard, MessageSquare, Users, Bot, Plug, Settings, LogOut, FileText, Megaphone, Folder, BarChart3, Menu, X, ShoppingBag, Crown } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { 
+  Star, LayoutDashboard, MessageSquare, Users, Bot, Plug, Settings, LogOut, 
+  FileText, Megaphone, Folder, BarChart3, Menu, X, ShoppingBag, Crown,
+  Activity, Store, Coins, Layers, ShieldAlert, History, Building2 
+} from 'lucide-react';
 import { useNiche } from '@/context/NicheContext';
 import { supabase } from '@/lib/supabase/client';
 
@@ -78,12 +82,27 @@ const NavItem = memo(function NavItem({ href, icon: Icon, label, active, count, 
 
 function Sidebar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const { niche, nicheId } = useNiche();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [unreadChats, setUnreadChats] = useState(0);
   const [pendingOrders, setPendingOrders] = useState(0);
+
+  const isAdmin = pathname.startsWith('/admin');
+  const currentTab = searchParams.get('tab') || 'overview';
+
+  // Dedicated Super Admin Cluster (Used only on /admin)
+  const clusterSuperAdmin = useMemo(() => [
+    { href: '/admin?tab=overview', icon: Activity, label: 'Command Center', tabId: 'overview' },
+    { href: '/admin?tab=brands', icon: Store, label: 'Tenants & Workspaces', tabId: 'brands' },
+    { href: '/admin?tab=commerce', icon: ShoppingBag, label: 'Commerce & Orders', tabId: 'commerce' },
+    { href: '/admin?tab=tokens', icon: Coins, label: 'AI Cost & Margins', tabId: 'tokens' },
+    { href: '/admin?tab=integrations', icon: Layers, label: 'Channels & Webhooks', tabId: 'integrations' },
+    { href: '/admin?tab=escalations', icon: ShieldAlert, label: 'Escalations & QA', tabId: 'escalations' },
+    { href: '/admin?tab=audit', icon: History, label: 'Audit Trail', tabId: 'audit' },
+  ], []);
 
   // Cluster 1: Core
   const clusterCore = useMemo(() => [
@@ -196,6 +215,130 @@ function Sidebar() {
     await supabase.auth.signOut();
     router.push('/login');
   };
+
+  // ── SUPER ADMIN DEDICATED SHELL ─────────────────────────────
+  if (isAdmin) {
+    return (
+      <>
+        {/* ── Desktop Super Admin Sidebar ─────────────────────── */}
+        <aside
+          className="desktop-sidebar"
+          style={{
+            width: 72, background: '#0a0f1d', height: '100vh',
+            position: 'fixed', left: 0, top: 0,
+            flexDirection: 'column', alignItems: 'center',
+            borderRight: '1px solid #1e293b', zIndex: 50,
+          }}
+        >
+          {/* Logo with Super Admin Crown Indicator */}
+          <div style={{
+            width: 72, height: 80, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            borderBottom: '1px solid #1e293b', flexShrink: 0, position: 'relative'
+          }}>
+            <Link href="/admin?tab=overview" style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <img src="/logo.png" alt="Ittisalo Logo" style={{
+                width: 44, height: 44, borderRadius: 10, objectFit: 'contain'
+              }} />
+              <div style={{
+                position: 'absolute', bottom: -4, right: -4,
+                width: 18, height: 18, borderRadius: '50%',
+                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 0 8px rgba(239, 68, 68, 0.8)',
+                border: '2px solid #0a0f1d'
+              }}>
+                <Crown size={10} color="#fff" />
+              </div>
+            </Link>
+          </div>
+
+          {/* Super Admin Navigation Items ONLY */}
+          <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '20px 0', overflowY: 'auto' }}>
+            {clusterSuperAdmin.map(item => {
+              const active = currentTab === item.tabId;
+              return (
+                <NavItem
+                  key={item.href}
+                  href={item.href}
+                  icon={item.icon}
+                  label={item.label}
+                  active={active}
+                  onPrefetch={handlePrefetch}
+                />
+              );
+            })}
+          </nav>
+
+          {/* Bottom Actions: Exit to Merchant App & Logout */}
+          <div style={{ padding: '16px 0', borderTop: '1px solid #1e293b', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', width: '100%' }}>
+            {/* Link back to Merchant Tenant View */}
+            <NavItem
+              href="/dashboard"
+              icon={Building2}
+              label="Switch to Merchant App"
+              active={false}
+              onPrefetch={handlePrefetch}
+            />
+
+            {/* Super Admin Badge */}
+            <div
+              title="Super Admin Active"
+              style={{
+                width: 36, height: 36, borderRadius: 10,
+                background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 12, fontWeight: 800, color: '#fff',
+                boxShadow: '0 2px 10px rgba(239, 68, 68, 0.35)',
+              }}
+            >
+              SA
+            </div>
+            
+            <button
+              onClick={handleLogout}
+              title="Logout"
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: 8, borderRadius: 8, transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.background = 'transparent'; }}
+            >
+              <LogOut size={18} strokeWidth={1.8} />
+            </button>
+          </div>
+        </aside>
+
+        {/* ── Mobile Super Admin Bottom Nav ──────────────────── */}
+        <nav className="mobile-bottom-nav" style={{ alignItems: 'stretch', justifyContent: 'space-around', borderTop: '1px solid #1e293b', background: '#0a0f1d' }}>
+          {clusterSuperAdmin.slice(0, 5).map((navItem) => {
+            const { href, icon: Icon, label, tabId } = navItem;
+            const active = currentTab === tabId;
+            return (
+              <Link
+                key={href}
+                href={href}
+                style={{ textDecoration: 'none', flex: 1 }}
+                onMouseEnter={() => handlePrefetch(href)}
+              >
+                <div style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  justifyContent: 'center', height: '100%', gap: 3,
+                  color: active ? '#ef4444' : '#64748b',
+                  transition: 'color 0.15s',
+                  position: 'relative',
+                }}>
+                  <Icon size={18} strokeWidth={active ? 2.2 : 1.7} />
+                  <span style={{ fontSize: 10, fontWeight: active ? 700 : 500 }}>{label.split(' ')[0]}</span>
+                </div>
+              </Link>
+            );
+          })}
+        </nav>
+      </>
+    );
+  }
 
   return (
     <>

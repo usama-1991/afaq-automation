@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { useNiche } from '@/context/NicheContext';
 import { usePlan } from '@/context/PlanContext';
 import { supabase } from '@/lib/supabase/client';
@@ -277,7 +277,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
-      {showBanner && <TopBanner onClose={() => setBannerVisible(false)} />}
+      {showBanner && !isAdminRoute && <TopBanner onClose={() => setBannerVisible(false)} />}
       {planLoaded && isLocked && !isAdminRoute && (
         <div style={{ background: '#fef2f2', borderBottom: '1px solid #fecaca', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
           <AlertCircle size={16} color="#dc2626" />
@@ -287,66 +287,69 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       )}
       <div style={{ display: 'flex', flex: 1, minWidth: 0, width: '100%', maxWidth: '100vw' }}>
-        <Sidebar />
+        <Suspense fallback={<div style={{ width: 'var(--sidebar-w)', height: '100vh', background: '#111827' }} />}>
+          <Sidebar />
+        </Suspense>
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, marginLeft: 'var(--sidebar-w)', position: 'relative', minWidth: 0, width: 'calc(100% - var(--sidebar-w))', maxWidth: 'calc(100% - var(--sidebar-w))' }}>
           
-          {/* Unified Sticky Header Bar */}
-          <header style={{
-            height: 60, background: '#fff', borderBottom: '1px solid rgba(220,38,38,0.08)',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '0 16px', position: 'sticky', top: showBanner ? 38 : 0, zIndex: 40,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-            transition: 'top 0.2s ease',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {/* Mobile logo */}
-              <div className="mobile-only" style={{
-                width: 30, height: 30, borderRadius: 8,
-                background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 14, color: '#fff', fontWeight: 800, flexShrink: 0,
-              }}>A</div>
-              <div style={{
-                background: '#fef2f2', padding: '4px 10px', borderRadius: 8,
-                border: '1px solid rgba(220,38,38,0.15)',
-                fontSize: 12, fontWeight: 700, color: '#dc2626',
-                whiteSpace: 'nowrap',
-              }}>
-                {niche?.label || 'General'}
-              </div>
-              <div className="desktop-only" style={{ fontSize: 14.5, fontWeight: 700, color: '#1f2937', letterSpacing: '-0.3px' }}>
-                Ittisalo Studio <span style={{ fontSize: 11.5, color: '#dc2626', fontWeight: 600 }}>(Admin)</span>
-              </div>
-            </div>
-
-            {/* Profile Avatar Trigger */}
-            <div ref={dropdownRef} style={{ position: 'relative' }}>
-              <div 
-                onClick={() => setShowDropdown(!showDropdown)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
-                  padding: '5px 10px', borderRadius: 10,
-                  transition: 'background 0.15s',
-                  background: showDropdown ? '#fef2f2' : 'transparent',
-                }}
-                onMouseEnter={e => { if(!showDropdown) e.currentTarget.style.background = '#fff5f5'; }}
-                onMouseLeave={e => { if(!showDropdown) e.currentTarget.style.background = 'transparent'; }}
-              >
-                <div style={{
-                  width: 32, height: 32, borderRadius: '50%',
+          {/* Unified Sticky Header Bar - Hidden on Super Admin route */}
+          {!isAdminRoute && (
+            <header style={{
+              height: 60, background: '#fff', borderBottom: '1px solid rgba(220,38,38,0.08)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '0 16px', position: 'sticky', top: showBanner ? 38 : 0, zIndex: 40,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+              transition: 'top 0.2s ease',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {/* Mobile logo */}
+                <div className="mobile-only" style={{
+                  width: 30, height: 30, borderRadius: 8,
                   background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 12.5, fontWeight: 700, color: '#fff',
-                  boxShadow: '0 2px 8px rgba(220,38,38,0.25)',
+                  fontSize: 14, color: '#fff', fontWeight: 800, flexShrink: 0,
+                }}>A</div>
+                <div style={{
+                  background: '#fef2f2', padding: '4px 10px', borderRadius: 8,
+                  border: '1px solid rgba(220,38,38,0.15)',
+                  fontSize: 12, fontWeight: 700, color: '#dc2626',
+                  whiteSpace: 'nowrap',
                 }}>
-                  {initials}
+                  {niche?.label || 'General'}
                 </div>
-                <div className="desktop-only" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#1f2937', lineHeight: 1.2 }}>{userName}</span>
-                  <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 500 }}>{userEmail.length > 20 ? userEmail.slice(0, 17) + '...' : userEmail}</span>
+                <div className="desktop-only" style={{ fontSize: 14.5, fontWeight: 700, color: '#1f2937', letterSpacing: '-0.3px' }}>
+                  Ittisalo Studio <span style={{ fontSize: 11.5, color: '#dc2626', fontWeight: 600 }}>(Admin)</span>
                 </div>
-                <ChevronDown className="desktop-only" size={14} color="#9ca3af" style={{ transform: showDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
               </div>
+
+              {/* Profile Avatar Trigger */}
+              <div ref={dropdownRef} style={{ position: 'relative' }}>
+                <div 
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+                    padding: '5px 10px', borderRadius: 10,
+                    transition: 'background 0.15s',
+                    background: showDropdown ? '#fef2f2' : 'transparent',
+                  }}
+                  onMouseEnter={e => { if(!showDropdown) e.currentTarget.style.background = '#fff5f5'; }}
+                  onMouseLeave={e => { if(!showDropdown) e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <div style={{
+                    width: 32, height: 32, borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 12.5, fontWeight: 700, color: '#fff',
+                    boxShadow: '0 2px 8px rgba(220,38,38,0.25)',
+                  }}>
+                    {initials}
+                  </div>
+                  <div className="desktop-only" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#1f2937', lineHeight: 1.2 }}>{userName}</span>
+                    <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 500 }}>{userEmail.length > 20 ? userEmail.slice(0, 17) + '...' : userEmail}</span>
+                  </div>
+                  <ChevronDown className="desktop-only" size={14} color="#9ca3af" style={{ transform: showDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+                </div>
 
               {/* GORGEOUS GLASSMORPHIC RED DROP-DOWN MENU */}
               {showDropdown && (
@@ -423,10 +426,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               )}
             </div>
           </header>
+        )}
           
           {/* Main Content Area */}
-          <main className="main-content-area" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', width: '100%', maxWidth: '100%', minWidth: 0, background: '#faf9f9', position: 'relative' }}>
+          <main className="main-content-area" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', width: '100%', maxWidth: '100%', minWidth: 0, background: isAdminRoute ? '#090d16' : '#faf9f9', position: 'relative' }}>
             <div className={
+              isAdminRoute ||
               pathname === '/conversations' || pathname.startsWith('/conversations/') ||
               pathname === '/contacts' || pathname.startsWith('/contacts/') ||
               pathname === '/agents' || pathname.startsWith('/agents/')
