@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useRef, memo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { 
   Search, ArrowLeft, Loader2, ArrowUpDown, 
-  MessageSquare, SlidersHorizontal, Check 
+  MessageSquare, SlidersHorizontal, Check, AlertCircle 
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { useNiche } from '@/context/NicheContext';
@@ -47,6 +47,7 @@ function ConversationsInner() {
   const [currentUserId, setCurrentUserId] = useState<string | undefined>();
   const [currentUserName, setCurrentUserName] = useState<string>('Agent');
   const [tenantBusinessName, setTenantBusinessName] = useState('Ittisalo');
+  const [isTenantAiPaused, setIsTenantAiPaused] = useState(false);
 
   // ── Drawer & Mobile State ───────────────────────────────────────
   const [is360DrawerOpen, setIs360DrawerOpen] = useState(false);
@@ -147,10 +148,14 @@ function ConversationsInner() {
         // 4. Fetch tenant info
         const { data: tenant } = await supabase
           .from('tenants')
-          .select('business_name')
+          .select('business_name, metadata')
           .eq('id', tenantId)
           .maybeSingle();
         if (tenant?.business_name) setTenantBusinessName(tenant.business_name);
+        if (tenant) {
+          const aiActive = (tenant.metadata?.ai_enabled !== false);
+          setIsTenantAiPaused(!aiActive);
+        }
       } catch (e) {
         console.error('Error fetching init team data:', e);
       }
@@ -638,6 +643,24 @@ function ConversationsInner() {
                     />
                   </div>
                 </div>
+
+                {/* Workspace AI Paused Notification Banner */}
+                {isTenantAiPaused && (
+                  <div style={{
+                    background: '#fffbeb',
+                    borderBottom: '1px solid #fef3c7',
+                    padding: '8px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    color: '#92400e',
+                    fontSize: 12,
+                    fontWeight: 600,
+                  }}>
+                    <AlertCircle size={15} color="#d97706" style={{ flexShrink: 0 }} />
+                    <span>AI Engine is paused for this workspace by Super Admin. Incoming customer inquiries will not trigger AI replies and must be handled manually.</span>
+                  </div>
+                )}
 
                 {/* Message Feed & Collaboration Thread */}
                 <div 

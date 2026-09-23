@@ -113,6 +113,18 @@ fastify.post('/api/ai/process', async (request, reply) => {
     }
   } catch (_) {}
 
+  // 1b. Master Tenant AI killswitch check: Skip OpenAI if AI is disabled for this tenant
+  const isAiEnabled = (tenant?.ai_enabled !== false) && (tenant?.metadata?.ai_enabled !== false);
+  if (!isAiEnabled) {
+    fastify.log.info(`[web_widget] 🛑 AI is TOGGLED OFF for tenant ${tenant_id}. Skipping OpenAI processing.`);
+    await supabase.from('conversations').update({
+      bot_enabled: false,
+      status: 'pending',
+      updated_at: new Date().toISOString()
+    }).eq('id', conversation_id);
+    return reply.send({ success: true, ai_paused: true, message: 'AI is paused for this workspace. A human agent will respond shortly.' });
+  }
+
   // 2. Fetch KB, history, and agent config in parallel
   try {
     const [kbResult, historyResult, agentResult] = await Promise.allSettled([
@@ -233,6 +245,7 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
   let tenantCurrency     = 'USD';
   let waPhoneNumberId    = '';
   let waAccessToken      = '';
+  let isAiEnabled        = true;
 
   try {
     const { data: tenantRecord, error: tenantErr } = await supabase
@@ -247,6 +260,7 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
       tenantNiche        = tenantRecord.niche          || 'general';
       tenantBusinessName = tenantRecord.business_name  || '';
       tenantCurrency     = tenantRecord.default_currency || 'USD';
+      isAiEnabled        = (tenantRecord.ai_enabled !== false) && (tenantRecord.metadata?.ai_enabled !== false);
       // wa_phone_number_id is stored directly on tenants (migration 20260626)
       waPhoneNumberId    = tenantRecord.wa_phone_number_id || '';
       // wa_token_enc is the encrypted access token stored on tenants (migration 20260626)
@@ -437,6 +451,30 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
       { conversationId: conversation.id, phone: customerId }
     ).catch(err => fastify.log.error(`[FCM] Error sending new message push: ${err.message}`));
     
+    return;
+  }
+
+  // 3c. Master Tenant AI killswitch gate: if Super Admin disabled AI for this tenant, skip AI completely!
+  if (!isAiEnabled) {
+    fastify.log.info(`[${platform}] 🛑 AI is TOGGLED OFF for tenant ${tenantId}. Skipping OpenAI entirely. Placing conversation in human mode.`);
+
+    await supabase
+      .from('conversations')
+      .update({
+        bot_enabled: false,
+        status: conversation?.status === 'active' ? 'pending' : (conversation?.status || 'pending'),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', conversation.id);
+
+    sendTenantNotification(
+      supabase,
+      tenantId,
+      'New Customer Message (AI Paused)',
+      `${customerName || customerId}: ${messageText.substring(0, 50)}...`,
+      { conversationId: conversation.id, phone: customerId }
+    ).catch(err => fastify.log.error(`[FCM] Error sending new message push: ${err.message}`));
+
     return;
   }
 

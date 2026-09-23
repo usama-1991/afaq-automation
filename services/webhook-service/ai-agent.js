@@ -32,6 +32,12 @@ export async function processAIAgent(ctx) {
   try {
     console.log(`[AI-Agent][${_reqId}] ▶ START processing for conv_id: ${ctx.conversation_id}, msg: "${(ctx.normalized_message || '').slice(0, 50)}"`);
 
+    // 0. Master Tenant AI killswitch guard: ensure AI is enabled for this tenant
+    if (ctx.ai_enabled === false) {
+      console.log(`[AI-Agent][${_reqId}] 🛑 Master killswitch active for tenant ${ctx.tenant_id}. Skipping OpenAI processing.`);
+      return;
+    }
+
     // 1. Generate Embedding for the message
     let embedding = [];
     try {
