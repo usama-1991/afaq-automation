@@ -15,7 +15,7 @@ export default function PrivacyPolicy() {
             Privacy Policy
           </h1>
           <p className="text-sm font-medium text-gray-500">
-            Last updated: <span className="text-gray-800 font-semibold">10th August, 2026</span>
+            Last updated: <span className="text-gray-800 font-semibold">24th September, 2026</span>
           </p>
         </div>
 
@@ -78,7 +78,7 @@ export default function PrivacyPolicy() {
               <ul className="list-disc pl-6 space-y-1.5">
                 <li>Log data: IP address, browser type, device information, pages visited, timestamps.</li>
                 <li>Usage data: features used, messages processed, API calls, integration activity.</li>
-                <li>Cookies and similar technologies on our website and dashboard (see Section 8).</li>
+                <li>Cookies and similar technologies on our website and dashboard (see Section 9).</li>
               </ul>
             </div>
 
@@ -106,6 +106,15 @@ export default function PrivacyPolicy() {
                 Where a Tenant connects services such as Shopify, WooCommerce, or a payment provider, we receive data necessary to power those integrations (e.g., product catalogs, order status) strictly to provide the connected functionality.
               </p>
             </div>
+
+            <div className="space-y-3">
+              <h3 className="text-xl font-semibold text-gray-900">
+                2.5 Google Workspace and Calendar Data
+              </h3>
+              <p>
+                When a Tenant connects their Google Calendar account, we access calendar event metadata (such as start/end times and event summaries) strictly to determine availability and create or manage scheduled appointments on behalf of the Tenant. We do not access unrelated Google services, emails, files, or contacts.
+              </p>
+            </div>
           </section>
 
           <hr className="border-gray-200" />
@@ -117,7 +126,7 @@ export default function PrivacyPolicy() {
             </h2>
             <p>We use collected information to:</p>
             <ul className="list-disc pl-6 space-y-1.5">
-              <li>Provide, operate, and maintain the Service, including AI-generated responses to End User messages.</li>
+              <li>Provide, operate, and maintain the Service, including AI-generated responses to End User messages and automated calendar booking.</li>
               <li>Create and manage Tenant accounts and process billing.</li>
               <li>Route, store, and retrieve conversation history to maintain context across messages.</li>
               <li>Generate embeddings and perform semantic search over a Tenant&apos;s knowledge base to power accurate AI responses.</li>
@@ -127,7 +136,7 @@ export default function PrivacyPolicy() {
               <li>Comply with legal obligations.</li>
             </ul>
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm font-medium text-slate-800 mt-4">
-              We do <strong>not</strong> sell personal data, and we do not use End User conversation data to train third-party foundation models beyond what is required to generate a response to that End User (see Section 4).
+              We do <strong>not</strong> sell personal data, and we do not use End User conversation data or Google user data to train third-party foundation models beyond what is required to generate a response to that End User (see Section 4 and Section 5).
             </div>
           </section>
 
@@ -169,6 +178,10 @@ export default function PrivacyPolicy() {
                     <td className="px-4 py-3 sm:px-6 text-gray-600">Sending/receiving WhatsApp, Instagram, and Messenger messages</td>
                   </tr>
                   <tr>
+                    <td className="px-4 py-3 sm:px-6 font-medium text-gray-900">Calendar Integration (Google LLC)</td>
+                    <td className="px-4 py-3 sm:px-6 text-gray-600">Google Calendar synchronization and automated appointment scheduling</td>
+                  </tr>
+                  <tr>
                     <td className="px-4 py-3 sm:px-6 font-medium text-gray-900">Payment processor</td>
                     <td className="px-4 py-3 sm:px-6 text-gray-600">Billing and subscription payments</td>
                   </tr>
@@ -187,10 +200,45 @@ export default function PrivacyPolicy() {
 
           <hr className="border-gray-200" />
 
-          {/* Section 5 */}
+          {/* Section 5 - Google API Limited Use Policy */}
           <section className="space-y-4">
             <h2 className="text-2xl font-bold text-[var(--color-mktg-base)]">
-              5. Data Storage, Multi-Tenancy, and Security
+              5. Google API Services User Data Policy &amp; Limited Use Disclosure
+            </h2>
+            <p>
+              Ittisalo&apos;s use and transfer of information received from Google APIs to any other app will adhere to the{" "}
+              <a
+                href="https://developers.google.com/terms/api-services-user-data-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[var(--color-mktg-cta)] hover:underline font-semibold"
+              >
+                Google API Services User Data Policy
+              </a>
+              , including the Limited Use requirements.
+            </p>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>
+                <strong className="text-gray-900">Specific Purpose Only:</strong> We strictly access and use Google user data (such as Google Calendar events and availability) solely to provide the user-facing appointment scheduling and calendar management functionality requested by the Tenant.
+              </li>
+              <li>
+                <strong className="text-gray-900">No AI / ML Model Training:</strong> Google user data obtained through Google Workspace / Calendar APIs is never used to develop, train, fine-tune, or improve generalized artificial intelligence (AI) or machine learning (ML) models.
+              </li>
+              <li>
+                <strong className="text-gray-900">No Data Selling or Unauthorized Transfer:</strong> We do not sell, rent, or transfer Google user data to third parties, except as strictly necessary to fulfill the calendar scheduling functionality or as required by applicable law.
+              </li>
+              <li>
+                <strong className="text-gray-900">Human Access Restrictions:</strong> Humans are not permitted to read your Google user data unless we have obtained your affirmative explicit agreement, it is required for security or technical troubleshooting (e.g., bug diagnosis), or to comply with applicable laws.
+              </li>
+            </ul>
+          </section>
+
+          <hr className="border-gray-200" />
+
+          {/* Section 6 */}
+          <section className="space-y-4">
+            <h2 className="text-2xl font-bold text-[var(--color-mktg-base)]">
+              6. Data Storage, Multi-Tenancy, and Security
             </h2>
             <ul className="list-disc pl-6 space-y-2">
               <li>
@@ -208,10 +256,10 @@ export default function PrivacyPolicy() {
 
           <hr className="border-gray-200" />
 
-          {/* Section 6 */}
+          {/* Section 7 */}
           <section className="space-y-4">
             <h2 className="text-2xl font-bold text-[var(--color-mktg-base)]">
-              6. Data Retention
+              7. Data Retention
             </h2>
             <ul className="list-disc pl-6 space-y-2">
               <li>
@@ -228,10 +276,10 @@ export default function PrivacyPolicy() {
 
           <hr className="border-gray-200" />
 
-          {/* Section 7 */}
+          {/* Section 8 */}
           <section className="space-y-4">
             <h2 className="text-2xl font-bold text-[var(--color-mktg-base)]">
-              7. Your Rights
+              8. Your Rights
             </h2>
             <p>Depending on your location, you may have rights to:</p>
             <ul className="list-disc pl-6 space-y-1.5">
@@ -253,10 +301,10 @@ export default function PrivacyPolicy() {
 
           <hr className="border-gray-200" />
 
-          {/* Section 8 */}
+          {/* Section 9 */}
           <section className="space-y-4">
             <h2 className="text-2xl font-bold text-[var(--color-mktg-base)]">
-              8. Cookies
+              9. Cookies
             </h2>
             <p>
               Our website and dashboard use cookies and similar technologies to keep you logged in, remember preferences, and understand usage patterns. You can control cookies through your browser settings; disabling some cookies may affect functionality.
@@ -265,10 +313,10 @@ export default function PrivacyPolicy() {
 
           <hr className="border-gray-200" />
 
-          {/* Section 9 */}
+          {/* Section 10 */}
           <section className="space-y-4">
             <h2 className="text-2xl font-bold text-[var(--color-mktg-base)]">
-              9. Children&apos;s Privacy
+              10. Children&apos;s Privacy
             </h2>
             <p>
               The Service is not directed to individuals under 18. We do not knowingly collect personal data from children. If you believe a child has provided us with personal data, contact us so we can remove it.
@@ -277,10 +325,10 @@ export default function PrivacyPolicy() {
 
           <hr className="border-gray-200" />
 
-          {/* Section 10 */}
+          {/* Section 11 */}
           <section className="space-y-4">
             <h2 className="text-2xl font-bold text-[var(--color-mktg-base)]">
-              10. International Data Transfers
+              11. International Data Transfers
             </h2>
             <p>
               Ittisalo may process and store data in countries other than your own, including Pakistan and countries where our infrastructure providers operate. We take steps to ensure appropriate safeguards are in place for such transfers where required by law.
@@ -289,10 +337,10 @@ export default function PrivacyPolicy() {
 
           <hr className="border-gray-200" />
 
-          {/* Section 11 */}
+          {/* Section 12 */}
           <section className="space-y-4">
             <h2 className="text-2xl font-bold text-[var(--color-mktg-base)]">
-              11. Changes to This Policy
+              12. Changes to This Policy
             </h2>
             <p>
               We may update this Privacy Policy from time to time. We will post the updated version with a revised &quot;Last updated&quot; date, and where changes are material, we will provide additional notice (e.g., email or in-app notice).
@@ -301,10 +349,10 @@ export default function PrivacyPolicy() {
 
           <hr className="border-gray-200" />
 
-          {/* Section 12 */}
+          {/* Section 13 */}
           <section className="space-y-4 bg-gray-50 border border-gray-200 rounded-2xl p-6 sm:p-8">
             <h2 className="text-2xl font-bold text-[var(--color-mktg-base)]">
-              12. Contact Us
+              13. Contact Us
             </h2>
             <p>If you have questions about this Privacy Policy or our data practices, contact us at:</p>
             <div className="pt-2 text-gray-800 space-y-1.5">
