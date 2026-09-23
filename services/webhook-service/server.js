@@ -12,6 +12,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import OpenAI from 'openai';
+import { calculateMetaFee } from './meta-pricing.js';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -630,14 +631,97 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
   }
 }
 
-// Helper to handle campaign message delivery statuses and aggregate counts
-async function processMessageStatus(statusObj) {
+// Helper to handle message delivery statuses, Meta billing metering, and campaign aggregations
+async function processMessageStatus(statusObj, phoneNumberId = null) {
   const metaMessageId  = statusObj.id;
   const deliveryStatus = statusObj.status; // sent, delivered, read, failed
 
   fastify.log.info(`[whatsapp] Message status update: ${metaMessageId} -> ${deliveryStatus}`);
 
-  // 1. Find if this message belongs to a campaign
+  // ── 1. Meta Paid Message & Conversation Metering ──────────────────────────
+  try {
+    const recipientPhone  = statusObj.recipient_id;
+    const conversationId  = statusObj.conversation?.id;
+    const originType      = statusObj.conversation?.origin?.type;
+    const rawPricingCat   = statusObj.pricing?.category;
+    const isBillable      = statusObj.pricing?.billable !== false;
+
+    // Resolve category: marketing, utility, authentication, or service (Oct 1+)
+    let detectedCategory = rawPricingCat || originType || 'utility';
+    if (detectedCategory === 'user_initiated') detectedCategory = 'service';
+
+    // Resolve tenant ID
+    let resolvedTenantId = null;
+    if (phoneNumberId) {
+      const { data: intg } = await supabase
+        .from('integrations')
+        .select('tenant_id')
+        .eq('platform', 'whatsapp')
+        .eq('external_account_id', phoneNumberId)
+        .maybeSingle();
+      if (intg?.tenant_id) resolvedTenantId = intg.tenant_id;
+    }
+
+    if (!resolvedTenantId) {
+      // Fallback: check if campaign_messages has this meta_message_id
+      const { data: campCheck } = await supabase
+        .from('campaign_messages')
+        .select('tenant_id')
+        .eq('meta_message_id', metaMessageId)
+        .maybeSingle();
+      if (campCheck?.tenant_id) {
+        resolvedTenantId = campCheck.tenant_id;
+        if (!rawPricingCat) detectedCategory = 'marketing';
+      }
+    }
+
+    if (!resolvedTenantId) {
+      // Fallback: check messages table
+      const { data: msgCheck } = await supabase
+        .from('messages')
+        .select('tenant_id')
+        .eq('external_message_id', metaMessageId)
+        .maybeSingle();
+      if (msgCheck?.tenant_id) resolvedTenantId = msgCheck.tenant_id;
+    }
+
+    // If delivered or sent and billable, record into ledger
+    if (resolvedTenantId && (deliveryStatus === 'delivered' || deliveryStatus === 'sent')) {
+      const fee = calculateMetaFee(detectedCategory, recipientPhone);
+
+      // Check if this message was already logged in the ledger
+      const { data: existingLedger } = await supabase
+        .from('meta_usage_ledger')
+        .select('id')
+        .eq('meta_message_id', metaMessageId)
+        .maybeSingle();
+
+      if (!existingLedger) {
+        await supabase
+          .from('meta_usage_ledger')
+          .insert({
+            tenant_id: resolvedTenantId,
+            phone_number_id: phoneNumberId || null,
+            meta_message_id: metaMessageId,
+            meta_conversation_id: conversationId || null,
+            category: fee.category,
+            origin_type: originType || fee.category,
+            billable: isBillable,
+            recipient_phone: recipientPhone || null,
+            country_code: fee.countryCode,
+            estimated_cost_usd: fee.usd,
+            estimated_cost_pkr: fee.pkr,
+            status: deliveryStatus,
+            raw_payload: statusObj
+          });
+        fastify.log.info(`[meta-billing] Recorded ${fee.category.toUpperCase()} conversation for tenant ${resolvedTenantId}: $${fee.usd} (PKR ${fee.pkr})`);
+      }
+    }
+  } catch (billingErr) {
+    fastify.log.error(`[meta-billing] Error recording ledger: ${billingErr.message}`);
+  }
+
+  // ── 2. Campaign message delivery status & aggregates ──────────────────────
   const { data: campMsg } = await supabase
     .from('campaign_messages')
     .select('campaign_id')
@@ -789,8 +873,9 @@ fastify.post('/webhook', {
 
           // 2. Handle Message Delivery Statuses
           if (change.value && change.value.statuses) {
+            const phoneNumberId = change.value.metadata ? change.value.metadata.phone_number_id : null;
             for (const statusObj of change.value.statuses) {
-              await processMessageStatus(statusObj);
+              await processMessageStatus(statusObj, phoneNumberId);
             }
           }
 

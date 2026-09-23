@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { 
   Star, LayoutDashboard, MessageSquare, Users, Bot, Plug, Settings, LogOut, 
   FileText, Megaphone, Folder, BarChart3, Menu, X, ShoppingBag, Crown,
-  Activity, Store, Coins, Layers, ShieldAlert, History, Building2 
+  Activity, Store, Coins, Layers, ShieldAlert, History, Building2, Receipt 
 } from 'lucide-react';
 import { useNiche } from '@/context/NicheContext';
 import { supabase } from '@/lib/supabase/client';
@@ -97,6 +97,7 @@ function Sidebar() {
   const clusterSuperAdmin = useMemo(() => [
     { href: '/admin?tab=overview', icon: Activity, label: 'Command Center', tabId: 'overview' },
     { href: '/admin?tab=brands', icon: Store, label: 'Tenants & Workspaces', tabId: 'brands' },
+    { href: '/admin?tab=meta-billing', icon: Receipt, label: 'Meta WABA Billing', tabId: 'meta-billing' },
     { href: '/admin?tab=commerce', icon: ShoppingBag, label: 'Commerce & Orders', tabId: 'commerce' },
     { href: '/admin?tab=tokens', icon: Coins, label: 'AI Cost & Margins', tabId: 'tokens' },
     { href: '/admin?tab=integrations', icon: Layers, label: 'Channels & Webhooks', tabId: 'integrations' },
