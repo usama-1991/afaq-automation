@@ -22,8 +22,20 @@ export default function WhatsAppChannelPage() {
       <section className="pt-16 pb-24 px-4 bg-gradient-to-b from-[#ECFDF5]/60 via-[#FDFCFB] to-white border-b border-[#EFEBE4]">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-7 space-y-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#ECFDF5] border border-[#A7F3D0] text-[#065F46] text-xs sm:text-sm font-bold shadow-sm">
-              <MessageSquare size={16} className="text-[#25D366]" /> Official WhatsApp Business API Solution
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#ECFDF5] border border-[#A7F3D0] text-[#065F46] text-xs sm:text-sm font-bold shadow-sm">
+                <MessageSquare size={16} className="text-[#25D366]" /> Official WhatsApp Business API Solution
+              </div>
+              <div className="bg-[#1A050B] px-3.5 py-1.5 rounded-full border border-[#3D0C1A] inline-flex items-center gap-2 shadow-sm">
+                <img
+                  src="/meta-business-partner-badge.png"
+                  alt="Official Meta Tech Partner Badge"
+                  className="h-6 w-auto object-contain"
+                />
+                <span className="text-[11px] text-gray-300 font-bold hidden sm:inline">
+                  Official Meta Tech Partner
+                </span>
+              </div>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-extrabold text-[#1A1517] leading-[1.12]">

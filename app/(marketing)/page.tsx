@@ -116,9 +116,21 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-12 gap-12 lg:gap-8 items-center mb-16">
             <div className="lg:col-span-7 space-y-6">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#FFF5F5] border border-[#FFE8EA] text-[#8B1531] text-xs sm:text-sm font-bold shadow-sm">
-                <ShieldCheck size={16} className="text-[#E63946]" />
-                <span>Multi-Tenant Conversational AI Platform</span>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#FFF5F5] border border-[#FFE8EA] text-[#8B1531] text-xs sm:text-sm font-bold shadow-sm">
+                  <ShieldCheck size={16} className="text-[#E63946]" />
+                  <span>Multi-Tenant Conversational AI Platform</span>
+                </div>
+                <div className="bg-[#1A050B] px-3.5 py-1.5 rounded-full border border-[#3D0C1A] inline-flex items-center gap-2 shadow-sm">
+                  <img
+                    src="/meta-business-partner-badge.png"
+                    alt="Official Meta Tech Partner Badge"
+                    className="h-6 w-auto object-contain"
+                  />
+                  <span className="text-[11px] text-gray-300 font-bold hidden sm:inline">
+                    Official Meta Tech Partner
+                  </span>
+                </div>
               </div>
 
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-extrabold tracking-tight text-[#1A1517] leading-[1.12]">
