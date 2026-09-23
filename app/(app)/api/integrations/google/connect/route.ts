@@ -34,7 +34,6 @@ export async function GET(req: Request) {
     response_type: 'code',
     scope: [
       'https://www.googleapis.com/auth/calendar.events',
-      'https://www.googleapis.com/auth/calendar.readonly',
       'https://www.googleapis.com/auth/userinfo.email',
     ].join(' '),
     state: JSON.stringify({ tenant_id: userData.tenant_id }),
