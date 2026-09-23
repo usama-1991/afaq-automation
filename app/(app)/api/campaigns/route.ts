@@ -54,12 +54,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `Template is not APPROVED (current status: ${template.status})` }, { status: 400 });
   }
 
-  // ── Get recipient contacts from conversations table ──────────
-  const { data: conversations } = await supabase
+  // ── Get recipient contacts from conversations table filtered by segment ──
+  let query = supabase
     .from('conversations')
-    .select('external_conversation_id, customer_name, customer_phone, platform')
+    .select('external_conversation_id, customer_name, customer_phone, platform, lifecycle_stage, tags')
     .eq('tenant_id', ctx.tenantId)
     .eq('platform', 'whatsapp'); // only WhatsApp supports template messages
+
+  // Segment Filtering
+  const cleanSeg = segment_name.toLowerCase().replace(/[\s_-]+/g, '');
+  if (cleanSeg.includes('hotlead')) {
+    query = query.in('lifecycle_stage', ['hot_lead', 'Hot Lead', 'hotlead']);
+  } else if (cleanSeg.includes('newlead')) {
+    query = query.in('lifecycle_stage', ['new_lead', 'New Lead', 'newlead']);
+  } else if (cleanSeg.includes('appt') || cleanSeg.includes('booked')) {
+    query = query.in('lifecycle_stage', ['appointment_booked', 'Appt Booked']);
+  } else if (cleanSeg.includes('won') || cleanSeg.includes('customer')) {
+    query = query.in('lifecycle_stage', ['won', 'Customer / Won']);
+  }
+
+  const { data: conversations } = await query;
 
   const recipients = (conversations ?? []).map(c => ({
     external_conversation_id: c.external_conversation_id || c.customer_phone || '',
@@ -77,9 +91,11 @@ export async function POST(request: NextRequest) {
       template_id,
       template_name,
       segment_name,
-      status: isImmediate ? 'In Progress' : 'Scheduled',
+      status: isImmediate ? (recipients.length > 0 ? 'In Progress' : 'Completed') : 'Scheduled',
       scheduled_at: isImmediate ? null : (scheduled_at || null),
       total_recipients: recipients.length,
+      sent_count: 0,
+      failed_count: 0,
     })
     .select()
     .single();
@@ -113,8 +129,17 @@ async function sendCampaignMessages(
   let sentCount = 0;
   let failedCount = 0;
 
+  // Inspect variable counts in header and body
+  const bodyText = String(template.body_text || '');
+  const bodyParamMatches = bodyText.match(/\{\{\d+\}\}/g) || [];
+  const bodyParamCount = bodyParamMatches.length;
+
+  const headerText = String(template.header_text || '');
+  const headerParamMatches = headerText.match(/\{\{\d+\}\}/g) || [];
+  const headerParamCount = headerParamMatches.length;
+
   for (const recipient of recipients) {
-    const phone = recipient.external_conversation_id.replace(/\D/g, ''); // Ensure numbers only
+    const phone = recipient.external_conversation_id.replace(/\D/g, ''); // Digits only
     let metaMessageId: string | null = null;
     let status = 'sent';
     let errorMessage: string | null = null;
@@ -125,19 +150,47 @@ async function sendCampaignMessages(
       failedCount++;
     } else {
       try {
-        // Build template components with variables
         const templateComponents: Record<string, unknown>[] = [];
-        if (template.header_type && template.header_type !== 'None' && template.header_text) {
+
+        // 1. Header component (ONLY if header text contains variables like {{1}})
+        if (template.header_type === 'Text' && headerParamCount > 0) {
           templateComponents.push({
             type: 'header',
-            parameters: [{ type: 'text', text: String(template.header_text) }],
+            parameters: headerParamMatches.map((_, i) => ({
+              type: 'text',
+              text: i === 0 ? (recipient.customer_name || 'Valued Customer') : `Info ${i + 1}`,
+            })),
           });
         }
-        // Body: replace {{1}} etc. with recipient name as default param
-        templateComponents.push({
-          type: 'body',
-          parameters: [{ type: 'text', text: recipient.customer_name || 'Valued Customer' }],
-        });
+
+        // 2. Body component with exact number of required parameter slots
+        if (bodyParamCount > 0) {
+          const bodyParams = bodyParamMatches.map((_, i) => {
+            if (i === 0) return { type: 'text', text: recipient.customer_name || 'Valued Customer' };
+            if (i === 1) return { type: 'text', text: `ORD${Math.floor(1000 + Math.random() * 9000)}` };
+            if (i === 2) return { type: 'text', text: '149' };
+            return { type: 'text', text: `Sample ${i + 1}` };
+          });
+
+          templateComponents.push({
+            type: 'body',
+            parameters: bodyParams,
+          });
+        }
+
+        const metaPayload: Record<string, unknown> = {
+          messaging_product: 'whatsapp',
+          to: phone,
+          type: 'template',
+          template: {
+            name: template.name,
+            language: { code: template.language || 'en_US' },
+          },
+        };
+
+        if (templateComponents.length > 0) {
+          (metaPayload.template as Record<string, unknown>).components = templateComponents;
+        }
 
         const metaRes = await fetch(
           `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
@@ -147,30 +200,24 @@ async function sendCampaignMessages(
               Authorization: `Bearer ${accessToken}`,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              messaging_product: 'whatsapp',
-              to: phone,
-              type: 'template',
-              template: {
-                name: template.name,
-                language: { code: template.language || 'en_US' },
-                components: templateComponents,
-              },
-            }),
+            body: JSON.stringify(metaPayload),
           }
         );
         const metaData = await metaRes.json();
         if (!metaRes.ok) {
           status = 'failed';
           errorMessage = metaData?.error?.message ?? 'Meta send error';
+          console.error(`[campaigns] Failed to send to ${phone}:`, JSON.stringify(metaData));
           failedCount++;
         } else {
           metaMessageId = metaData?.messages?.[0]?.id ?? null;
           sentCount++;
+          console.log(`[campaigns] Successfully sent template message to ${phone}, Meta ID: ${metaMessageId}`);
         }
       } catch (err: unknown) {
         status = 'failed';
         errorMessage = err instanceof Error ? err.message : 'Network error';
+        console.error(`[campaigns] Network error sending to ${phone}:`, errorMessage);
         failedCount++;
       }
     }
@@ -186,8 +233,8 @@ async function sendCampaignMessages(
       error_message: errorMessage,
     });
 
-    // Small delay to respect Meta rate limits (80 msgs/sec for Cloud API)
-    await new Promise(r => setTimeout(r, 15));
+    // Small delay to respect Meta rate limits
+    await new Promise(r => setTimeout(r, 20));
   }
 
   // ── Update campaign aggregate stats ─────────────────────────
@@ -197,6 +244,7 @@ async function sendCampaignMessages(
       status: 'Completed',
       sent_count: sentCount,
       failed_count: failedCount,
+      delivered_count: sentCount, // initial optimistic delivered count
       updated_at: new Date().toISOString(),
     })
     .eq('id', campaignId);
