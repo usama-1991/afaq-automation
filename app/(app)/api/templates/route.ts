@@ -23,7 +23,6 @@ export async function GET(request: NextRequest) {
   const ctx = await getAuthContext(supabase);
   if ('error' in ctx) return NextResponse.json({ error: ctx.error }, { status: ctx.status });
 
-  // Optional: check if caller wants to force-sync with Meta
   const url = new URL(request.url);
   const syncWithMeta = url.searchParams.get('sync') === 'true';
 
@@ -36,7 +35,7 @@ export async function GET(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // 2. If sync requested OR there are pending templates, sync live status with Meta
+  // 2. Sync live statuses from Meta if requested or if pending templates exist
   const hasPending = (dbTemplates || []).some(t => t.status === 'PENDING' || t.status === 'Pending');
   if (syncWithMeta || hasPending) {
     try {
@@ -78,7 +77,22 @@ export async function POST(request: NextRequest) {
   if ('error' in ctx) return NextResponse.json({ error: ctx.error }, { status: ctx.status });
 
   const body = await request.json();
-  const { name, category, language = 'en_US', header_type, header_text, body_text, footer_text, buttons = [] } = body;
+  const { 
+    name, 
+    category, 
+    language = 'en_US', 
+    header_type = 'None', 
+    header_text, 
+    header_sample,
+    header_label,
+    body_text, 
+    body_samples = [],
+    body_labels = [],
+    footer_text, 
+    buttons = [],
+    variable_labels = {},
+    sample_values = {}
+  } = body;
 
   if (!name || !category || !body_text) {
     return NextResponse.json({ error: 'Missing required fields: name, category, body_text' }, { status: 400 });
@@ -87,30 +101,65 @@ export async function POST(request: NextRequest) {
   // ── Build Meta API components array ─────────────────────────
   const components: Record<string, unknown>[] = [];
 
+  // 1. HEADER
   if (header_type && header_type !== 'None') {
     const format = header_type.toUpperCase();
-    if (header_type === 'Text') {
-      components.push({ type: 'HEADER', format: 'TEXT', text: header_text });
-    } else {
-      // IMAGE or DOCUMENT
+    if (format === 'TEXT') {
+      const headerObj: Record<string, unknown> = { type: 'HEADER', format: 'TEXT', text: header_text };
+      const headerParams = (header_text || '').match(/\{\{\d+\}\}/g);
+      if (headerParams?.length) {
+        headerObj.example = { header_text: [String(header_sample || 'Sample').trim()] };
+      }
+      components.push(headerObj);
+    } else if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(format)) {
       components.push({ type: 'HEADER', format, example: { header_handle: ['PLACEHOLDER'] } });
     }
   }
 
+  // 2. BODY with exact sample values for {{1}}, {{2}}...
   const bodyComponent: Record<string, unknown> = { type: 'BODY', text: body_text };
   const paramMatches = body_text.match(/\{\{\d+\}\}/g);
   if (paramMatches?.length) {
-    bodyComponent.example = { body_text: [paramMatches.map(() => 'Example')] };
+    // Map samples matching each variable index
+    const samplesArray = paramMatches.map((_: string, i: number) => {
+      const val = body_samples[i] || sample_values[`body_${i + 1}`] || `Sample${i + 1}`;
+      return String(val).trim();
+    });
+    bodyComponent.example = { body_text: [samplesArray] };
   }
   components.push(bodyComponent);
 
-  if (footer_text) components.push({ type: 'FOOTER', text: footer_text });
+  // 3. FOOTER
+  if (footer_text && footer_text.trim()) {
+    components.push({ type: 'FOOTER', text: footer_text.trim() });
+  }
 
+  // 4. BUTTONS
   if (buttons.length > 0) {
-    const metaButtons = buttons.map((btn: { type: string; text: string; urlOrPhone?: string }) => {
-      if (btn.type === 'QUICK_REPLY') return { type: 'QUICK_REPLY', text: btn.text };
-      if (btn.type === 'URL') return { type: 'URL', text: btn.text, url: btn.urlOrPhone };
-      return { type: 'PHONE_NUMBER', text: btn.text, phone_number: btn.urlOrPhone };
+    const metaButtons = buttons.map((btn: { 
+      type: string; 
+      text: string; 
+      url?: string; 
+      phone_number?: string; 
+      urlOrPhone?: string;
+      url_sample?: string;
+    }) => {
+      if (btn.type === 'QUICK_REPLY') {
+        return { type: 'QUICK_REPLY', text: btn.text.trim() };
+      }
+      if (btn.type === 'URL') {
+        const urlStr = (btn.url || btn.urlOrPhone || '').trim();
+        const urlObj: Record<string, unknown> = { type: 'URL', text: btn.text.trim(), url: urlStr };
+        if (urlStr.includes('{{1}}')) {
+          urlObj.example = [String(btn.url_sample || 'sample').trim()];
+        }
+        return urlObj;
+      }
+      return { 
+        type: 'PHONE_NUMBER', 
+        text: btn.text.trim(), 
+        phone_number: (btn.phone_number || btn.urlOrPhone || '').trim() 
+      };
     });
     components.push({ type: 'BUTTONS', buttons: metaButtons });
   }
@@ -159,24 +208,61 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // ── Build variable labels & sample values object for DB storage ──
+  const mergedVariableLabels: Record<string, string> = { ...variable_labels };
+  const mergedSampleValues: Record<string, string> = { ...sample_values };
+
+  if (header_label) mergedVariableLabels['header_1'] = header_label;
+  if (header_sample) mergedSampleValues['header_1'] = header_sample;
+
+  if (body_labels.length > 0) {
+    body_labels.forEach((label: string, i: number) => {
+      if (label) mergedVariableLabels[`body_${i + 1}`] = label;
+    });
+  }
+  if (body_samples.length > 0) {
+    body_samples.forEach((sample: string, i: number) => {
+      if (sample) mergedSampleValues[`body_${i + 1}`] = sample;
+    });
+  }
+
   // ── Save to Supabase ─────────────────────────────────────────
-  const { data: newTemplate, error: dbError } = await supabase
+  const insertPayload: Record<string, unknown> = {
+    tenant_id: ctx.tenantId,
+    name: name.toLowerCase().replace(/[^a-z0-9_]/g, '_'),
+    category,
+    language,
+    status: finalStatus,
+    meta_template_id: metaTemplateId,
+    header_type: header_type || 'None',
+    header_text: header_type === 'Text' ? (header_text || null) : null,
+    body_text,
+    footer_text: footer_text || null,
+    buttons: buttons.length > 0 ? buttons : null,
+  };
+
+  // Add variable_labels / sample_values if columns exist
+  if (Object.keys(mergedVariableLabels).length > 0) {
+    insertPayload.variable_labels = mergedVariableLabels;
+  }
+  if (Object.keys(mergedSampleValues).length > 0) {
+    insertPayload.sample_values = mergedSampleValues;
+  }
+
+  let { data: newTemplate, error: dbError } = await supabase
     .from('templates')
-    .insert({
-      tenant_id: ctx.tenantId,
-      name: name.toLowerCase().replace(/[^a-z0-9_]/g, '_'),
-      category,
-      language,
-      status: finalStatus,
-      meta_template_id: metaTemplateId,
-      header_type: header_type || 'None',
-      header_text: header_type === 'Text' ? (header_text || null) : null,
-      body_text,
-      footer_text: footer_text || null,
-      buttons: buttons.length > 0 ? buttons : null,
-    })
+    .insert(insertPayload)
     .select()
     .single();
+
+  // Graceful fallback if database schema does not yet have JSONB columns
+  if (dbError && (dbError.message.includes('variable_labels') || dbError.message.includes('sample_values'))) {
+    delete insertPayload.variable_labels;
+    delete insertPayload.sample_values;
+    const retry = await supabase.from('templates').insert(insertPayload).select().single();
+    newTemplate = retry.data;
+    dbError = retry.error;
+  }
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
 
