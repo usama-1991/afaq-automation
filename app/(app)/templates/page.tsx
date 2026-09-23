@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  Plus, Search, FileText, Trash2, Eye, X, MessageSquare, Sparkles 
+  Plus, Search, FileText, Trash2, Eye, X, MessageSquare, Sparkles, RefreshCw, Loader2 
 } from 'lucide-react';
 
 interface Template {
@@ -54,26 +54,31 @@ export default function TemplatesPage() {
   const [searchQuery, setSearchQuery] = useMemoryState('searchQuery', '');
   const [selectedCategory, setSelectedCategory] = useMemoryState<string>('selectedCategory', 'All');
   const [selectedStatus, setSelectedStatus] = useMemoryState<string>('selectedStatus', 'All');
-  const [selectedTemplate, setSelectedTemplate] = useMemoryState<Template | null>('selectedTemplate', null);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [isCopied, setIsCopied] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  useEffect(() => {
-    const fetchTemplates = async () => {
-      try {
-        const res = await fetch('/api/templates');
-        if (res.ok) {
-          const data = await res.json();
-          const mapped = data.templates.map(mapDbToTemplate);
-          setTemplates(mapped);
-          if (mapped.length > 0) setSelectedTemplate(mapped[0]);
-        } else {
-          setTemplates([]);
-        }
-      } catch (e) {
-        console.error('Failed to load templates:', e);
+  const fetchTemplates = async (forceSync = false) => {
+    try {
+      if (forceSync) setIsSyncing(true);
+      const url = forceSync ? '/api/templates?sync=true' : '/api/templates';
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        const mapped = data.templates.map(mapDbToTemplate);
+        setTemplates(mapped);
+      } else {
         setTemplates([]);
       }
-    };
+    } catch (e) {
+      console.error('Failed to load templates:', e);
+      setTemplates([]);
+    } finally {
+      if (forceSync) setIsSyncing(false);
+    }
+  };
+
+  useEffect(() => {
     fetchTemplates();
   }, []);
 
@@ -86,7 +91,7 @@ export default function TemplatesPage() {
         const updated = templates.filter(t => t.id !== id);
         setTemplates(updated);
         if (selectedTemplate?.id === id) {
-          setSelectedTemplate(updated.length > 0 ? updated[0] : null);
+          setSelectedTemplate(null);
         }
       } else {
         showAlert({ title: 'Delete Failed', message: 'Failed to delete template', type: 'danger' });
@@ -125,18 +130,40 @@ export default function TemplatesPage() {
           </p>
         </div>
 
-        <button 
-          onClick={() => router.push('/templates/new')}
-          style={{
-            padding: '10px 18px', fontSize: 13, fontWeight: 700,
-            background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff',
-            border: 'none', borderRadius: 9, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 6,
-            boxShadow: '0 4px 14px rgba(220,38,38,0.2)',
-          }}
-        >
-          <Plus size={15} /> Create New Template
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button 
+            type="button"
+            disabled={isSyncing}
+            onClick={() => fetchTemplates(true)}
+            style={{
+              padding: '9px 15px', fontSize: 13, fontWeight: 650,
+              background: '#fff', color: '#374151',
+              border: '1.5px solid #e5e7eb', borderRadius: 9, cursor: isSyncing ? 'wait' : 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6,
+              transition: 'all 0.15s',
+            }}
+          >
+            {isSyncing ? (
+              <Loader2 size={15} style={{ animation: 'spin 0.8s linear infinite', color: '#dc2626' }} />
+            ) : (
+              <RefreshCw size={14} color="#6b7280" />
+            )}
+            {isSyncing ? 'Syncing…' : 'Sync with Meta'}
+          </button>
+
+          <button 
+            onClick={() => router.push('/templates/new')}
+            style={{
+              padding: '10px 18px', fontSize: 13, fontWeight: 700,
+              background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff',
+              border: 'none', borderRadius: 9, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6,
+              boxShadow: '0 4px 14px rgba(220,38,38,0.2)',
+            }}
+          >
+            <Plus size={15} /> Create New Template
+          </button>
+        </div>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
@@ -262,19 +289,26 @@ export default function TemplatesPage() {
 
       {/* ── VIEW PREVIEW MODAL ── */}
       {selectedTemplate && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 9999
-        }}>
-          <div className="template-modal-box" style={{
-            background: '#fff', width: 'min(440px, calc(100vw - 32px))', borderRadius: 16,
-            padding: 'clamp(16px, 4vw, 28px)', border: '1px solid rgba(220,38,38,0.1)',
-            boxShadow: '0 15px 45px rgba(0,0,0,0.2)',
-            animation: 'fadeUp 0.15s ease-out',
-            maxHeight: '90vh', overflowY: 'auto'
-          }}>
+        <div 
+          onClick={() => setSelectedTemplate(null)}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 9999
+          }}
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            className="template-modal-box" 
+            style={{
+              background: '#fff', width: 'min(440px, calc(100vw - 32px))', borderRadius: 16,
+              padding: 'clamp(16px, 4vw, 28px)', border: '1px solid rgba(220,38,38,0.1)',
+              boxShadow: '0 15px 45px rgba(0,0,0,0.2)',
+              animation: 'fadeUp 0.15s ease-out',
+              maxHeight: '90vh', overflowY: 'auto'
+            }}
+          >
             {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h3 style={{ fontSize: 16, fontWeight: 800, color: '#111827', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -373,6 +407,7 @@ export default function TemplatesPage() {
       )}
 
       <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(12px); }
           to { opacity: 1; transform: translateY(0); }

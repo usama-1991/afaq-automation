@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getTenantWhatsAppCredentials } from '@/lib/meta-credentials';
 
 async function getAuthContext(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user }, error } = await supabase.auth.getUser();
@@ -49,18 +50,22 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (!template) return NextResponse.json({ error: 'Template not found' }, { status: 404 });
-  if (template.status !== 'APPROVED') {
+  if (template.status?.toUpperCase() !== 'APPROVED') {
     return NextResponse.json({ error: `Template is not APPROVED (current status: ${template.status})` }, { status: 400 });
   }
 
   // ── Get recipient contacts from conversations table ──────────
   const { data: conversations } = await supabase
     .from('conversations')
-    .select('external_conversation_id, customer_name, platform')
+    .select('external_conversation_id, customer_name, customer_phone, platform')
     .eq('tenant_id', ctx.tenantId)
     .eq('platform', 'whatsapp'); // only WhatsApp supports template messages
 
-  const recipients = conversations ?? [];
+  const recipients = (conversations ?? []).map(c => ({
+    external_conversation_id: c.external_conversation_id || c.customer_phone || '',
+    customer_name: c.customer_name,
+    platform: c.platform,
+  })).filter(r => r.external_conversation_id.length > 0);
 
   // ── Create campaign record ───────────────────────────────────
   const isImmediate = schedule_type === 'immediate';
@@ -99,25 +104,24 @@ async function sendCampaignMessages(
   template: Record<string, unknown>,
   recipients: Array<{ external_conversation_id: string; customer_name: string | null; platform: string }>
 ) {
-  const phoneNumberId = process.env.META_PHONE_NUMBER_ID;
-  const accessToken = process.env.META_ACCESS_TOKEN;
-
   // Use service role client to bypass RLS from this async context
   const { createServiceClient } = await import('@/lib/supabase/service');
   const serviceClient = createServiceClient();
+
+  const { phoneNumberId, accessToken } = await getTenantWhatsAppCredentials(serviceClient, tenantId);
 
   let sentCount = 0;
   let failedCount = 0;
 
   for (const recipient of recipients) {
-    const phone = recipient.external_conversation_id;
+    const phone = recipient.external_conversation_id.replace(/\D/g, ''); // Ensure numbers only
     let metaMessageId: string | null = null;
     let status = 'sent';
     let errorMessage: string | null = null;
 
     if (!phoneNumberId || !accessToken) {
       status = 'failed';
-      errorMessage = 'META_PHONE_NUMBER_ID or META_ACCESS_TOKEN not configured';
+      errorMessage = 'WhatsApp Phone Number ID or Access Token not configured';
       failedCount++;
     } else {
       try {
@@ -126,17 +130,17 @@ async function sendCampaignMessages(
         if (template.header_type && template.header_type !== 'None' && template.header_text) {
           templateComponents.push({
             type: 'header',
-            parameters: [{ type: 'text', text: template.header_text }],
+            parameters: [{ type: 'text', text: String(template.header_text) }],
           });
         }
         // Body: replace {{1}} etc. with recipient name as default param
         templateComponents.push({
           type: 'body',
-          parameters: [{ type: 'text', text: recipient.customer_name || phone }],
+          parameters: [{ type: 'text', text: recipient.customer_name || 'Valued Customer' }],
         });
 
         const metaRes = await fetch(
-          `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`,
+          `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
           {
             method: 'POST',
             headers: {

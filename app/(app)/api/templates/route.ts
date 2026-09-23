@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getTenantWhatsAppCredentials } from '@/lib/meta-credentials';
 
 // ── Helper: get authed user + tenant_id ──────────────────────
 async function getAuthContext(supabase: Awaited<ReturnType<typeof createClient>>) {
@@ -17,19 +18,57 @@ async function getAuthContext(supabase: Awaited<ReturnType<typeof createClient>>
 }
 
 // ── GET /api/templates ───────────────────────────────────────
-export async function GET() {
+export async function GET(request: NextRequest) {
   const supabase = await createClient();
   const ctx = await getAuthContext(supabase);
   if ('error' in ctx) return NextResponse.json({ error: ctx.error }, { status: ctx.status });
 
-  const { data: templates, error } = await supabase
+  // Optional: check if caller wants to force-sync with Meta
+  const url = new URL(request.url);
+  const syncWithMeta = url.searchParams.get('sync') === 'true';
+
+  // 1. Fetch DB templates
+  const { data: dbTemplates, error } = await supabase
     .from('templates')
     .select('*')
     .eq('tenant_id', ctx.tenantId)
     .order('created_at', { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ templates });
+
+  // 2. If sync requested OR there are pending templates, sync live status with Meta
+  const hasPending = (dbTemplates || []).some(t => t.status === 'PENDING' || t.status === 'Pending');
+  if (syncWithMeta || hasPending) {
+    try {
+      const { wabaId, accessToken } = await getTenantWhatsAppCredentials(supabase, ctx.tenantId);
+      if (wabaId && accessToken) {
+        const metaRes = await fetch(
+          `https://graph.facebook.com/v21.0/${wabaId}/message_templates?limit=100`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        if (metaRes.ok) {
+          const metaJson = await metaRes.json();
+          const metaTemplates: Array<{ name: string; status: string; id: string }> = metaJson.data || [];
+
+          for (const mt of metaTemplates) {
+            const match = (dbTemplates || []).find(t => t.name === mt.name || t.meta_template_id === mt.id);
+            if (match && match.status !== mt.status) {
+              await supabase
+                .from('templates')
+                .update({ status: mt.status, meta_template_id: mt.id })
+                .eq('id', match.id);
+              match.status = mt.status;
+              match.meta_template_id = mt.id;
+            }
+          }
+        }
+      }
+    } catch (syncErr) {
+      console.warn('[templates GET] Status sync with Meta skipped:', syncErr);
+    }
+  }
+
+  return NextResponse.json({ templates: dbTemplates });
 }
 
 // ── POST /api/templates ──────────────────────────────────────
@@ -53,8 +92,7 @@ export async function POST(request: NextRequest) {
     if (header_type === 'Text') {
       components.push({ type: 'HEADER', format: 'TEXT', text: header_text });
     } else {
-      // IMAGE or DOCUMENT — needs a real media handle for production;
-      // placeholder used here so Meta accepts the structure
+      // IMAGE or DOCUMENT
       components.push({ type: 'HEADER', format, example: { header_handle: ['PLACEHOLDER'] } });
     }
   }
@@ -77,21 +115,21 @@ export async function POST(request: NextRequest) {
     components.push({ type: 'BUTTONS', buttons: metaButtons });
   }
 
-  // ── Call Meta Graph API ──────────────────────────────────────
-  const wabaId = process.env.META_WABA_ID;
-  const accessToken = process.env.META_ACCESS_TOKEN;
+  // ── Retrieve Tenant WhatsApp credentials ────────────────────
+  const { wabaId, accessToken } = await getTenantWhatsAppCredentials(supabase, ctx.tenantId);
 
   let metaTemplateId: string | null = null;
   let finalStatus = 'PENDING';
   let metaError: string | null = null;
 
   if (!wabaId || !accessToken) {
-    metaError = 'META_WABA_ID or META_ACCESS_TOKEN not configured — template saved as PENDING locally.';
-    console.warn('[templates] ' + metaError);
+    metaError = 'WhatsApp Account (WABA) not connected. Template saved locally.';
+    console.warn(`[templates] Tenant ${ctx.tenantId}: ` + metaError);
   } else {
     try {
+      const sanitizedName = name.toLowerCase().replace(/[^a-z0-9_]/g, '_');
       const metaRes = await fetch(
-        `https://graph.facebook.com/v19.0/${wabaId}/message_templates`,
+        `https://graph.facebook.com/v21.0/${wabaId}/message_templates`,
         {
           method: 'POST',
           headers: {
@@ -99,7 +137,7 @@ export async function POST(request: NextRequest) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            name: name.toLowerCase().replace(/[^a-z0-9_]/g, '_'),
+            name: sanitizedName,
             category: category.toUpperCase(),
             language,
             components,
@@ -109,10 +147,11 @@ export async function POST(request: NextRequest) {
       const metaData = await metaRes.json();
       if (!metaRes.ok) {
         metaError = metaData?.error?.message || 'Meta API error';
-        console.error('[templates] Meta error:', JSON.stringify(metaData));
+        console.error('[templates] Meta error response:', JSON.stringify(metaData));
       } else {
         metaTemplateId = metaData.id ?? null;
         finalStatus = metaData.status ?? 'PENDING';
+        console.log(`[templates] Meta template submitted successfully! ID: ${metaTemplateId}, Status: ${finalStatus}`);
       }
     } catch (err: unknown) {
       metaError = err instanceof Error ? err.message : 'Network error';

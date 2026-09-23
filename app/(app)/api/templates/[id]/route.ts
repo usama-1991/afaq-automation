@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getTenantWhatsAppCredentials } from '@/lib/meta-credentials';
 
 // ── DELETE /api/templates/[id] ───────────────────────────────
 export async function DELETE(
@@ -22,21 +23,20 @@ export async function DELETE(
   if (!tpl) return NextResponse.json({ error: 'Template not found' }, { status: 404 });
 
   // Optional: also delete from Meta if we have meta_template_id and template name
-  if (tpl.meta_template_id && tpl.name) {
-    const wabaId = process.env.META_WABA_ID;
-    const accessToken = process.env.META_ACCESS_TOKEN;
-    if (wabaId && accessToken) {
-      try {
+  if (tpl.name) {
+    try {
+      const { wabaId, accessToken } = await getTenantWhatsAppCredentials(supabase, tpl.tenant_id);
+      if (wabaId && accessToken) {
         await fetch(
-          `https://graph.facebook.com/v19.0/${wabaId}/message_templates?name=${encodeURIComponent(tpl.name)}`,
+          `https://graph.facebook.com/v21.0/${wabaId}/message_templates?name=${encodeURIComponent(tpl.name)}`,
           {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${accessToken}` },
           }
         );
-      } catch (e) {
-        console.warn('[templates] Could not delete from Meta:', e);
       }
+    } catch (e) {
+      console.warn('[templates] Could not delete from Meta:', e);
     }
   }
 
