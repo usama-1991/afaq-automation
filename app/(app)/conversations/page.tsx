@@ -168,6 +168,12 @@ function ConversationsInner() {
     const convSub = supabase
       .channel('conversations_team_rt')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, fetchConversations)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tenants' }, (payload: any) => {
+        if (payload?.new) {
+          const aiActive = (payload.new.metadata?.ai_enabled !== false);
+          setIsTenantAiPaused(!aiActive);
+        }
+      })
       .subscribe();
 
     return () => {
@@ -463,6 +469,11 @@ function ConversationsInner() {
   const handleToggleBot = async (enabled: boolean) => {
     if (!selected) return;
 
+    if (enabled && isTenantAiPaused) {
+      alert('AI Engine has been paused for this workspace by Super Admin. You cannot re-enable AI for this conversation.');
+      return;
+    }
+
     await supabase.from('conversations').update({
       bot_enabled: enabled,
       assigned_to: enabled ? null : (selected.assigned_to || currentUserId),
@@ -640,6 +651,7 @@ function ConversationsInner() {
                       onResolveConversation={handleResolveConversation}
                       onToggle360Sidebar={() => setIs360DrawerOpen(!is360DrawerOpen)}
                       is360SidebarOpen={is360DrawerOpen}
+                      isTenantAiPaused={isTenantAiPaused}
                     />
                   </div>
                 </div>

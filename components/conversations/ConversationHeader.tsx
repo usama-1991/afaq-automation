@@ -24,6 +24,7 @@ export interface ConversationHeaderProps {
   onResolveConversation: () => Promise<void>;
   onToggle360Sidebar: () => void;
   is360SidebarOpen: boolean;
+  isTenantAiPaused?: boolean;
 }
 
 export const ConversationHeader = memo(function ConversationHeader({
@@ -39,6 +40,7 @@ export const ConversationHeader = memo(function ConversationHeader({
   onResolveConversation,
   onToggle360Sidebar,
   is360SidebarOpen,
+  isTenantAiPaused = false,
 }: ConversationHeaderProps) {
   const c = conversation;
   const [showLifecycleMenu, setShowLifecycleMenu] = useState(false);
@@ -409,19 +411,34 @@ export const ConversationHeader = memo(function ConversationHeader({
 
           {/* AI Bot Toggle / Takeover */}
           <button
-            onClick={() => onToggleBot(!isBotActive)}
-            title={isBotActive ? "AI Bot is actively answering. Click to pause." : "AI Bot is paused. Click to resume."}
+            onClick={() => {
+              if (isTenantAiPaused) {
+                alert('AI Engine is paused for this workspace by Super Admin. Individual conversations cannot be switched to AI mode.');
+                return;
+              }
+              onToggleBot(!isBotActive);
+            }}
+            disabled={isTenantAiPaused}
+            title={
+              isTenantAiPaused
+                ? "AI Engine is paused for this workspace by Super Admin"
+                : isBotActive
+                ? "AI Bot is actively answering. Click to pause."
+                : "AI Bot is paused. Click to resume."
+            }
             style={{
               display: 'flex', alignItems: 'center', gap: 5,
               padding: '6px 10px', borderRadius: 8,
-              background: isBotActive ? '#f3e8ff' : '#f3f4f6',
-              border: isBotActive ? '1px solid #d8b4fe' : '1px solid rgba(0,0,0,0.08)',
-              color: isBotActive ? '#7e22ce' : '#6b7280',
-              fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              background: isTenantAiPaused ? '#fef3c7' : isBotActive ? '#f3e8ff' : '#f3f4f6',
+              border: isTenantAiPaused ? '1px solid #fde68a' : isBotActive ? '1px solid #d8b4fe' : '1px solid rgba(0,0,0,0.08)',
+              color: isTenantAiPaused ? '#b45309' : isBotActive ? '#7e22ce' : '#6b7280',
+              fontSize: 12, fontWeight: 700,
+              cursor: isTenantAiPaused ? 'not-allowed' : 'pointer',
+              opacity: isTenantAiPaused ? 0.85 : 1,
             }}
           >
             <Bot size={13} />
-            <span>{isBotActive ? 'AI Active' : 'AI Paused'}</span>
+            <span>{isTenantAiPaused ? 'AI Locked (Admin)' : isBotActive ? 'AI Active' : 'AI Paused'}</span>
           </button>
 
           {/* Resolve / Close Button */}
