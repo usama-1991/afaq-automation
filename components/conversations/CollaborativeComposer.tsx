@@ -19,7 +19,7 @@ export interface CollaborativeComposerProps {
 }
 
 const DEFAULT_SNIPPETS = [
-  { id: 'def_hello', shortcut: 'hello', title: 'Warm Welcome', content: 'Hello $customer.name! 👋 Thank you for reaching out to $business.name. How may I assist you today?', category: 'Greetings' },
+  { id: 'def_hello', shortcut: 'hello', title: 'Warm Welcome', content: 'Hello $customer.name! Thank you for reaching out to $business.name. How may I assist you today?', category: 'Greetings' },
   { id: 'def_order', shortcut: 'order', title: 'Order Status Check', content: 'Could you please provide your 4-digit Order ID so I can quickly check the real-time shipping status for you?', category: 'Orders' },
   { id: 'def_hours', shortcut: 'hours', title: 'Business Hours', content: 'Our official operating hours are Monday to Saturday, 9:00 AM – 8:00 PM. Messages received after hours will be answered first thing in the morning!', category: 'General' },
   { id: 'def_agent', shortcut: 'agent', title: 'Agent Introduction', content: 'My name is $agent.name. I will be handling your inquiry today. Please let me know the details so I can assist you directly.', category: 'Support' },

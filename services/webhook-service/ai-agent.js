@@ -212,6 +212,12 @@ export async function processAIAgent(ctx) {
       const workingHourStart = parseTime(tenantData?.business_hours_start, 9);
       const workingHourEnd = parseTime(tenantData?.business_hours_end, 18);
 
+      const formatTime12 = (h, m) => {
+        const period = h >= 12 ? 'PM' : 'AM';
+        const h12 = h % 12 || 12;
+        return `${h12}:${m.toString().padStart(2, '0')} ${period}`;
+      };
+
       const generateSlots = (dateStr) => {
         const slots = [];
         for (let h = workingHourStart; h < workingHourEnd; h++) {
@@ -230,7 +236,7 @@ export async function processAIAgent(ctx) {
               }
             }
             if (isAvailable && slotStart > new Date()) { 
-              slots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+              slots.push(formatTime12(h, m));
             }
           }
         }
@@ -238,21 +244,36 @@ export async function processAIAgent(ctx) {
       };
 
       const availableDays = [];
-      for (let i = 0; i < 7; i++) {
+      const structuredSlotBlocks = [];
+      for (let i = 0; i < 5; i++) {
         const d = new Date();
-        // Shift by i days, plus adjust to tenant timezone approximately (add 5 hours for testing, or rely on UTC dates)
-        // Since we don't have timezone offset easily available here, we'll just use UTC dates.
         d.setDate(d.getDate() + i);
         const dateStr = d.toISOString().split('T')[0];
+        const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
         const slots = generateSlots(dateStr);
         if (slots.length > 0) {
-          availableDays.push(`${dateStr}: ${slots.join(', ')}`);
-        } else {
-          availableDays.push(`${dateStr}: Fully booked`);
+          // Curate top 3-4 diverse slots (Morning, Mid-day, Afternoon)
+          const curated = [];
+          if (slots.length <= 4) {
+            curated.push(...slots);
+          } else {
+            curated.push(slots[0]); // Earliest morning
+            const mid1 = slots[Math.floor(slots.length * 0.35)];
+            if (!curated.includes(mid1)) curated.push(mid1);
+            const mid2 = slots[Math.floor(slots.length * 0.65)];
+            if (!curated.includes(mid2)) curated.push(mid2);
+            const late = slots[slots.length - 1];
+            if (!curated.includes(late)) curated.push(late);
+          }
+          availableDays.push(`${dayLabel} (${dateStr}): ${curated.join(', ')}`);
+          structuredSlotBlocks.push(`${dayLabel} | ${curated.join(', ')}`);
         }
       }
 
-      availabilityBlock = `\n--- AVAILABLE APPOINTMENT SLOTS (Next 7 Days) ---\n${availableDays.join('\n')}\n\nUse this exact availability when the user asks for open times. Do NOT offer slots that are not in this list.`;
+      availabilityBlock = `\n--- AVAILABLE APPOINTMENT SLOTS ---\n${availableDays.join('\n')}\n\n` +
+        `RECOMMENDED SLOTS SYNTAX TO INCLUDE IN YOUR REPLY:\n` +
+        `[Slots: ${structuredSlotBlocks.slice(0, 2).join('; ')}]\n` +
+        `Always provide curated slots using this syntax so our system renders clean interactive appointment selection cards.`;
     }
 
     const systemPrompt = [
@@ -268,23 +289,33 @@ export async function processAIAgent(ctx) {
       '1. Answer using the knowledge base AND product catalog provided below. The product catalog IS your knowledge — use it to answer product questions, category questions, pricing, etc.',
       '2. If the customer asks about something NOT covered by the knowledge base AND NOT in the product catalog, say you will connect them with a team member.',
       '3. NEVER invent prices, hours, availability, or contact details.',
-      '4. EXTREME BREVITY: Keep all answers extremely short and conversational (1 or 2 sentences max). NEVER use long bulleted lists. Your responses must fit easily on a small mobile screen without scrolling.',
-      '5. Be warm, human, and highly conversational. Never sound robotic or output dry lists.',
+      '4. EXTREME BREVITY: Keep all answers concise, clean, and conversational (1 or 2 sentences max). NEVER use long bulleted lists. Your responses must fit easily on a small mobile screen without scrolling.',
+      '5. Professional Tone: Be polite, clear, and professional. Refrain from using emojis (do NOT use emojis like 😊, 🦷, 📅, etc.).',
       `6. Channel: ${ctx.platform}`,
       '7. When showing products, present them in a clean, conversational list. NEVER dump raw technical data (do NOT print raw "ID:", "Category:", or "Image_URL:" text).',
       '8. FORMATTING RULES (CRITICAL):',
       '   - Use WhatsApp native formatting: Use *single asterisks* for bold text (e.g., *Price:*). NEVER use double asterisks (**).',
       '   - NEVER use Markdown for links or images (do NOT use [text](url) or ![alt](url)).',
-      '   - Provide links and images as raw, clickable URLs on their own lines, optionally with an emoji (e.g., 🔗 *Link:* https://... or 🖼️ *Image:* https://...).',
-      ...( ['ecommerce', 'restaurant', 'food_delivery'].includes(ctx.niche) ? [
-        '9. CRITICAL: You MUST explicitly ask the customer for their Email Address, Delivery Address, and Payment Method if they are "(not yet provided)". DO NOT proceed to final confirmation until you have ALL THREE.',
-        '10. DO NOT say the order is confirmed if Address, Email, or Payment Method is still missing.',
-        '11. Once ALL details are gathered, you MUST show the final summary and ask the user to confirm their order using WhatsApp Buttons.'
+      '   - Provide links and images as raw, clickable URLs on their own lines.',
+      ...( ['dental', 'salon', 'clinic', 'medical'].includes(ctx.niche) ? [
+        '9. APPOINTMENT SCHEDULING RULES (CRITICAL):',
+        '   - NEVER output raw ranges like "September 27: 09:00 to 17:30" or long bullet lists of dates.',
+        '   - When a patient asks to book an appointment or for open times, offer 2 upcoming days with 3 recommended distinct time options.',
+        '   - You MUST include the structured slot syntax at the end of your appointment offering message:',
+        '     [Slots: Date 1 | 10:30 AM, 02:00 PM, 04:30 PM; Date 2 | 09:30 AM, 11:30 AM, 03:00 PM]',
+        '   - Example reply:',
+        '     "We would be glad to schedule your appointment. Here are the earliest available slots:',
+        '     [Slots: Mon, Sep 28 | 10:30 AM, 02:00 PM, 04:30 PM; Tue, Sep 29 | 09:30 AM, 11:30 AM, 03:00 PM]',
+        '     Please let us know which slot suits you best."',
       ] : [] ),
-      '12. INSTRUCTION FOR BUTTONS: Whenever you need the user to make a choice between 2 or 3 options (like Yes/No, or Cash/Card), you MUST present them as native WhatsApp buttons by prefixing your entire message with exactly this syntax:',
+      ...( ['ecommerce', 'restaurant', 'food_delivery'].includes(ctx.niche) ? [
+        '10. CRITICAL: You MUST explicitly ask the customer for their Email Address, Delivery Address, and Payment Method if they are "(not yet provided)". DO NOT proceed to final confirmation until you have ALL THREE.',
+        '11. DO NOT say the order is confirmed if Address, Email, or Payment Method is still missing.',
+        '12. Once ALL details are gathered, you MUST show the final summary and ask the user to confirm their order using WhatsApp Buttons.'
+      ] : [] ),
+      '13. INSTRUCTION FOR BUTTONS: Whenever you need the user to make a choice between 2 or 3 options (like Yes/No, or specific times), you can present them as native WhatsApp buttons by prefixing your entire message with exactly this syntax:',
       '[Buttons: Option 1 | Option 2]',
       'Your normal message text goes here...',
-      'Example for confirming an order: [Buttons: Yes, Confirm | No, Cancel] Please review your order summary below. Do you want to confirm?',
       '(Max 3 options. The options must be separated by the | character. Keep the button labels very short, max 20 chars).',
       '',
       orderStateBlock,

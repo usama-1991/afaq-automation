@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import {
@@ -24,13 +24,29 @@ function AuthForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
   
-  const initialMode = searchParams.get("mode") === "signup" ? "signup" : "login";
+  const isVerified = searchParams.get("verified") === "true";
+  const initialMode = isVerified
+    ? "login"
+    : searchParams.get("mode") === "signup"
+    ? "signup"
+    : "login";
   const [mode, setMode] = useState<"login" | "signup">(initialMode);
   
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(searchParams.get("email") || "");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("verified") === "true") {
+      supabase.auth.signOut().catch(() => {});
+      const queryEmail = searchParams.get("email");
+      if (queryEmail) {
+        setEmail(queryEmail);
+      }
+      setMode("login");
+    }
+  }, [searchParams]);
   
   const [error, setError] = useState<string | null>(
     searchParams.get("error") === "invalid_reset_link"
@@ -122,7 +138,7 @@ function AuthForm() {
             data: {
               full_name: fullName.trim() || email.split("@")[0],
             },
-            emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
+            emailRedirectTo: `${window.location.origin}/auth/callback?verified=true`,
           },
         });
 
@@ -265,6 +281,22 @@ function AuthForm() {
           </div>
 
           {/* Alert Messages */}
+          {isVerified && (
+            <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 shadow-sm flex items-start gap-3 animate-fade-in">
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5 text-emerald-600">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-emerald-950 text-sm">
+                  Email verified successfully!
+                </h4>
+                <p className="text-xs text-emerald-700 mt-1 leading-relaxed">
+                  Your email address has been verified. You can now log in with your credentials to access your workspace.
+                </p>
+              </div>
+            </div>
+          )}
+
           {error && (
             <div className="mb-6 text-sm text-red-700 bg-red-50 p-3.5 rounded-xl border border-red-200 flex items-start gap-2.5 animate-fade-in">
               <div className="w-4 h-4 rounded-full bg-red-200 text-red-700 flex items-center justify-center text-[10px] font-bold mt-0.5 flex-shrink-0">

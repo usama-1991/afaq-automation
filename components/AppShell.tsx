@@ -177,6 +177,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         return;
       }
       if (isLogin) {
+        if (typeof window !== 'undefined' && window.location.search.includes('verified=true')) {
+          return;
+        }
         router.replace('/admin');
         return;
       }
@@ -190,6 +193,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }
 
     if (isLogin) {
+      if (typeof window !== 'undefined' && window.location.search.includes('verified=true')) {
+        return;
+      }
       router.replace(onboarded ? '/dashboard' : '/onboarding');
       return;
     }

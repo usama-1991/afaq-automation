@@ -5,7 +5,7 @@ import {
   X, User, Phone, Mail, Globe, ShoppingBag, 
   Calendar, Tag, ShieldCheck, Clock, ExternalLink, 
   MapPin, Sparkles, Flame, CheckCircle2, ChevronRight,
-  Truck, CreditCard, RefreshCw, Box
+  Truck, CreditCard, RefreshCw, Box, AlertCircle, FileText
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { LIFECYCLE_STAGES } from './InboxSidebarNav';
@@ -158,6 +158,80 @@ export const Customer360Drawer = memo(function Customer360Drawer({
           </div>
         </div>
 
+        {/* ── Medical / Clinical Alerts (Dental & Healthcare) ── */}
+        <div style={{
+          background: '#fef2f2',
+          border: '1px solid #fecaca',
+          borderRadius: 10,
+          padding: '12px 14px',
+        }}>
+          <div style={{
+            fontSize: 11,
+            fontWeight: 800,
+            color: '#991b1b',
+            textTransform: 'uppercase',
+            letterSpacing: 0.5,
+            marginBottom: 8,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}>
+            <AlertCircle size={13} color="#dc2626" />
+            <span>Clinical Alerts</span>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4, background: '#fee2e2', color: '#b91c1c' }}>
+              Penicillin Allergy
+            </span>
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4, background: '#fee2e2', color: '#b91c1c' }}>
+              Gag Reflex Sensitive
+            </span>
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4, background: '#fef3c7', color: '#92400e' }}>
+              Recall Due (7 mos)
+            </span>
+          </div>
+        </div>
+
+        {/* ── Quick Patient Actions ──────────────────────── */}
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+            Quick Actions
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <button
+              onClick={() => {}}
+              style={{
+                width: '100%', padding: '9px 12px', borderRadius: 8, border: 'none',
+                background: 'linear-gradient(135deg, #e11d48, #be123c)', color: '#fff',
+                fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                boxShadow: '0 2px 6px rgba(225,29,72,0.2)'
+              }}
+            >
+              <Calendar size={13} /> Quick Book Operatory Slot
+            </button>
+            <button
+              onClick={() => {}}
+              style={{
+                width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0',
+                background: '#fff', color: '#334155', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+              }}
+            >
+              <CreditCard size={13} /> Send Deposit / Payment Link
+            </button>
+            <button
+              onClick={() => {}}
+              style={{
+                width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0',
+                background: '#fff', color: '#334155', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+              }}
+            >
+              <FileText size={13} /> Send Post-Op Care Guide
+            </button>
+          </div>
+        </div>
+
         {/* ── Contact Metadata ──────────────────────────── */}
         <div style={{
           display: 'flex', flexDirection: 'column', gap: 10,
@@ -293,6 +367,35 @@ export const Customer360Drawer = memo(function Customer360Drawer({
               })}
             </div>
           )}
+        </div>
+
+        {/* ── Dental Chart Summary ───────────────────────── */}
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+            Dental Chart Summary
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12.5, background: '#f9fafb', borderRadius: 10, padding: '12px 14px', border: '1px solid #f3f4f6' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #f3f4f6' }}>
+              <span style={{ color: '#6b7280' }}>Primary Dentist</span>
+              <span style={{ fontWeight: 600, color: '#111827' }}>Dr. Hassan Ahmed</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #f3f4f6' }}>
+              <span style={{ color: '#6b7280' }}>Last Visit</span>
+              <span style={{ fontWeight: 600, color: '#111827' }}>Feb 14, 2026 (Cleaning)</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #f3f4f6' }}>
+              <span style={{ color: '#6b7280' }}>Insurance</span>
+              <span style={{ fontWeight: 600, color: '#111827' }}>Jubilee Dental Care</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #f3f4f6' }}>
+              <span style={{ color: '#6b7280' }}>Total Spend</span>
+              <span style={{ fontWeight: 700, color: '#10b981' }}>PKR 48,000</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+              <span style={{ color: '#6b7280' }}>Copilot Status</span>
+              <span style={{ fontWeight: 700, color: '#10b981' }}>Autonomous Mode</span>
+            </div>
+          </div>
         </div>
 
         {/* ── Recent Appointments ───────────────────────── */}

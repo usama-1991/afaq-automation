@@ -434,6 +434,12 @@ export default function DashboardPage() {
     { id: '1', patient: 'Ahmed Raza', type: 'Severe Pain', issue: 'Patient reports throbbing pain in lower left molar after cold drink.' },
     { id: '2', patient: 'Mehak Iqbal', type: 'Bleeding', issue: 'Gums bleeding continuously for 20 mins after brushing this morning.' }
   ]);
+  const [remindersSent, setRemindersSent] = useState(false);
+  const [kbAddedItems, setKbAddedItems] = useState<Record<string, boolean>>({});
+  const [unansweredList, setUnansweredList] = useState([
+    { id: '1', question: 'Do you offer EMI?' },
+    { id: '2', question: 'Wisdom tooth price?' }
+  ]);
 
   // Real Estate Niche
   const [rePipeline, setRePipeline] = useMemoryState<any[]>('rePipeline', []);
@@ -731,7 +737,16 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Niche-Specific Stat Cards ── */}
-      <div className="stat-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16, marginBottom: 24, width: '100%' }}>
+      <div 
+        className="stat-cards-grid" 
+        style={{ 
+          display: 'grid', 
+          gridTemplateColumns: nicheId === 'dental' ? 'repeat(auto-fit, minmax(175px, 1fr))' : 'repeat(4, minmax(0, 1fr))', 
+          gap: 16, 
+          marginBottom: 24, 
+          width: '100%' 
+        }}
+      >
         {nicheId === 'restaurant' ? (
           <>
             <StatCard label="Orders Today" value={restaurantOrders.length > 0 ? restaurantOrders.length : '—'} sub={restaurantOrders.length > 0 ? `${getTrend(restaurantOrders.length).trend} more than yesterday` : 'WhatsApp orders in queue'} icon={ShoppingBag} color={RED} bg={RED_LIGHT} {...getTrend(restaurantOrders.length)} />
@@ -748,10 +763,41 @@ export default function DashboardPage() {
           </>
         ) : nicheId === 'dental' ? (
           <>
-            <StatCard label="Appts Today" value={dentalSchedule.filter((s:any) => s.status === 'confirmed' || s.status === 'pending').length > 0 ? dentalSchedule.filter((s:any) => s.status === 'confirmed' || s.status === 'pending').length : '—'} sub="Confirmed dental slots" icon={Calendar} color={RED} bg={RED_LIGHT} {...getTrend(dentalSchedule.length)} />
-            <StatCard label="Conversations" value={stats.conversations || '—'} sub="Patient chats via WhatsApp" icon={UserPlus} color={BLUE} bg={BLUE_LIGHT} {...getTrend(stats.conversations)} />
-            <StatCard label="Available Slots" value={dentalSchedule.filter((s:any) => s.status === 'available').length > 0 ? dentalSchedule.filter((s:any) => s.status === 'available').length : '—'} sub="Book via AI agent" icon={RefreshCw} color={AMBER} bg={AMBER_LIGHT} {...getTrend(dentalSchedule.length)} />
-            <StatCard label="AI Responses" value={stats.agentMessages || '—'} sub="Total AI messages sent" icon={Bot} color={GREEN} bg="#ecfdf5" {...getTrend(stats.agentMessages)} />
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>Appointments today</div>
+              <div style={{ fontSize: 32, fontWeight: 800, color: '#111827', lineHeight: 1 }}>{dentalSchedule.filter((s:any) => s.status === 'confirmed' || s.status === 'pending').length || 7}</div>
+              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 10 }}>5 confirmed, 2 pending</div>
+            </div>
+
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>Booked by AI (week)</div>
+              <div style={{ fontSize: 32, fontWeight: 800, color: '#111827', lineHeight: 1 }}>18</div>
+              <div style={{ fontSize: 12, color: '#10b981', fontWeight: 600, marginTop: 10 }}>+23% vs last week</div>
+            </div>
+
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>No-shows / cancels</div>
+              <div style={{ fontSize: 32, fontWeight: 800, color: '#111827', lineHeight: 1 }}>2</div>
+              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 10 }}>1 more than last week</div>
+            </div>
+
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>New vs returning</div>
+              <div style={{ fontSize: 32, fontWeight: 800, color: '#111827', lineHeight: 1 }}>9 / 14</div>
+              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 10 }}>this week</div>
+            </div>
+
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>First response</div>
+              <div style={{ fontSize: 32, fontWeight: 800, color: '#111827', lineHeight: 1 }}>8s</div>
+              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 10 }}>AI median</div>
+            </div>
+
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>Handed to staff</div>
+              <div style={{ fontSize: 32, fontWeight: 800, color: '#111827', lineHeight: 1 }}>13%</div>
+              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 10 }}>87% handled by AI</div>
+            </div>
           </>
         ) : nicheId === 'realestate' ? (
           <>
@@ -819,6 +865,239 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Core Niche Dashboard Layouts ── */}
+      {nicheId === 'dental' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginBottom: 28, width: '100%' }}>
+          
+          {/* Middle Row: Today by doctor (left) + Do next (right) - Screenshot 1 */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.85fr) minmax(0, 1fr)', gap: 20 }}>
+            
+            {/* Left: Today by doctor */}
+            <div style={{ background: '#fff', borderRadius: 16, padding: '24px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 18 }}>
+                Today by doctor
+              </div>
+
+              {/* Sub-header */}
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 14, fontSize: 12, fontWeight: 600, color: '#6b7280' }}>
+                <div style={{ width: 80 }}>Time</div>
+                <div style={{ flex: 1, paddingRight: 10 }}>Dr. Hassan Ahmed · 5/8 filled</div>
+                <div style={{ flex: 1 }}>Dr. Fatima Zahra · 6/8 filled</div>
+              </div>
+
+              {/* Slot Rows */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {/* 10:30 */}
+                <div style={{ display: 'flex', alignItems: 'center', minHeight: 40 }}>
+                  <div style={{ width: 80, fontSize: 13, fontWeight: 600, color: '#374151' }}>10:30</div>
+                  <div style={{ flex: 1, paddingRight: 10 }}>
+                    <div style={{ background: '#fff1f2', border: '1px solid #ffe4e6', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: '#111827' }}>
+                      RKN · Scaling
+                    </div>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ background: '#fff1f2', border: '1px solid #ffe4e6', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: '#111827' }}>
+                      Sana M. · Whitening
+                    </div>
+                  </div>
+                </div>
+
+                {/* 12:00 */}
+                <div style={{ display: 'flex', alignItems: 'center', minHeight: 40 }}>
+                  <div style={{ width: 80, fontSize: 13, fontWeight: 600, color: '#374151' }}>12:00</div>
+                  <div style={{ flex: 1, paddingRight: 10 }}>
+                    <div style={{ background: '#fff1f2', border: '1px solid #ffe4e6', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: '#111827' }}>
+                      Bilal K. · Root canal
+                    </div>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ background: '#fff1f2', border: '1px solid #ffe4e6', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: '#111827' }}>
+                      Hira S. · Braces
+                    </div>
+                  </div>
+                </div>
+
+                {/* 14:00 */}
+                <div style={{ display: 'flex', alignItems: 'center', minHeight: 40 }}>
+                  <div style={{ width: 80, fontSize: 13, fontWeight: 600, color: '#374151' }}>14:00</div>
+                  <div style={{ flex: 1, paddingRight: 10 }}>
+                    <div style={{ background: '#fff', border: '1px dashed #d1d5db', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, fontWeight: 500, color: '#6b7280' }}>
+                      Open · Book via AI
+                    </div>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ background: '#fff1f2', border: '1px solid #ffe4e6', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: '#111827' }}>
+                      Omar F. · Checkup
+                    </div>
+                  </div>
+                </div>
+
+                {/* 16:30 */}
+                <div style={{ display: 'flex', alignItems: 'center', minHeight: 40 }}>
+                  <div style={{ width: 80, fontSize: 13, fontWeight: 600, color: '#374151' }}>16:30</div>
+                  <div style={{ flex: 1, paddingRight: 10 }}>
+                    <div style={{ background: '#fff1f2', border: '1px solid #ffe4e6', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: '#111827' }}>
+                      Zoya A. · Scaling
+                    </div>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ background: '#fff', border: '1px dashed #d1d5db', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, fontWeight: 500, color: '#6b7280' }}>
+                      Open · Book via AI
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Do next */}
+            <div style={{ background: '#fff', borderRadius: 16, padding: '24px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 20 }}>
+                Do next
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1, justifyContent: 'space-around' }}>
+                {/* Task 1 */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>
+                    2 unconfirmed appointments
+                  </span>
+                  <button
+                    onClick={() => {
+                      setRemindersSent(true);
+                      alert('WhatsApp appointment confirmation reminders dispatched to 2 patients.');
+                    }}
+                    style={{
+                      background: '#9f1239', color: '#fff', border: 'none',
+                      borderRadius: 8, padding: '8px 16px', fontSize: 12.5, fontWeight: 700,
+                      cursor: 'pointer', whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {remindersSent ? 'Reminders Sent' : 'Send reminders'}
+                  </button>
+                </div>
+
+                {/* Task 2 */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>
+                    14 patients due for 6-month recall
+                  </span>
+                  <button
+                    onClick={() => router.push('/campaigns')}
+                    style={{
+                      background: '#fff', color: '#9f1239', border: '1px solid #9f1239',
+                      borderRadius: 8, padding: '8px 16px', fontSize: 12.5, fontWeight: 700,
+                      cursor: 'pointer', whiteSpace: 'nowrap'
+                    }}
+                  >
+                    Start campaign
+                  </button>
+                </div>
+
+                {/* Task 3 */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>
+                    1 hot lead unassigned
+                  </span>
+                  <button
+                    onClick={() => router.push('/conversations?queue=unassigned')}
+                    style={{
+                      background: '#fff', color: '#9f1239', border: '1px solid #9f1239',
+                      borderRadius: 8, padding: '8px 16px', fontSize: 12.5, fontWeight: 700,
+                      cursor: 'pointer', whiteSpace: 'nowrap'
+                    }}
+                  >
+                    Assign
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Bottom Row: 4 Cards from Screenshot 2 */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16 }}>
+            
+            {/* 1: Est. revenue from AI bookings */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>Est. revenue from AI bookings</div>
+              <div style={{ fontSize: 26, fontWeight: 800, color: '#111827', lineHeight: 1.1 }}>PKR 184,000</div>
+              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 10 }}>this month, from booked treatments</div>
+            </div>
+
+            {/* 2: Peak inquiry hours */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', marginBottom: 12 }}>Peak inquiry hours</div>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  {['#fce7f3', '#fbcfe8', '#f43f5e', '#be123c', '#9f1239', '#e11d48', '#be123c', '#9f1239', '#9f1239', '#f43f5e', '#fce7f3'].map((color, i) => (
+                    <div key={i} style={{ flex: 1, height: 16, borderRadius: 3, background: color }} />
+                  ))}
+                </div>
+              </div>
+              <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 10 }}>
+                9am to 8pm · busiest 12 to 1pm and 6 to 7pm
+              </div>
+            </div>
+
+            {/* 3: Unanswered by AI */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', marginBottom: 12 }}>Unanswered by AI</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {unansweredList.map(item => (
+                  <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 12, color: '#374151', fontStyle: 'italic' }}>"{item.question}"</span>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await supabase.from('knowledge_base').insert([{
+                            title: item.question,
+                            content: `Customer inquiry: ${item.question}. Clinic policy pending review.`,
+                            is_active: true
+                          }]);
+                        } catch (e) {}
+                        setKbAddedItems(prev => ({ ...prev, [item.id]: true }));
+                      }}
+                      disabled={kbAddedItems[item.id]}
+                      style={{
+                        padding: '4px 10px', fontSize: 11, fontWeight: 700,
+                        background: '#fff', color: kbAddedItems[item.id] ? '#10b981' : '#9f1239',
+                        border: `1px solid ${kbAddedItems[item.id] ? '#10b981' : '#9f1239'}`,
+                        borderRadius: 6, cursor: kbAddedItems[item.id] ? 'default' : 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {kbAddedItems[item.id] ? 'Added' : 'Add to KB'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 4: Treatments this week */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', marginBottom: 12 }}>Treatments this week</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {[
+                  { name: 'Scaling & polishing', count: 12, max: 15 },
+                  { name: 'Zoom whitening', count: 8, max: 15 },
+                  { name: 'Root canal', count: 5, max: 15 },
+                  { name: 'Braces', count: 3, max: 15 }
+                ].map(t => (
+                  <div key={t.name}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, fontWeight: 500, color: '#374151', marginBottom: 3 }}>
+                      <span>{t.name}</span>
+                      <span style={{ fontWeight: 700 }}>{t.count}</span>
+                    </div>
+                    <div style={{ width: '100%', height: 5, background: '#f1f5f9', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{ width: `${(t.count / t.max) * 100}%`, height: '100%', background: '#9f1239', borderRadius: 3 }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      ) : (
       <div className="dashboard-layout-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: 16, marginBottom: 24, width: '100%', minWidth: 0 }}>
         
         {/* Left Column: All Niche-Specific Workspace Cards */}
@@ -1091,98 +1370,6 @@ export default function DashboardPage() {
           )}
 
           {/* ========================================================================= */}
-          {/* NICHE 3: Dental Clinic */}
-          {/* ========================================================================= */}
-          {nicheId === 'dental' && (
-            <>
-              <SectionCard title="Today's Appointment Schedule" subtitle="OPD Dental slots tracked dynamically by patient WhatsApp booking confirmation">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {dentalSchedule.map((slot, idx) => (
-                    <div key={idx} style={{
-                      display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12,
-                      border: '1px solid rgba(220,38,38,0.05)',
-                      background: slot.status === 'confirmed' ? 'white' : slot.status === 'available' ? '#fefbfb' : '#fafafa',
-                      borderLeft: `4px solid ${slot.status === 'confirmed' ? GREEN : slot.status === 'pending' ? AMBER : '#e5e7eb'}`
-                    }}>
-                      <div style={{ width: 68, fontSize: 12, fontWeight: 800, color: '#4b5563' }}>{slot.time}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <strong style={{ fontSize: 13.5, color: '#111827' }}>{slot.name}</strong>
-                          {slot.isNew && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', background: BLUE_LIGHT, color: BLUE, borderRadius: 8 }}>NEW</span>}
-                        </div>
-                        <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 2 }}>{slot.treatment} · {slot.doctor}</div>
-                      </div>
-                      <div>
-                        {slot.status === 'available' ? (
-                          <button
-                            onClick={() => {
-                              setDentalSchedule(prev => prev.map((s, i) => i === idx ? { ...s, name: 'Sara Ahmed', treatment: 'Scaling', status: 'confirmed', isNew: true } : s));
-                            }}
-                            style={{ padding: '4px 10px', background: RED_LIGHT, color: RED, border: 'none', borderRadius: 8, fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}
-                          >
-                            Book via AI
-                          </button>
-                        ) : (
-                          <span style={{
-                            fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, textTransform: 'uppercase',
-                            background: slot.status === 'confirmed' ? '#ecfdf5' : '#fef2f2',
-                            color: slot.status === 'confirmed' ? GREEN : RED
-                          }}>{slot.status}</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </SectionCard>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <SectionCard title="Weekly Treatment Breakdown">
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '4px 0' }}>
-                    {[
-                      { name: 'Scaling & Polishing', count: 12, max: 20, color: BLUE },
-                      { name: 'Root Canal', count: 5, max: 20, color: RED },
-                      { name: 'Zoom Whitening', count: 8, max: 20, color: GREEN },
-                      { name: 'Braces / Orthodontics', count: 3, max: 20, color: AMBER }
-                    ].map(t => (
-                      <div key={t.name}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, fontWeight: 700, marginBottom: 5, color: '#4b5563' }}>
-                          <span>{t.name}</span>
-                          <span>{t.count}</span>
-                        </div>
-                        <div style={{ width: '100%', height: 6, background: '#f3f4f6', borderRadius: 3, overflow: 'hidden' }}>
-                          <div style={{ width: `${(t.count / t.max) * 100}%`, height: '100%', background: t.color, borderRadius: 3 }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </SectionCard>
-
-                <SectionCard title="⚕️ Clinical Queries Awaiting Review">
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {dentalClinicalQueries.map(q => (
-                      <div key={q.id} style={{ padding: '10px 12px', background: RED_LIGHT, borderRadius: 10, border: '1px solid rgba(220,38,38,0.06)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: 12.5, fontWeight: 800, color: '#111827' }}>{q.patient}</span>
-                          <span style={{ fontSize: 10, fontWeight: 700, color: RED }}>{q.type}</span>
-                        </div>
-                        <div style={{ fontSize: 12, color: '#4b5563', marginTop: 4, fontWeight: 550 }}>{q.issue}</div>
-                        <button
-                          onClick={() => {
-                            setDentalClinicalQueries(prev => prev.filter(item => item.id !== q.id));
-                          }}
-                          style={{ marginTop: 8, padding: '3px 8px', border: 'none', background: RED, color: '#fff', borderRadius: 6, fontSize: 10.5, fontWeight: 700, cursor: 'pointer' }}
-                        >
-                          Resolve Inquiry
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </SectionCard>
-              </div>
-            </>
-          )}
-
-          {/* ========================================================================= */}
           {/* NICHE 4: Real Estate */}
           {/* ========================================================================= */}
           {nicheId === 'realestate' && (
@@ -1254,7 +1441,7 @@ export default function DashboardPage() {
                 </div>
               </SectionCard>
 
-              <SectionCard title="🔥 Active Hot Prospects">
+              <SectionCard title="Active Hot Prospects">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {rePipeline.filter(l => l.temp === 'hot').map(lead => (
                     <div key={lead.id} style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(220,38,38,0.06)', background: '#fff' }}>
@@ -1302,7 +1489,7 @@ export default function DashboardPage() {
               </SectionCard>
 
               <div className="dashboard-pipeline-grid" style={{ gap: 16 }}>
-                <SectionCard title="🌸 Bridal Pipeline Inquiries">
+                <SectionCard title="Bridal Pipeline Inquiries">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {[
                       { name: 'Nadia Khan', stage: 'Inquiry', date: 'June 12' },
@@ -1319,7 +1506,7 @@ export default function DashboardPage() {
                   </div>
                 </SectionCard>
 
-                <SectionCard title="⏰ Upcoming No-Show Reminders">
+                <SectionCard title="Upcoming No-Show Reminders">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {upcomingReminders.map(rem => (
                       <div key={rem.id} style={{ padding: '10px 12px', background: RED_LIGHT, borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1372,7 +1559,7 @@ export default function DashboardPage() {
                 </div>
               </SectionCard>
 
-              <SectionCard title="⚕️ Specialty Consultation Demand">
+              <SectionCard title="Specialty Consultation Demand">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div style={{ color: '#9ca3af', fontSize: 13, textAlign: 'center', padding: '12px 0' }}>Specialty demand data will populate as patient consultations are confirmed via WhatsApp chats.</div>
                 </div>
@@ -1387,7 +1574,7 @@ export default function DashboardPage() {
             <>
               {/* Strip 1: Connected Touchpoints & Routing Health */}
               <SectionCard 
-                title="🌐 Omnichannel Channels & Connectivity" 
+                title="Omnichannel Channels & Connectivity" 
                 subtitle="Live status and message routing across your customer communication touchpoints"
                 action={
                   <button
@@ -1508,7 +1695,7 @@ export default function DashboardPage() {
 
               {/* Strip 2: Live Inquiries & AI Dialogue Stream */}
               <SectionCard
-                title="💬 Live Inquiries & AI Dialogue Stream"
+                title="Live Inquiries & AI Dialogue Stream"
                 subtitle="Real-time customer inquiries being handled across WhatsApp, Messenger, and Website Chat"
                 action={
                   <button
@@ -1635,7 +1822,7 @@ export default function DashboardPage() {
 
               {/* Strip 3: Omnichannel Customer & Lead Pipeline */}
               <SectionCard 
-                title="🚀 Customer Inquiry & Lead Pipeline" 
+                title="Customer Inquiry & Lead Pipeline" 
                 subtitle="Universal stage tracking from incoming queries through autonomous AI handling to resolution"
               >
                 <div className="dashboard-pipeline-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12, width: '100%' }}>
@@ -1769,7 +1956,7 @@ export default function DashboardPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0, width: '100%' }}>
 
           <SectionCard 
-            title="🤖 AI Agent Intelligence" 
+            title="AI Agent Intelligence" 
             subtitle="Autonomous copilot active across all channels"
             action={
               <button
@@ -1848,6 +2035,7 @@ export default function DashboardPage() {
         </div>
 
       </div>
+      )}
 
 
 

@@ -9,6 +9,10 @@ export async function GET(request: NextRequest) {
   const token_hash = searchParams.get('token_hash');
   const type = searchParams.get('type') as EmailOtpType | null;
   const next = searchParams.get('next');
+  const isVerifiedRequest =
+    searchParams.get('verified') === 'true' ||
+    type === 'signup' ||
+    type === 'email';
 
   const supabase = await createClient();
   let user: any = null;
@@ -38,14 +42,6 @@ export async function GET(request: NextRequest) {
   // If user verified successfully via either strategy
   if (user) {
     const userEmail = user.email || '';
-
-    // If user is designated Super Admin
-    if (
-      userEmail === 'usamahabib1991@gmail.com' ||
-      userEmail === 'admin@ittisalo.io'
-    ) {
-      return NextResponse.redirect(`${origin}/admin`);
-    }
 
     // If explicit redirect was requested (e.g. password recovery)
     if (next === '/update-password') {
@@ -100,6 +96,23 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // If this is an email verification (new account signup):
+      // Land on login page with verified state so the user logs in with their credentials
+      if (isVerifiedRequest) {
+        await supabase.auth.signOut();
+        return NextResponse.redirect(
+          `${origin}/login?verified=true&email=${encodeURIComponent(userEmail)}`
+        );
+      }
+
+      // If user is designated Super Admin
+      if (
+        userEmail === 'usamahabib1991@gmail.com' ||
+        userEmail === 'admin@ittisalo.io'
+      ) {
+        return NextResponse.redirect(`${origin}/admin`);
+      }
+
       // Check tenant onboarding status
       if (profile?.tenant_id) {
         const { data: tenant } = await serviceClient
@@ -116,6 +129,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${origin}${next || '/dashboard'}`);
     } catch (err) {
       console.error('[auth/callback] tenant check error:', err);
+      if (isVerifiedRequest) {
+        await supabase.auth.signOut();
+        return NextResponse.redirect(
+          `${origin}/login?verified=true&email=${encodeURIComponent(userEmail)}`
+        );
+      }
       return NextResponse.redirect(`${origin}/onboarding`);
     }
   }
@@ -123,7 +142,18 @@ export async function GET(request: NextRequest) {
   // Fallback: If user already has an active session
   const { data: { session } } = await supabase.auth.getSession();
   if (session?.user) {
+    if (isVerifiedRequest) {
+      await supabase.auth.signOut();
+      return NextResponse.redirect(
+        `${origin}/login?verified=true&email=${encodeURIComponent(session.user.email || '')}`
+      );
+    }
     return NextResponse.redirect(`${origin}${next || '/onboarding'}`);
+  }
+
+  // If this was an email verification link that was already verified/consumed
+  if (isVerifiedRequest) {
+    return NextResponse.redirect(`${origin}/login?verified=true`);
   }
 
   // Verification failed or expired — send back to login with error hint

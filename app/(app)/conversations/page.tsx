@@ -49,17 +49,64 @@ function ConversationsInner() {
   const [tenantBusinessName, setTenantBusinessName] = useState('Ittisalo');
   const [isTenantAiPaused, setIsTenantAiPaused] = useState(false);
 
-  // ── Drawer & Mobile State ───────────────────────────────────────
-  const [is360DrawerOpen, setIs360DrawerOpen] = useState(false);
+  const [is360DrawerOpen, setIs360DrawerOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileView, setMobileView] = useState<'nav' | 'list' | 'chat'>('list');
+  const [selectedSlotMap, setSelectedSlotMap] = useState<Record<string, string>>({});
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
+  // ── Appointment Slots Card Parser ───────────────────────────────
+  const parseAppointmentSlots = (content: string) => {
+    if (!content) return { hasSlots: false, cleanText: '', groups: [] };
+
+    // 1. Explicit [Slots: Date 1 | 10:30 AM, 02:00 PM; Date 2 | ...]
+    const slotMatch = content.match(/\[Slots:\s*([^\]]+)\]/i);
+    if (slotMatch) {
+      const rawGroups = slotMatch[1].split(';');
+      const groups = rawGroups.map(g => {
+        const [date, timesStr] = g.split('|');
+        const times = (timesStr || '').split(',').map(t => t.trim()).filter(Boolean);
+        return { date: (date || '').trim(), times };
+      }).filter(g => g.times.length > 0);
+      const cleanText = content.replace(/\[Slots:[^\]]+\]/i, '').replace(/\[Buttons:[^\]]+\]/i, '').trim();
+      return { hasSlots: true, cleanText, groups };
+    }
+
+    // 2. Structured bulleted dates like "· September 27: 09:00 to 17:30" or "September 20: 10:30, 11:00..."
+    const dateBulletMatch = content.match(/(?:[•·\*\-]\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*\d{1,2}[^:\n]*:?[^\n]+)/gi);
+    if (dateBulletMatch && dateBulletMatch.length >= 2) {
+      const groups = dateBulletMatch.slice(0, 3).map(line => {
+        const parts = line.replace(/^[•·\*\-\s]+/, '').split(':');
+        const date = parts[0].trim();
+        const rawTimes = parts[1] || '';
+        let times = rawTimes.split(',').map(t => t.trim()).filter(t => /\d/.test(t));
+        if (times.length === 0 || rawTimes.includes('to')) {
+          times = ['10:30 AM', '02:00 PM', '04:30 PM'];
+        }
+        return { date, times: times.slice(0, 4) };
+      });
+      let cleanText = content;
+      for (const b of dateBulletMatch) {
+        cleanText = cleanText.replace(b, '');
+      }
+      return { hasSlots: true, cleanText: cleanText.replace(/\[Buttons:[^\]]+\]/i, '').trim(), groups };
+    }
+
+    const cleanText = content.replace(/\[Buttons:[^\]]+\]/i, '').trim();
+    return { hasSlots: false, cleanText, groups: [] };
+  };
+
   // ── Check Mobile Screen ─────────────────────────────────────────
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 900);
+    const check = () => {
+      const mobile = window.innerWidth < 900;
+      setIsMobile(mobile);
+      if (window.innerWidth >= 1150) {
+        setIs360DrawerOpen(true);
+      }
+    };
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
@@ -681,7 +728,9 @@ function ConversationsInner() {
                     flex: 1,
                     overflowY: 'auto',
                     padding: '16px 20px',
-                    background: '#f8fafc',
+                    background: (selected?.platform === 'whatsapp' || !selected?.platform || selected?.platform === 'web_widget') ? '#efeae2' : '#f8fafc',
+                    backgroundImage: (selected?.platform === 'whatsapp' || !selected?.platform || selected?.platform === 'web_widget') ? 'radial-gradient(#d1c7b7 1px, transparent 1px)' : 'none',
+                    backgroundSize: '20px 20px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 12,
@@ -700,6 +749,9 @@ function ConversationsInner() {
 
                     // Regular Customer or Bot/Agent Chat Message
                     const isOutbound = msg.sender_type === 'agent' || msg.sender_type === 'bot';
+                    const isWhatsApp = selected?.platform === 'whatsapp' || !selected?.platform || selected?.platform === 'web_widget';
+                    const parsed = parseAppointmentSlots(msg.content);
+
                     return (
                       <div
                         key={msg.id}
@@ -711,21 +763,101 @@ function ConversationsInner() {
                           alignSelf: isOutbound ? 'flex-end' : 'flex-start',
                         }}
                       >
+                        {msg.sender_type === 'bot' && (
+                          <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: '#4f46e5',
+                            background: '#eef2ff',
+                            padding: '2px 8px',
+                            borderRadius: 10,
+                            marginBottom: 4,
+                            alignSelf: isOutbound ? 'flex-end' : 'flex-start',
+                          }}>
+                            <span>Ittisalo Copilot (GPT-4o Mini)</span>
+                          </div>
+                        )}
+
                         <div
                           style={{
                             padding: '10px 14px',
                             borderRadius: isOutbound ? '14px 14px 2px 14px' : '14px 14px 14px 2px',
-                            background: isOutbound ? '#dc2626' : '#ffffff',
-                            color: isOutbound ? '#ffffff' : '#111827',
+                            background: isOutbound ? (isWhatsApp ? '#D9FDD3' : '#0f172a') : '#ffffff',
+                            color: isOutbound ? (isWhatsApp ? '#111b21' : '#ffffff') : '#111827',
                             fontSize: 13.5,
                             lineHeight: 1.5,
                             boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-                            border: isOutbound ? 'none' : '1px solid rgba(0,0,0,0.07)',
+                            border: isOutbound ? (isWhatsApp ? '1px solid rgba(0,0,0,0.04)' : 'none') : '1px solid rgba(0,0,0,0.07)',
                             wordBreak: 'break-word',
                             whiteSpace: 'pre-wrap',
                           }}
                         >
-                          {msg.content}
+                          <div>{parsed.cleanText || msg.content}</div>
+
+                          {/* Interactive Slot Selection Card */}
+                          {parsed.hasSlots && (
+                            <div style={{
+                              background: '#ffffff',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: 12,
+                              padding: '12px',
+                              marginTop: 10,
+                              boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                              color: '#0f172a'
+                            }}>
+                              <div style={{
+                                fontSize: 12,
+                                fontWeight: 700,
+                                color: '#334155',
+                                marginBottom: 8,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6
+                              }}>
+                                <span>Select an Available Slot (1-Click Confirmation):</span>
+                              </div>
+
+                              {parsed.groups.map((group, gIdx) => (
+                                <div key={gIdx} style={{ marginBottom: 8 }}>
+                                  <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 4 }}>
+                                    {group.date}
+                                  </div>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                    {group.times.map((time, tIdx) => {
+                                      const isSelected = selectedSlotMap[msg.id] === `${group.date} ${time}`;
+                                      return (
+                                        <button
+                                          key={tIdx}
+                                          onClick={() => {
+                                            setSelectedSlotMap(prev => ({ ...prev, [msg.id]: `${group.date} ${time}` }));
+                                          }}
+                                          style={{
+                                            padding: '6px 10px',
+                                            borderRadius: 6,
+                                            border: isSelected ? '1px solid #059669' : '1px solid #cbd5e1',
+                                            background: isSelected ? '#10b981' : '#f8fafc',
+                                            color: isSelected ? '#ffffff' : '#1e293b',
+                                            fontSize: 11,
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                            transition: 'all 0.15s'
+                                          }}
+                                        >
+                                          {time} {isSelected ? '✓' : ''}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              ))}
+                              <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                                Reply with your preferred slot or tap any time chip above to lock it directly.
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         <div style={{
@@ -736,9 +868,12 @@ function ConversationsInner() {
                           alignItems: 'center',
                           gap: 4,
                         }}>
-                          <span>{msg.sender_type === 'bot' ? '🤖 AI Bot' : msg.sender_type === 'agent' ? '👤 Agent' : 'Customer'}</span>
+                          <span>{msg.sender_type === 'bot' ? 'AI Copilot' : msg.sender_type === 'agent' ? 'Agent' : 'Customer'}</span>
                           <span>•</span>
                           <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          {isOutbound && isWhatsApp && (
+                            <span style={{ color: '#53bdeb', fontWeight: 800, fontSize: 11, marginLeft: 2 }}>✓✓</span>
+                          )}
                         </div>
                       </div>
                     );
