@@ -175,8 +175,33 @@ async function dispatchOutboundMessage(message) {
     if (conv.platform === 'whatsapp') {
       let payload = {};
 
+      const url = `https://graph.facebook.com/v19.0/${externalPhoneId}/messages`;
+
       if (mediaInfo) {
         fastify.log.info(`[whatsapp] Outbound media message: ${mediaInfo.fileName}`);
+
+        // Send accompanying text first if present
+        if (mediaInfo.caption) {
+          fastify.log.info(`[whatsapp] Sending accompanying text before media to ${customerPhone}`);
+          try {
+            await fetch(url, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                messaging_product: 'whatsapp',
+                to: customerPhone,
+                type: 'text',
+                text: { body: mediaInfo.caption }
+              })
+            });
+          } catch (tErr) {
+            fastify.log.warn(`[whatsapp] Could not send accompanying text: ${tErr.message}`);
+          }
+        }
+
         let mediaId = '';
 
         if (mediaInfo.isBase64) {
@@ -300,6 +325,23 @@ async function dispatchOutboundMessage(message) {
 
       if (mediaInfo) {
         fastify.log.info(`[${conv.platform}] Outbound media: ${mediaInfo.fileName}`);
+
+        // Send accompanying text first if present
+        if (mediaInfo.caption) {
+          fastify.log.info(`[${conv.platform}] Sending accompanying text before media to ${customerPhone}`);
+          try {
+            await fetch(sendUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                recipient: { id: customerPhone },
+                message: { text: mediaInfo.caption }
+              })
+            });
+          } catch (tErr) {
+            fastify.log.warn(`[${conv.platform}] Could not send accompanying text: ${tErr.message}`);
+          }
+        }
         const typeMap = {
           images: 'image',
           videos: 'video',

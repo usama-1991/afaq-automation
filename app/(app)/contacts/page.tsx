@@ -35,6 +35,20 @@ interface Contact {
 
 const PRESET_TAGS = ['VIP', 'Wholesale Buyer', 'High Value', 'Urgent', 'Instagram Lead', 'Website Inquiry', 'Follow-up'];
 
+const getPlatformMeta = (platform: string) => {
+  const p = (platform || 'whatsapp').toLowerCase();
+  if (p === 'messenger') {
+    return { label: 'Messenger', color: '#0084ff', bg: '#eff6ff', border: '#bfdbfe' };
+  }
+  if (p === 'instagram') {
+    return { label: 'Instagram', color: '#e1306c', bg: '#fdf2f8', border: '#fbcfe8' };
+  }
+  if (p === 'web_widget' || p === 'website') {
+    return { label: 'Live Chat', color: '#4f46e5', bg: '#eef2ff', border: '#c7d2fe' };
+  }
+  return { label: 'WhatsApp', color: '#16a34a', bg: '#dcfce7', border: '#bbf7d0' };
+};
+
 export default function ContactsPage() {
   const router = useRouter();
   const confirm = useConfirm();
@@ -534,8 +548,20 @@ export default function ContactsPage() {
                           <div style={{ fontSize: 13.5, fontWeight: 700, color: '#111827' }}>
                             {c.name}
                           </div>
-                          <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 1 }}>
-                            {c.phone}
+                          <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {(() => {
+                              const meta = getPlatformMeta(c.platform);
+                              return (
+                                <span style={{
+                                  fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4,
+                                  background: meta.bg, color: meta.color, border: `1px solid ${meta.border}`,
+                                  textTransform: 'capitalize'
+                                }}>
+                                  {meta.label}
+                                </span>
+                              );
+                            })()}
+                            <span>{c.phone}</span>
                           </div>
                         </div>
                       </div>
@@ -623,7 +649,14 @@ export default function ContactsPage() {
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, fontSize: 12, color: '#6b7280' }}>
-                    <span style={{ fontWeight: 600, color: '#16a34a' }}>WhatsApp</span>
+                    {(() => {
+                      const meta = getPlatformMeta(selected.platform);
+                      return (
+                        <span style={{ fontWeight: 700, color: meta.color, textTransform: 'capitalize' }}>
+                          {meta.label}
+                        </span>
+                      );
+                    })()}
                     <span>•</span>
                     <span>{selected.phone}</span>
                     <span>•</span>
@@ -647,20 +680,30 @@ export default function ContactsPage() {
                 </button>
 
                 {selected.phone && (
-                  <a
-                    href={`https://wa.me/${selected.phone.replace(/[^0-9]/g, '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 6,
-                      padding: '8px 14px', borderRadius: 8, fontSize: 13, fontWeight: 700,
-                      background: '#dcfce7', color: '#16a34a', textDecoration: 'none',
-                      border: '1px solid #bbf7d0',
-                    }}
-                  >
-                    <Phone size={14} />
-                    <span>WhatsApp</span>
-                  </a>
+                  (() => {
+                    const meta = getPlatformMeta(selected.platform);
+                    const linkUrl = selected.platform === 'messenger'
+                      ? `https://m.me/${selected.phone}`
+                      : selected.platform === 'instagram'
+                      ? `https://instagram.com/`
+                      : `https://wa.me/${selected.phone.replace(/[^0-9]/g, '')}`;
+                    return (
+                      <a
+                        href={linkUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 6,
+                          padding: '8px 14px', borderRadius: 8, fontSize: 13, fontWeight: 700,
+                          background: meta.bg, color: meta.color, textDecoration: 'none',
+                          border: `1px solid ${meta.border}`,
+                        }}
+                      >
+                        <Phone size={14} />
+                        <span>{meta.label}</span>
+                      </a>
+                    );
+                  })()
                 )}
               </div>
             </div>
@@ -894,7 +937,7 @@ export default function ContactsPage() {
                         color: composerMode === 'public' ? '#ffffff' : '#4b5563', border: 'none',
                       }}
                     >
-                      💬 Public WhatsApp
+                      💬 Public {getPlatformMeta(selected.platform).label}
                     </button>
                     <button
                       onClick={() => setComposerMode('note')}
@@ -911,7 +954,7 @@ export default function ContactsPage() {
                   <div style={{ display: 'flex', gap: 6 }}>
                     <input
                       type="text"
-                      placeholder={composerMode === 'note' ? 'Write internal note for team...' : 'Reply to customer on WhatsApp...'}
+                      placeholder={composerMode === 'note' ? 'Write internal note for team...' : `Reply to customer on ${getPlatformMeta(selected.platform).label}...`}
                       value={replyText}
                       onChange={e => setReplyText(e.target.value)}
                       onKeyDown={e => {

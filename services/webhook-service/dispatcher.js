@@ -40,9 +40,11 @@ function parseMediaContent(content) {
     const fileUrl = imgMatch[1];
     let caption = content
       .replace(imgMatch[0], '')
+      .replace(/\*[^*]+\*:\s*$/gm, '')
       .replace(/🔗\s*(?:Link|URL)?:?/gi, '')
       .replace(/🖼️\s*(?:Image|Photo)?:?/gi, '')
       .replace(/📎/g, '')
+      .replace(/\n{3,}/g, '\n\n')
       .trim();
 
     return {
@@ -215,6 +217,29 @@ export async function dispatchOutboundMessage(supabase, message, log = console) 
       let payload = {};
 
       if (mediaInfo) {
+        // Send accompanying text first if present so explanation is never dropped
+        if (mediaInfo.caption) {
+          log.info?.(`[whatsapp] Dispatching accompanying text to ${customerPhone}`);
+          try {
+            await fetch(url, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                messaging_product: 'whatsapp',
+                to: customerPhone,
+                type: 'text',
+                text: { body: mediaInfo.caption }
+              }),
+              signal: AbortSignal.timeout(15000)
+            });
+          } catch (textErr) {
+            log.warn?.(`[whatsapp] Error sending accompanying text: ${textErr.message}`);
+          }
+        }
+
         if (mediaInfo.category === 'documents') {
           payload = {
             messaging_product: 'whatsapp',
@@ -222,7 +247,6 @@ export async function dispatchOutboundMessage(supabase, message, log = console) 
             type: 'document',
             document: { link: mediaInfo.fileUrl, filename: mediaInfo.fileName || 'document.pdf' }
           };
-          if (mediaInfo.caption) payload.document.caption = mediaInfo.caption;
         } else {
           payload = {
             messaging_product: 'whatsapp',
@@ -230,7 +254,6 @@ export async function dispatchOutboundMessage(supabase, message, log = console) 
             type: 'image',
             image: { link: mediaInfo.fileUrl }
           };
-          if (mediaInfo.caption) payload.image.caption = mediaInfo.caption;
         }
       } else {
         const btnRegex = /\[Buttons:\s*([^\]]+)\]/i;
@@ -298,6 +321,24 @@ export async function dispatchOutboundMessage(supabase, message, log = console) 
 
       let payload = {};
       if (mediaInfo) {
+        // Send accompanying text first if present
+        if (mediaInfo.caption) {
+          log.info?.(`[${conv.platform}] Dispatching accompanying text to ${customerPhone}`);
+          try {
+            await fetch(sendUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                recipient: { id: customerPhone },
+                message: { text: mediaInfo.caption }
+              }),
+              signal: AbortSignal.timeout(15000)
+            });
+          } catch (textErr) {
+            log.warn?.(`[${conv.platform}] Error sending accompanying text: ${textErr.message}`);
+          }
+        }
+
         payload = {
           recipient: { id: customerPhone },
           message: {

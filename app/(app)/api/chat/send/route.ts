@@ -49,9 +49,11 @@ function parseMediaContent(content: string): ParsedMedia | null {
         fileUrl = imgMatch[1];
         caption = content
           .replace(imgMatch[0], '')
+          .replace(/\*[^*]+\*:\s*$/gm, '')
           .replace(/🔗\s*(?:Link|URL)?:?/gi, '')
           .replace(/🖼️\s*(?:Image|Photo)?:?/gi, '')
           .replace(/📎/g, '')
+          .replace(/\n{3,}/g, '\n\n')
           .trim();
       } else {
         // 4. Direct Document URL (.pdf)
@@ -63,8 +65,10 @@ function parseMediaContent(content: string): ParsedMedia | null {
           fileUrl = pdfMatch[1];
           caption = content
             .replace(pdfMatch[0], '')
+            .replace(/\*[^*]+\*:\s*$/gm, '')
             .replace(/🔗\s*(?:Link|URL)?:?/gi, '')
             .replace(/📄\s*(?:Document|PDF)?:?/gi, '')
+            .replace(/\n{3,}/g, '\n\n')
             .trim();
         } else {
           return null;
@@ -240,6 +244,27 @@ export async function POST(request: Request) {
       let payload: any = {};
 
       if (mediaInfo) {
+        // Send accompanying text first if present
+        if (mediaInfo.caption) {
+          try {
+            await fetch(`https://graph.facebook.com/v21.0/${externalPhoneId}/messages`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                messaging_product: 'whatsapp',
+                to: recipientId,
+                type: 'text',
+                text: { body: mediaInfo.caption }
+              })
+            });
+          } catch (tErr) {
+            console.warn('[Next.js API] Could not send accompanying text for WhatsApp media:', tErr);
+          }
+        }
+
         let mediaId = '';
         if (mediaInfo.isBase64) {
           const uploadUrl = `https://graph.facebook.com/v21.0/${externalPhoneId}/media`;
@@ -344,6 +369,22 @@ export async function POST(request: Request) {
       let metaRes: Response;
 
       if (mediaInfo) {
+        // Send accompanying text first if present
+        if (mediaInfo.caption) {
+          try {
+            await fetch(sendUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                recipient: { id: recipientId },
+                message: { text: mediaInfo.caption }
+              })
+            });
+          } catch (tErr) {
+            console.warn('[Next.js API] Could not send accompanying text for Messenger/Instagram media:', tErr);
+          }
+        }
+
         const typeMap: Record<string, string> = {
           images: 'image',
           videos: 'video',
