@@ -939,16 +939,20 @@ fastify.post('/webhook', {
               // ── Resolve real Messenger name (multi-strategy) ──────────────
               let customerName = 'Messenger User';
               try {
-                let token = process.env.MESSENGER_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN;
+                // Priority 1: Page-specific token from integrations table for this pageId
+                let token = null;
+                const { data: pageInt } = await supabase
+                  .from('integrations')
+                  .select('access_token, credentials')
+                  .eq('platform', 'messenger')
+                  .eq('external_account_id', pageId)
+                  .maybeSingle();
+                token = (pageInt?.credentials?.access_token || pageInt?.access_token)?.trim();
+                if (token) token = decrypt(token) || token;
+
+                // Priority 2: Dedicated MESSENGER_ACCESS_TOKEN env var (do NOT use WhatsApp META_ACCESS_TOKEN)
                 if (!token) {
-                  const { data: pageInt } = await supabase
-                    .from('integrations')
-                    .select('access_token, credentials')
-                    .eq('platform', 'messenger')
-                    .eq('external_account_id', pageId)
-                    .maybeSingle();
-                  token = (pageInt?.credentials?.access_token || pageInt?.access_token)?.trim();
-                  if (token) token = decrypt(token) || token;
+                  token = process.env.MESSENGER_ACCESS_TOKEN;
                 }
 
                 // Strategy 1: Name in webhook payload (rare but possible)
@@ -1031,16 +1035,20 @@ fastify.post('/webhook', {
                 if (event.sender?.name) {
                   customerName = event.sender.name;
                 } else {
-                  let token = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.MESSENGER_ACCESS_TOKEN;
+                  // Priority 1: Instagram token from integrations table for this account
+                  let token = null;
+                  const { data: igInt } = await supabase
+                    .from('integrations')
+                    .select('access_token, credentials')
+                    .eq('platform', 'instagram')
+                    .eq('external_account_id', igAccountId)
+                    .maybeSingle();
+                  token = (igInt?.credentials?.access_token || igInt?.access_token)?.trim();
+                  if (token) token = decrypt(token) || token;
+
+                  // Priority 2: Dedicated env vars
                   if (!token) {
-                    const { data: igInt } = await supabase
-                      .from('integrations')
-                      .select('access_token, credentials')
-                      .eq('platform', 'instagram')
-                      .eq('external_account_id', igAccountId)
-                      .maybeSingle();
-                    token = (igInt?.credentials?.access_token || igInt?.access_token)?.trim();
-                    if (token) token = decrypt(token) || token;
+                    token = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.MESSENGER_ACCESS_TOKEN;
                   }
 
                   if (token) {
