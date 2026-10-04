@@ -1276,9 +1276,10 @@ export async function processAIAgent(ctx) {
       }
     }
 
-    const needs_human_handoff = /human|agent|representative|insaan|baat|connect|transfer/i.test(msgLower);
+    const isExplicitHumanRequest = /\b(human agent|human support|speak to a human|talk to a human|talk to human|real person|representative|customer support person|insaan se baat|bande se baat|kisi insan se baat|kisi bande se baat|transfer to human|human chahiye)\b/i.test(msgLower);
+    const needs_human_handoff = ai_intent === 'human_handoff' || isExplicitHumanRequest;
     if (needs_human_handoff) {
-       console.log(`[AI-Agent] Human handoff requested. Handing off...`);
+       console.log(`[AI-Agent] Human handoff requested (intent=${ai_intent}, explicit=${isExplicitHumanRequest}). Handing off...`);
        await supabase.from('conversations').update({ status: 'pending', bot_enabled: false }).eq('id', ctx.conversation_id);
        
        // Send Push Notification
@@ -1286,7 +1287,7 @@ export async function processAIAgent(ctx) {
          supabase, 
          ctx.tenant_id, 
          'Human Handoff Requested', 
-         `${ctx.customer_name || ctx.customer_phone} needs assistance.`,
+         `${ctx.customer_name || ctx.customer_phone} needs human assistance.`,
          { conversationId: ctx.conversation_id, phone: ctx.customer_phone }
        ).catch(err => console.error('[FCM] Error sending handoff push:', err));
     }
