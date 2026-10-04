@@ -290,7 +290,6 @@ async function dispatchOutboundMessage(message) {
         }
       }
 
-      const url = `https://graph.facebook.com/v19.0/${externalPhoneId}/messages`;
       fastify.log.info(`[whatsapp] Dispatching to ${customerPhone} via ${url}`);
 
       const metaResponse = await fetch(url, {
