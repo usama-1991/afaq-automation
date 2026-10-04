@@ -252,13 +252,16 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
   let waPhoneNumberId    = '';
   let waAccessToken      = '';
   let isAiEnabled        = true;
+  let tenantRecord       = null;
 
   try {
-    const { data: tenantRecord, error: tenantErr } = await supabase
+    const { data: record, error: tenantErr } = await supabase
       .from('tenants')
       .select('niche, business_name, metadata, wa_phone_number_id, wa_token_enc, default_currency, niche_settings')
       .eq('id', tenantId)
       .single();
+
+    tenantRecord = record;
 
     if (tenantErr) {
       fastify.log.warn(`[${platform}] Could not fetch tenant record: ${tenantErr.message}`);
