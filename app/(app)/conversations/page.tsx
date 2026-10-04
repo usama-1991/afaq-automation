@@ -17,7 +17,6 @@ import { ConversationHeader } from '@/components/conversations/ConversationHeade
 import { InternalNoteBubble } from '@/components/conversations/InternalNoteBubble';
 import { SystemEventBubble } from '@/components/conversations/SystemEventBubble';
 import { CollaborativeComposer } from '@/components/conversations/CollaborativeComposer';
-import { Customer360Drawer } from '@/components/conversations/Customer360Drawer';
 
 const useMemoryState = createMemoryState();
 
@@ -49,7 +48,6 @@ function ConversationsInner() {
   const [tenantBusinessName, setTenantBusinessName] = useState('Ittisalo');
   const [isTenantAiPaused, setIsTenantAiPaused] = useState(false);
 
-  const [is360DrawerOpen, setIs360DrawerOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileView, setMobileView] = useState<'nav' | 'list' | 'chat'>('list');
   const [selectedSlotMap, setSelectedSlotMap] = useState<Record<string, string>>({});
@@ -103,9 +101,6 @@ function ConversationsInner() {
     const check = () => {
       const mobile = window.innerWidth < 900;
       setIsMobile(mobile);
-      if (window.innerWidth >= 1150) {
-        setIs360DrawerOpen(true);
-      }
     };
     check();
     window.addEventListener('resize', check);
@@ -696,8 +691,6 @@ function ConversationsInner() {
                       onAssignTeam={handleAssignTeam}
                       onToggleBot={handleToggleBot}
                       onResolveConversation={handleResolveConversation}
-                      onToggle360Sidebar={() => setIs360DrawerOpen(!is360DrawerOpen)}
-                      is360SidebarOpen={is360DrawerOpen}
                       isTenantAiPaused={isTenantAiPaused}
                     />
                   </div>
@@ -899,16 +892,6 @@ function ConversationsInner() {
               </div>
             )}
           </div>
-        )}
-
-        {/* ── CUSTOMER 360° DRAWER (Right Sidebar) ───── */}
-        {selected && is360DrawerOpen && (
-          <Customer360Drawer
-            conversation={selected}
-            onClose={() => setIs360DrawerOpen(false)}
-            teamMembers={teamMembers}
-            teams={teams}
-          />
         )}
       </div>
     </div>

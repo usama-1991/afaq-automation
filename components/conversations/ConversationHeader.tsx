@@ -4,7 +4,7 @@ import React, { memo, useState, useRef, useEffect } from 'react';
 import { 
   User, Users, Bot, CheckCircle2, AlertTriangle, 
   ChevronDown, Archive, Clock, MoreVertical, 
-  SidebarClose, SidebarOpen, Sparkles, Flame, 
+  Sparkles, Flame, 
   Calendar, CreditCard, ShieldCheck, X, Check, Globe,
   Pencil
 } from 'lucide-react';
@@ -22,8 +22,6 @@ export interface ConversationHeaderProps {
   onAssignTeam: (teamId: string | null) => Promise<void>;
   onToggleBot: (enabled: boolean) => Promise<void>;
   onResolveConversation: () => Promise<void>;
-  onToggle360Sidebar: () => void;
-  is360SidebarOpen: boolean;
   isTenantAiPaused?: boolean;
 }
 
@@ -38,8 +36,6 @@ export const ConversationHeader = memo(function ConversationHeader({
   onAssignTeam,
   onToggleBot,
   onResolveConversation,
-  onToggle360Sidebar,
-  is360SidebarOpen,
   isTenantAiPaused = false,
 }: ConversationHeaderProps) {
   const c = conversation;
@@ -455,21 +451,6 @@ export const ConversationHeader = memo(function ConversationHeader({
           >
             <CheckCircle2 size={13} />
             <span>Resolve</span>
-          </button>
-
-          {/* Customer 360 Drawer Toggle */}
-          <button
-            onClick={onToggle360Sidebar}
-            title={is360SidebarOpen ? "Close Customer 360 Sidebar" : "Open Customer 360 Sidebar"}
-            style={{
-              padding: '7px', borderRadius: 8,
-              background: is360SidebarOpen ? '#eff6ff' : '#f3f4f6',
-              border: is360SidebarOpen ? '1px solid #bfdbfe' : '1px solid rgba(0,0,0,0.08)',
-              color: is360SidebarOpen ? '#2563eb' : '#4b5563',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            {is360SidebarOpen ? <SidebarClose size={16} /> : <SidebarOpen size={16} />}
           </button>
         </div>
       </div>
