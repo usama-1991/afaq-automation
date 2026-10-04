@@ -179,14 +179,22 @@ async function triggerAIBotResponse(
     // 1. Fetch tenant niche and agent details
     const { data: tenant } = await supabase
       .from('tenants')
-      .select('niche, business_name, default_currency')
+      .select('niche, business_name, default_currency, niche_settings')
       .eq('id', tenantId)
       .maybeSingle();
 
     const [kbRes, agentRes] = await Promise.all([
       supabase.from('knowledge_base').select('kb_type, title, content').eq('tenant_id', tenantId).eq('is_active', true).limit(10),
-      supabase.from('agents').select('name, prompt, tone, language').eq('tenant_id', tenantId).eq('is_active', true).maybeSingle()
+      supabase.from('agents').select('name, prompt, is_active').eq('tenant_id', tenantId).eq('is_active', true).maybeSingle()
     ]);
+
+    const aiConfig = tenant?.niche_settings?.ai_agent_config || {};
+    const agentName = aiConfig.agentName || agentRes.data?.name || 'the official AI assistant';
+    const agentRole = aiConfig.systemRole || agentRes.data?.prompt || tenant?.niche_settings?.description || `You are the official AI assistant for ${tenant?.business_name || 'our business'}.`;
+    const agentTone = aiConfig.tone || tenant?.niche_settings?.aiTone || 'Professional';
+    const agentDos = Array.isArray(aiConfig.dos) ? aiConfig.dos : [];
+    const agentDonts = Array.isArray(aiConfig.donts) ? aiConfig.donts : [];
+    const advancedPrompt = aiConfig.advancedPrompt || '';
 
     const payload = {
       tenant_id: tenantId,
@@ -202,16 +210,45 @@ async function triggerAIBotResponse(
       business_name: tenant?.business_name || '',
       currency: tenant?.default_currency || 'PKR',
       knowledge_base: kbRes.data || [],
-      agent_name: agentRes.data?.name || null,
-      agent_prompt: agentRes.data?.prompt || null,
+      agent_name: agentName,
+      agent_prompt: agentRole,
+      agent_tone: agentTone,
+      agent_dos: agentDos,
+      agent_donts: agentDonts,
+      advanced_prompt: advancedPrompt,
       timestamp: new Date().toISOString()
     };
 
     // 2. Direct OpenAI LLM Generation if OPENAI_API_KEY is configured
     if (process.env.OPENAI_API_KEY) {
       try {
-        const systemPrompt = agentRes.data?.prompt || 
-          `You are the official AI assistant for ${tenant?.business_name || 'our business'} (${tenant?.niche || 'service'}). Respond helpfully, politely, and concisely to customer inquiries.`;
+        const toneMap: Record<string, string> = {
+          Professional: 'Tone: Professional, polite, clear, and courteous. Refrain from excessive emojis.',
+          Friendly: 'Tone: Warm, welcoming, enthusiastic, and friendly with occasional emojis 😊.',
+          Enthusiastic: 'Tone: Energetic, upbeat, and enthusiastic!',
+          Empathetic: 'Tone: Highly empathetic, patient, compassionate, and understanding.',
+          Direct: 'Tone: Direct, concise, no fluff, straight to the point.'
+        };
+
+        const dosBlock = agentDos.length > 0 ? `\n--- APPROVED GUIDELINES (DO'S) ---\n${agentDos.map((d: string) => `• ${d}`).join('\n')}` : '';
+        const dontsBlock = agentDonts.length > 0 ? `\n--- STRICT RESTRICTIONS (DON'TS) ---\n${agentDonts.map((d: string) => `• ${d}`).join('\n')}` : '';
+        const advBlock = advancedPrompt.trim() ? `\n--- CUSTOM INSTRUCTIONS ---\n${advancedPrompt.trim()}` : '';
+
+        const systemPrompt = [
+          `You are ${agentName}, representing ${tenant?.business_name || 'our business'} (${tenant?.niche || 'service'}).`,
+          '',
+          agentRole,
+          '',
+          toneMap[agentTone] || toneMap.Professional,
+          dosBlock,
+          dontsBlock,
+          advBlock,
+          '',
+          '--- CRITICAL LANGUAGE & SCRIPT MATCHING ---',
+          '1. ALWAYS match the exact language and script of the user. If the user speaks in Roman Urdu (e.g. "Assalamu alaikum", "kia hal hai"), reply naturally and fluently in Roman Urdu!',
+          '2. If they speak Urdu script, reply in Urdu. If Arabic, reply in Arabic. If English, reply in English.',
+          '3. Keep responses clean, conversational, and concise (1-2 sentences).'
+        ].filter(Boolean).join('\n');
         
         const kbText = (kbRes.data || [])
           .map((k: any) => `[${k.title}]: ${k.content}`)

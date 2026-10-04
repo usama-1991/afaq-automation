@@ -542,10 +542,14 @@ export default function AgentsPage() {
         }
       };
 
-      await supabase
+      const { error: updateTenantErr } = await supabase
         .from('tenants')
         .update({ niche_settings: updatedNicheSettings })
         .eq('id', currentTenantId);
+
+      if (updateTenantErr) {
+        console.error('Error updating tenant niche_settings:', updateTenantErr);
+      }
 
       localStorage.setItem(`ittisalo_ai_config_${niche.id}`, JSON.stringify({
         agentName, greeting, systemRole, channels, tone, dos, donts,
@@ -1118,7 +1122,11 @@ export default function AgentsPage() {
               <div className="agents-header-btns" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: '#f9fafb', borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)' }}>
                   <span style={{ fontSize: 11.5, fontWeight: 600, color: paused ? '#ef4444' : '#10b981' }}>{paused ? 'PAUSED' : 'ACTIVE'}</span>
-                  <Toggle checked={!paused} onChange={() => setPaused(!paused)} />
+                  <Toggle checked={!paused} onChange={() => {
+                    const nextPaused = !paused;
+                    setPaused(nextPaused);
+                    syncAgentToDB(published, nextPaused);
+                  }} />
                 </div>
                 <button 
                   onClick={handleSaveAI}

@@ -276,29 +276,67 @@ export async function processAIAgent(ctx) {
         `Always provide curated slots using this syntax so our system renders clean interactive appointment selection cards.`;
     }
 
+    const toneMap = {
+      Professional: 'Tone of Voice: Professional, polite, clear, and courteous. Maintain business etiquette. Refrain from using excessive emojis.',
+      Friendly: 'Tone of Voice: Warm, friendly, welcoming, and approachable. Use positive language and occasional friendly emojis (e.g. 😊, 👍).',
+      Enthusiastic: 'Tone of Voice: Highly energetic, positive, upbeat, and enthusiastic! Express genuine excitement about helping the customer!',
+      Empathetic: 'Tone of Voice: Deeply empathetic, compassionate, patient, and reassuring. Validate customer concerns warmly.',
+      Direct: 'Tone of Voice: Direct, concise, no fluff, straight to the point, clear and efficient.'
+    };
+    const activeTone = toneMap[ctx.agent_tone] || toneMap.Professional;
+
+    const dosList = Array.isArray(ctx.agent_dos) && ctx.agent_dos.length > 0 ? ctx.agent_dos : [];
+    const dosSection = dosList.length > 0
+      ? `--- APPROVED GUIDELINES (DO'S - MANDATORY) ---\n` + dosList.map(d => `• ${d}`).join('\n')
+      : '';
+
+    const dontsList = Array.isArray(ctx.agent_donts) && ctx.agent_donts.length > 0 ? ctx.agent_donts : [];
+    const dontsSection = dontsList.length > 0
+      ? `--- STRICT RESTRICTIONS (DON'TS - ABSOLUTELY FORBIDDEN) ---\n` + dontsList.map(d => `• ${d}`).join('\n')
+      : '';
+
+    const advancedSection = ctx.advanced_prompt && ctx.advanced_prompt.trim()
+      ? `--- CUSTOM BUSINESS INSTRUCTIONS ---\n${ctx.advanced_prompt.trim()}`
+      : '';
+
+    const languageDirectives = [
+      '--- MULTILINGUAL & SCRIPT MATCHING (CRITICAL) ---',
+      '1. Dynamic Language Matching: You MUST respond in the exact same language and script that the customer uses:',
+      '   - If the customer writes in Roman Urdu / Hinglish (e.g. "Assalamu alaikum", "kia hal hai", "mujhe details bta skte hain"), respond naturally and fluently in Roman Urdu (Latin script)!',
+      '   - If the customer writes in Urdu script (e.g. "کیا حال ہے"), respond in fluent Urdu script.',
+      '   - If the customer writes in Arabic (e.g. "مرحبا"), respond in fluent Arabic.',
+      '   - If the customer writes in English, respond in English.',
+      '2. NEVER default or revert back to English when a customer messages in Urdu or Roman Urdu.'
+    ].join('\n');
+
     const systemPrompt = [
-      `You are the AI assistant for ${ctx.business_name}.`,
+      `You are ${ctx.agent_name ? `${ctx.agent_name}, the official AI assistant` : 'the official AI assistant'} for ${ctx.business_name || 'our business'}.`,
       `Business type: ${ctx.niche || 'general'}`,
       '',
-      ctx.agent_prompt || `You are a helpful AI assistant for ${ctx.business_name}. Answer customer questions professionally.`,
+      ctx.agent_prompt || `You are a helpful AI assistant for ${ctx.business_name || 'our business'}. Answer customer questions professionally.`,
       '',
       nicheInstructions[ctx.niche] || nicheInstructions.general,
-      languageInstructions[language] || languageInstructions.en,
       '',
-      '--- RULES ---',
+      languageDirectives,
+      '',
+      activeTone,
+      '',
+      ...(dosSection ? [dosSection, ''] : []),
+      ...(dontsSection ? [dontsSection, ''] : []),
+      ...(advancedSection ? [advancedSection, ''] : []),
+      '--- OPERATIONAL RULES ---',
       '1. Answer using the knowledge base AND product catalog provided below. The product catalog IS your knowledge — use it to answer product questions, category questions, pricing, etc.',
       '2. If the customer asks about something NOT covered by the knowledge base AND NOT in the product catalog, say you will connect them with a team member.',
       '3. NEVER invent prices, hours, availability, or contact details.',
       '4. EXTREME BREVITY: Keep all answers concise, clean, and conversational (1 or 2 sentences max). NEVER use long bulleted lists. Your responses must fit easily on a small mobile screen without scrolling.',
-      '5. Professional Tone: Be polite, clear, and professional. Refrain from using emojis (do NOT use emojis like 😊, 🦷, 📅, etc.).',
-      `6. Channel: ${ctx.platform}`,
-      '7. When showing products, present them in a clean, conversational list. NEVER dump raw technical data (do NOT print raw "ID:", "Category:", or "Image_URL:" text).',
-      '8. FORMATTING RULES (CRITICAL):',
+      `5. Channel: ${ctx.platform}`,
+      '6. When showing products, present them in a clean, conversational list. NEVER dump raw technical data (do NOT print raw "ID:", "Category:", or "Image_URL:" text).',
+      '7. FORMATTING RULES (CRITICAL):',
       '   - Use WhatsApp native formatting: Use *single asterisks* for bold text (e.g., *Price:*). NEVER use double asterisks (**).',
       '   - NEVER use Markdown for links or images (do NOT use [text](url) or ![alt](url)).',
       '   - Provide links and images as raw, clickable URLs on their own lines.',
       ...( ['dental', 'salon', 'clinic', 'medical'].includes(ctx.niche) ? [
-        '9. APPOINTMENT SCHEDULING RULES (CRITICAL):',
+        '8. APPOINTMENT SCHEDULING RULES (CRITICAL):',
         '   - NEVER output raw ranges like "September 27: 09:00 to 17:30" or long bullet lists of dates.',
         '   - When a patient asks to book an appointment or for open times, offer 2 upcoming days with 3 recommended distinct time options.',
         '   - You MUST include the structured slot syntax at the end of your appointment offering message:',
@@ -309,11 +347,11 @@ export async function processAIAgent(ctx) {
         '     Please let us know which slot suits you best."',
       ] : [] ),
       ...( ['ecommerce', 'restaurant', 'food_delivery'].includes(ctx.niche) ? [
-        '10. CRITICAL: You MUST explicitly ask the customer for their Email Address, Delivery Address, and Payment Method if they are "(not yet provided)". DO NOT proceed to final confirmation until you have ALL THREE.',
-        '11. DO NOT say the order is confirmed if Address, Email, or Payment Method is still missing.',
-        '12. Once ALL details are gathered, you MUST show the final summary and ask the user to confirm their order using WhatsApp Buttons.'
+        '9. CRITICAL: You MUST explicitly ask the customer for their Email Address, Delivery Address, and Payment Method if they are "(not yet provided)". DO NOT proceed to final confirmation until you have ALL THREE.',
+        '10. DO NOT say the order is confirmed if Address, Email, or Payment Method is still missing.',
+        '11. Once ALL details are gathered, you MUST show the final summary and ask the user to confirm their order using WhatsApp Buttons.'
       ] : [] ),
-      '13. INSTRUCTION FOR BUTTONS: Whenever you need the user to make a choice between 2 or 3 options (like Yes/No, or specific times), you can present them as native WhatsApp buttons by prefixing your entire message with exactly this syntax:',
+      '12. INSTRUCTION FOR BUTTONS: Whenever you need the user to make a choice between 2 or 3 options (like Yes/No, or specific times), you can present them as native WhatsApp buttons by prefixing your entire message with exactly this syntax:',
       '[Buttons: Option 1 | Option 2]',
       'Your normal message text goes here...',
       '(Max 3 options. The options must be separated by the | character. Keep the button labels very short, max 20 chars).',

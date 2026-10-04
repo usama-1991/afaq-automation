@@ -103,7 +103,7 @@ fastify.post('/api/ai/process', async (request, reply) => {
   try {
     const { data: tenant } = await supabase
       .from('tenants')
-      .select('niche, business_name, default_currency')
+      .select('niche, business_name, default_currency, niche_settings')
       .eq('id', tenant_id)
       .maybeSingle();
 
@@ -131,13 +131,14 @@ fastify.post('/api/ai/process', async (request, reply) => {
     const [kbResult, historyResult, agentResult] = await Promise.allSettled([
       supabase.from('knowledge_base').select('kb_type, title, content').eq('tenant_id', tenant_id).eq('is_active', true).limit(20),
       supabase.from('messages').select('sender_type, content, created_at').eq('conversation_id', conversation_id).order('created_at', { ascending: false }).limit(11),
-      supabase.from('agents').select('name, prompt, tone, language').eq('tenant_id', tenant_id).eq('is_active', true).maybeSingle()
+      supabase.from('agents').select('name, prompt, is_active').eq('tenant_id', tenant_id).eq('is_active', true).maybeSingle()
     ]);
 
     const knowledgeBase = kbResult.status === 'fulfilled' ? (kbResult.value.data || []) : [];
     const rawHistory = historyResult.status === 'fulfilled' ? (historyResult.value.data || []) : [];
     const conversationHistory = rawHistory.slice(0, 10).reverse();
     const agentConfig = agentResult.status === 'fulfilled' ? (agentResult.value.data || {}) : {};
+    const aiConfig = tenant?.niche_settings?.ai_agent_config || {};
 
     const payload = {
       tenant_id,
@@ -154,10 +155,14 @@ fastify.post('/api/ai/process', async (request, reply) => {
       niche: tenantNiche,
       business_name: tenantBusinessName,
       currency: tenantCurrency,
-      agent_name: agentConfig?.name || null,
-      agent_prompt: agentConfig?.prompt || null,
-      agent_tone: agentConfig?.tone || null,
-      agent_language: agentConfig?.language || 'en',
+      agent_name: aiConfig.agentName || agentConfig?.name || null,
+      agent_prompt: aiConfig.systemRole || agentConfig?.prompt || tenant?.niche_settings?.description || null,
+      agent_tone: aiConfig.tone || tenant?.niche_settings?.aiTone || 'Professional',
+      agent_dos: Array.isArray(aiConfig.dos) ? aiConfig.dos : [],
+      agent_donts: Array.isArray(aiConfig.donts) ? aiConfig.donts : [],
+      advanced_prompt: aiConfig.advancedPrompt || '',
+      agent_languages: aiConfig.selectedLangs || {},
+      agent_language: aiConfig.selectedVoice || tenant?.niche_settings?.aiLanguage || 'en',
       knowledge_base: knowledgeBase,
       conversation_history: conversationHistory,
       existing_context: null,
@@ -251,7 +256,7 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
   try {
     const { data: tenantRecord, error: tenantErr } = await supabase
       .from('tenants')
-      .select('niche, business_name, metadata, wa_phone_number_id, wa_token_enc, default_currency')
+      .select('niche, business_name, metadata, wa_phone_number_id, wa_token_enc, default_currency, niche_settings')
       .eq('id', tenantId)
       .single();
 
@@ -511,10 +516,10 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
         .select('platform, external_account_id, credentials')
         .eq('tenant_id', tenantId),
 
-      // Agent config (name, prompt, tone, language)
+      // Agent config (name, prompt, is_active)
       supabase
         .from('agents')
-        .select('name, prompt, tone, language')
+        .select('name, prompt, is_active')
         .eq('tenant_id', tenantId)
         .eq('is_active', true)
         .maybeSingle(),
@@ -545,6 +550,7 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
     const integrations = integResult.status === 'fulfilled' ? (integResult.value.data || []) : [];
     const agentConfig  = agentResult.status  === 'fulfilled' ? (agentResult.value.data  || {}) : {};
     const existingCtx  = contextResult.status === 'fulfilled' ? (contextResult.value.data || null) : null;
+    const aiConfig     = tenantRecord?.niche_settings?.ai_agent_config || {};
 
     // Build a map of integrations keyed by platform for easy n8n lookup
     const integMap = {};
@@ -553,21 +559,21 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
     }
 
     fastify.log.info(
-      `[${platform}] Firing n8n — conv_id=${conversation.id}, niche="${tenantNiche}", ` +
-      `kb=${knowledgeBase.length} items, history=${conversationHistory.length} msgs`
+      `[${platform}] Firing AI Agent — conv_id=${conversation.id}, niche="${tenantNiche}", ` +
+      `kb=${knowledgeBase.length} items, history=${conversationHistory.length} msgs, ` +
+      `dos=${aiConfig.dos?.length || 0}, donts=${aiConfig.donts?.length || 0}`
     );
 
-    // FIX: Complete n8n payload with ALL required fields
     const n8nPayload = {
       // ── Identity ──────────────────────────────────────────────────────────
       tenant_id:            tenantId,
-      conversation_id:      conversation.id,       // FIX: was missing — caused n8n to look up wrong conversation
+      conversation_id:      conversation.id,
       customer_phone:       customerId,
       customer_name:        customerName,
       platform:             platform,
       message_type:         'text',
       message:              messageText,
-      normalized_message:   messageText,            // alias expected by some n8n nodes
+      normalized_message:   messageText,
       external_message_id:  messageId,
       timestamp:            new Date().toISOString(),
       processed_at:         new Date().toISOString(),
@@ -577,22 +583,26 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
       business_name:        tenantBusinessName,
       currency:             tenantCurrency,
 
-      // ── WhatsApp credentials for n8n reply node ───────────────────────────
-      wa_phone_number_id:   waPhoneNumberId,        // FIX: was missing — n8n had no token to send replies
-      wa_access_token:      waAccessToken,           // FIX: was missing
-      phone_number_id:      waPhoneNumberId,         // alias
+      // ── WhatsApp credentials for reply ────────────────────────────────────
+      wa_phone_number_id:   waPhoneNumberId,
+      wa_access_token:      waAccessToken,
+      phone_number_id:      waPhoneNumberId,
 
       // ── Agent config ──────────────────────────────────────────────────────
-      agent_name:           agentConfig?.name     || null,
-      agent_prompt:         agentConfig?.prompt   || null,
-      agent_tone:           agentConfig?.tone     || null,
-      agent_language:       agentConfig?.language || 'en',
+      agent_name:           aiConfig.agentName || agentConfig?.name || null,
+      agent_prompt:         aiConfig.systemRole || agentConfig?.prompt || tenantRecord?.niche_settings?.description || null,
+      agent_tone:           aiConfig.tone || tenantRecord?.niche_settings?.aiTone || 'Professional',
+      agent_dos:            Array.isArray(aiConfig.dos) ? aiConfig.dos : [],
+      agent_donts:          Array.isArray(aiConfig.donts) ? aiConfig.donts : [],
+      advanced_prompt:      aiConfig.advancedPrompt || '',
+      agent_languages:      aiConfig.selectedLangs || {},
+      agent_language:       aiConfig.selectedVoice || tenantRecord?.niche_settings?.aiLanguage || 'en',
 
       // ── Knowledge base (array of {kb_type, title, content}) ───────────────
-      knowledge_base:       knowledgeBase,           // FIX: was fetched but never sent
+      knowledge_base:       knowledgeBase,
 
       // ── Conversation history (chronological, last 10 msgs) ────────────────
-      conversation_history: conversationHistory,     // FIX: was fetched but never sent
+      conversation_history: conversationHistory,
 
       // ── Prior intent/funnel context ───────────────────────────────────────
       existing_context:     existingCtx,
@@ -604,13 +614,13 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
       _raw_meta:            false,
     };
 
-    // 5. Fire internal AI Agent instead of n8n
+    // 5. Fire internal AI Agent
     fastify.log.info(`[${platform}] ⚡ FIRING processAIAgent for conv_id=${conversation.id}, msgId=${messageId}`);
     processAIAgent(n8nPayload).catch(err => fastify.log.error(`Failed to process AI agent: ${err.message}`));
 
   } catch (enrichErr) {
-    fastify.log.error(`[${platform}] Enrichment failed — firing n8n with minimal safe payload: ${enrichErr.message}`);
-    // Fallback: minimal payload to AI agent
+    fastify.log.error(`[${platform}] Enrichment failed — firing fallback AI agent: ${enrichErr.message}`);
+    const aiConfig = tenantRecord?.niche_settings?.ai_agent_config || {};
     processAIAgent({
       tenant_id:            tenantId,
       conversation_id:      conversation.id,
@@ -624,6 +634,14 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
       niche:                tenantNiche,
       business_name:        tenantBusinessName,
       currency:             tenantCurrency,
+      agent_name:           aiConfig.agentName || null,
+      agent_prompt:         aiConfig.systemRole || tenantRecord?.niche_settings?.description || null,
+      agent_tone:           aiConfig.tone || tenantRecord?.niche_settings?.aiTone || 'Professional',
+      agent_dos:            Array.isArray(aiConfig.dos) ? aiConfig.dos : [],
+      agent_donts:          Array.isArray(aiConfig.donts) ? aiConfig.donts : [],
+      advanced_prompt:      aiConfig.advancedPrompt || '',
+      agent_languages:      aiConfig.selectedLangs || {},
+      agent_language:       aiConfig.selectedVoice || tenantRecord?.niche_settings?.aiLanguage || 'en',
       wa_phone_number_id:   waPhoneNumberId,
       wa_access_token:      waAccessToken,
       phone_number_id:      waPhoneNumberId,
