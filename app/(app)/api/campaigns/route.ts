@@ -28,14 +28,23 @@ export async function GET() {
 }
 
 // ── POST /api/campaigns ──────────────────────────────────────
-// Creates campaign record + immediately fires messages if schedule=immediate
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const ctx = await getAuthContext(supabase);
   if ('error' in ctx) return NextResponse.json({ error: ctx.error }, { status: ctx.status });
 
   const body = await request.json();
-  const { name, template_id, template_name, segment_name = 'All Contacts', schedule_type = 'immediate', scheduled_at } = body;
+  const { 
+    name, 
+    template_id, 
+    template_name, 
+    segment_name = 'All Contacts', 
+    schedule_type = 'immediate', 
+    scheduled_at,
+    variable_mappings = {},
+    segment_rules = {},
+    rate_per_second = 25,
+  } = body;
 
   if (!name || !template_id || !template_name) {
     return NextResponse.json({ error: 'Missing required fields: name, template_id, template_name' }, { status: 400 });
@@ -54,36 +63,51 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `Template is not APPROVED (current status: ${template.status})` }, { status: 400 });
   }
 
-  // ── Get recipient contacts from conversations table filtered by segment ──
+  // ── Query recipient contacts based on dynamic segment rules ──
   let query = supabase
     .from('conversations')
-    .select('id, external_conversation_id, customer_name, customer_phone, platform, lifecycle_stage, tags')
+    .select('id, external_conversation_id, customer_name, customer_phone, platform, lifecycle_stage, tags, is_opted_out, updated_at')
     .eq('tenant_id', ctx.tenantId)
-    .eq('platform', 'whatsapp'); // only WhatsApp supports template messages
+    .eq('platform', 'whatsapp');
 
-  // Segment Filtering
-  const cleanSeg = segment_name.toLowerCase().replace(/[\s_-]+/g, '');
-  if (cleanSeg.includes('hotlead')) {
-    query = query.in('lifecycle_stage', ['hot_lead', 'Hot Lead', 'hotlead']);
-  } else if (cleanSeg.includes('newlead')) {
-    query = query.in('lifecycle_stage', ['new_lead', 'New Lead', 'newlead']);
-  } else if (cleanSeg.includes('appt') || cleanSeg.includes('booked')) {
-    query = query.in('lifecycle_stage', ['appointment_booked', 'Appt Booked']);
-  } else if (cleanSeg.includes('won') || cleanSeg.includes('customer')) {
-    query = query.in('lifecycle_stage', ['won', 'Customer / Won']);
+  // Opt-out guard
+  query = query.neq('is_opted_out', true);
+
+  const { lifecycle_stages, tags, engagement_days } = segment_rules;
+
+  if (Array.isArray(lifecycle_stages) && lifecycle_stages.length > 0) {
+    query = query.in('lifecycle_stage', lifecycle_stages);
   }
 
-  const { data: conversations } = await query;
+  if (Array.isArray(tags) && tags.length > 0) {
+    query = query.overlaps('tags', tags);
+  }
 
-  const recipients = (conversations ?? []).map(c => ({
-    conversation_id: c.id,
-    external_conversation_id: c.external_conversation_id || c.customer_phone || '',
-    customer_name: c.customer_name,
-    platform: c.platform,
-  })).filter(r => r.external_conversation_id.length > 0);
+  if (engagement_days && typeof engagement_days === 'number') {
+    const cutoff = new Date(Date.now() - engagement_days * 24 * 60 * 60 * 1000).toISOString();
+    query = query.gte('updated_at', cutoff);
+  }
+
+  const { data: conversations, error: convError } = await query;
+  if (convError) return NextResponse.json({ error: convError.message }, { status: 500 });
+
+  // Deduplicate by phone
+  const uniqueRecipients = new Map<string, any>();
+  (conversations || []).forEach(c => {
+    const rawPhone = (c.external_conversation_id || c.customer_phone || '').replace(/\D/g, '');
+    if (rawPhone.length >= 7 && !uniqueRecipients.has(rawPhone)) {
+      uniqueRecipients.set(rawPhone, {
+        conversation_id: c.id,
+        phone: rawPhone,
+        name: c.customer_name || 'Valued Customer',
+      });
+    }
+  });
+
+  const recipientsList = Array.from(uniqueRecipients.values());
+  const isImmediate = schedule_type === 'immediate';
 
   // ── Create campaign record ───────────────────────────────────
-  const isImmediate = schedule_type === 'immediate';
   const { data: campaign, error: campError } = await supabase
     .from('campaigns')
     .insert({
@@ -92,10 +116,15 @@ export async function POST(request: NextRequest) {
       template_id,
       template_name,
       segment_name,
-      status: isImmediate ? (recipients.length > 0 ? 'In Progress' : 'Completed') : 'Scheduled',
+      segment_rules,
+      variable_mappings,
+      rate_per_second: Math.max(5, Math.min(rate_per_second || 25, 80)),
+      status: isImmediate ? (recipientsList.length > 0 ? 'In Progress' : 'Completed') : 'Scheduled',
       scheduled_at: isImmediate ? null : (scheduled_at || null),
-      total_recipients: recipients.length,
+      total_recipients: recipientsList.length,
       sent_count: 0,
+      delivered_count: 0,
+      read_count: 0,
       failed_count: 0,
     })
     .select()
@@ -103,25 +132,47 @@ export async function POST(request: NextRequest) {
 
   if (campError) return NextResponse.json({ error: campError.message }, { status: 500 });
 
-  // ── Fire immediately if schedule_type === 'immediate' ────────
-  if (isImmediate && recipients.length > 0) {
-    // Run in background — don't await so the response returns fast
-    sendCampaignMessages(campaign.id, ctx.tenantId, template, recipients).catch(err =>
-      console.error('[campaigns] Background send error:', err.message)
-    );
+  // ── Seed recipient logs into public.campaign_recipients ───────
+  if (recipientsList.length > 0) {
+    const recipientRows = recipientsList.map(r => ({
+      campaign_id: campaign.id,
+      tenant_id: ctx.tenantId,
+      contact_phone: r.phone,
+      contact_name: r.name,
+      status: 'pending',
+    }));
+
+    // Insert in chunks of 500
+    for (let i = 0; i < recipientRows.length; i += 500) {
+      const chunk = recipientRows.slice(i, i + 500);
+      await supabase.from('campaign_recipients').insert(chunk);
+    }
+  }
+
+  // ── Trigger background dispatcher if immediate ───────────────
+  if (isImmediate && recipientsList.length > 0) {
+    sendCampaignMessagesPaced(
+      campaign.id,
+      ctx.tenantId,
+      template,
+      recipientsList,
+      variable_mappings,
+      campaign.rate_per_second || 25
+    ).catch(err => console.error('[campaigns] Background send error:', err.message));
   }
 
   return NextResponse.json({ campaign }, { status: 201 });
 }
 
-// ── Background: loop contacts and call Meta per recipient ────
-async function sendCampaignMessages(
+// ── Background Paced Dispatcher ──────────────────────────────
+async function sendCampaignMessagesPaced(
   campaignId: string,
   tenantId: string,
   template: Record<string, unknown>,
-  recipients: Array<{ conversation_id?: string; external_conversation_id: string; customer_name: string | null; platform: string }>
+  recipients: Array<{ conversation_id?: string; phone: string; name: string }>,
+  variableMappings: Record<string, string>,
+  ratePerSecond: number
 ) {
-  // Use service role client to bypass RLS from this async context
   const { createServiceClient } = await import('@/lib/supabase/service');
   const serviceClient = createServiceClient();
 
@@ -130,48 +181,62 @@ async function sendCampaignMessages(
   let sentCount = 0;
   let failedCount = 0;
 
-  // Inspect variable counts in header and body
   const bodyText = String(template.body_text || '');
   const bodyParamMatches = bodyText.match(/\{\{\d+\}\}/g) || [];
-  const bodyParamCount = bodyParamMatches.length;
 
   const headerText = String(template.header_text || '');
   const headerParamMatches = headerText.match(/\{\{\d+\}\}/g) || [];
-  const headerParamCount = headerParamMatches.length;
+
+  const delayMs = Math.max(20, Math.floor(1000 / (ratePerSecond || 25)));
 
   for (const recipient of recipients) {
-    const phone = recipient.external_conversation_id.replace(/\D/g, ''); // Digits only
+    const phone = recipient.phone;
     let metaMessageId: string | null = null;
-    let status = 'sent';
+    let sendStatus = 'sent';
     let errorMessage: string | null = null;
-    let bodyParams: Array<{ type: string; text: string }> = [];
 
     if (!phoneNumberId || !accessToken) {
-      status = 'failed';
-      errorMessage = 'WhatsApp Phone Number ID or Access Token not configured';
+      sendStatus = 'failed';
+      errorMessage = 'WhatsApp credentials not configured for tenant';
       failedCount++;
     } else {
       try {
         const templateComponents: Record<string, unknown>[] = [];
 
-        // 1. Header component (ONLY if header text contains variables like {{1}})
-        if (template.header_type === 'Text' && headerParamCount > 0) {
+        // 1. Header Component
+        if (template.header_type === 'Text' && headerParamMatches.length > 0) {
           templateComponents.push({
             type: 'header',
-            parameters: headerParamMatches.map((_, i) => ({
-              type: 'text',
-              text: i === 0 ? (recipient.customer_name || 'Valued Customer') : `Info ${i + 1}`,
-            })),
+            parameters: headerParamMatches.map((_, i) => {
+              const varKey = `h_${i + 1}`;
+              const mapping = variableMappings[varKey] || variableMappings[String(i + 1)];
+              let val = recipient.name || 'Customer';
+              if (mapping?.startsWith('custom_text:')) val = mapping.replace('custom_text:', '');
+              return { type: 'text', text: val };
+            }),
           });
         }
 
-        // 2. Body component with exact number of required parameter slots
-        if (bodyParamCount > 0) {
-          bodyParams = bodyParamMatches.map((_, i) => {
-            if (i === 0) return { type: 'text', text: recipient.customer_name || 'Valued Customer' };
-            if (i === 1) return { type: 'text', text: `ORD${Math.floor(1000 + Math.random() * 9000)}` };
-            if (i === 2) return { type: 'text', text: '149' };
-            return { type: 'text', text: `Sample ${i + 1}` };
+        // 2. Body Component with Variable Mapping
+        if (bodyParamMatches.length > 0) {
+          const bodyParams = bodyParamMatches.map((_, i) => {
+            const varNum = i + 1;
+            const mapping = variableMappings[String(varNum)];
+            let paramValue = recipient.name || 'Valued Customer';
+
+            if (mapping === 'first_name') {
+              paramValue = recipient.name.split(' ')[0] || 'Customer';
+            } else if (mapping === 'phone') {
+              paramValue = recipient.phone;
+            } else if (mapping?.startsWith('custom_text:')) {
+              paramValue = mapping.replace('custom_text:', '');
+            } else if (!mapping) {
+              if (i === 0) paramValue = recipient.name;
+              else if (i === 1) paramValue = 'PROMO2026';
+              else paramValue = `Info ${i + 1}`;
+            }
+
+            return { type: 'text', text: String(paramValue).substring(0, 100) };
           });
 
           templateComponents.push({
@@ -199,88 +264,54 @@ async function sendCampaignMessages(
           {
             method: 'POST',
             headers: {
-              Authorization: `Bearer ${accessToken}`,
               'Content-Type': 'application/json',
+              Authorization: `Bearer ${accessToken}`,
             },
             body: JSON.stringify(metaPayload),
           }
         );
-        const metaData = await metaRes.json();
-        if (!metaRes.ok) {
-          status = 'failed';
-          errorMessage = metaData?.error?.message ?? 'Meta send error';
-          console.error(`[campaigns] Failed to send to ${phone}:`, JSON.stringify(metaData));
-          failedCount++;
-        } else {
-          metaMessageId = metaData?.messages?.[0]?.id ?? null;
+
+        const metaData = await metaRes.json().catch(() => ({}));
+
+        if (metaRes.ok && metaData.messages?.[0]?.id) {
+          metaMessageId = metaData.messages[0].id;
           sentCount++;
-          console.log(`[campaigns] Successfully sent template message to ${phone}, Meta ID: ${metaMessageId}`);
-
-          // ── Reconstruct and record outbound template message in Inbox ──
-          if (recipient.conversation_id) {
-            let renderedBody = bodyText;
-            bodyParams.forEach((param, idx) => {
-              renderedBody = renderedBody.replace(new RegExp(`\\{\\{${idx + 1}\\}\\}`, 'g'), param.text);
-            });
-
-            let fullContent = '';
-            if (template.header_text) fullContent += `*${template.header_text}*\n\n`;
-            fullContent += renderedBody;
-            if (template.footer_text) fullContent += `\n\n_${template.footer_text}_`;
-
-            await serviceClient.from('messages').insert({
-              conversation_id: recipient.conversation_id,
-              tenant_id: tenantId,
-              sender_type: 'bot',
-              content: fullContent,
-              external_message_id: metaMessageId,
-              is_read: true,
-              metadata: {
-                is_campaign: true,
-                campaign_id: campaignId,
-                template_name: template.name,
-              },
-            });
-
-            await serviceClient.from('conversations').update({
-              last_message_preview: renderedBody,
-              last_message_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            }).eq('id', recipient.conversation_id);
-          }
+          sendStatus = 'sent';
+        } else {
+          sendStatus = 'failed';
+          errorMessage = metaData.error?.message || `Meta API status ${metaRes.status}`;
+          failedCount++;
         }
-      } catch (err: unknown) {
-        status = 'failed';
-        errorMessage = err instanceof Error ? err.message : 'Network error';
-        console.error(`[campaigns] Network error sending to ${phone}:`, errorMessage);
+      } catch (err: any) {
+        sendStatus = 'failed';
+        errorMessage = err.message || 'Network error';
         failedCount++;
       }
     }
 
-    // Insert per-message record
-    await serviceClient.from('campaign_messages').insert({
-      campaign_id: campaignId,
-      tenant_id: tenantId,
-      recipient_phone: phone,
-      recipient_name: recipient.customer_name,
-      meta_message_id: metaMessageId,
-      status,
-      error_message: errorMessage,
-    });
+    // Update recipient log
+    await serviceClient
+      .from('campaign_recipients')
+      .update({
+        status: sendStatus,
+        meta_message_id: metaMessageId,
+        error_message: errorMessage,
+        sent_at: sendStatus === 'sent' ? new Date().toISOString() : null,
+      })
+      .eq('campaign_id', campaignId)
+      .eq('contact_phone', phone);
 
-    // Small delay to respect Meta rate limits
-    await new Promise(r => setTimeout(r, 20));
+    // Rate pacing delay
+    await new Promise(r => setTimeout(r, delayMs));
   }
 
-  // ── Update campaign aggregate stats ─────────────────────────
+  // Update final campaign metrics
   await serviceClient
     .from('campaigns')
     .update({
-      status: 'Completed',
       sent_count: sentCount,
       failed_count: failedCount,
-      delivered_count: sentCount, // initial optimistic delivered count
-      updated_at: new Date().toISOString(),
+      status: failedCount === recipients.length && recipients.length > 0 ? 'Failed' : 'Completed',
     })
     .eq('id', campaignId);
 }

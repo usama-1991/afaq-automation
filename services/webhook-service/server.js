@@ -752,41 +752,89 @@ async function processMessageStatus(statusObj, phoneNumberId = null) {
     .from('campaign_messages')
     .select('campaign_id')
     .eq('meta_message_id', metaMessageId)
-    .single();
+    .maybeSingle();
 
-  if (!campMsg) return; // Not a campaign message
-
-  // 2. Update the campaign_messages row
-  await supabase
-    .from('campaign_messages')
-    .update({
-      status: deliveryStatus,
-      updated_at: new Date().toISOString()
-    })
-    .eq('meta_message_id', metaMessageId);
-
-  // 3. Aggregate stats and update the campaigns table
-  const { data: allMsgs } = await supabase
-    .from('campaign_messages')
-    .select('status')
-    .eq('campaign_id', campMsg.campaign_id);
-
-  if (allMsgs) {
-    const sent_count      = allMsgs.filter(m => ['sent', 'delivered', 'read'].includes(m.status)).length;
-    const delivered_count = allMsgs.filter(m => ['delivered', 'read'].includes(m.status)).length;
-    const read_count      = allMsgs.filter(m => m.status === 'read').length;
-    const failed_count    = allMsgs.filter(m => m.status === 'failed').length;
-
+  if (campMsg) {
     await supabase
-      .from('campaigns')
+      .from('campaign_messages')
       .update({
-        sent_count,
-        delivered_count,
-        read_count,
-        failed_count,
+        status: deliveryStatus,
         updated_at: new Date().toISOString()
       })
-      .eq('id', campMsg.campaign_id);
+      .eq('meta_message_id', metaMessageId);
+
+    const { data: allMsgs } = await supabase
+      .from('campaign_messages')
+      .select('status')
+      .eq('campaign_id', campMsg.campaign_id);
+
+    if (allMsgs) {
+      const sent_count      = allMsgs.filter(m => ['sent', 'delivered', 'read'].includes(m.status)).length;
+      const delivered_count = allMsgs.filter(m => ['delivered', 'read'].includes(m.status)).length;
+      const read_count      = allMsgs.filter(m => m.status === 'read').length;
+      const failed_count    = allMsgs.filter(m => m.status === 'failed').length;
+
+      await supabase
+        .from('campaigns')
+        .update({
+          sent_count,
+          delivered_count,
+          read_count,
+          failed_count,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', campMsg.campaign_id);
+    }
+  }
+
+  // ── 3. Granular Campaign Recipients Tracking ──────────────────────────────
+  try {
+    const { data: recipientRow } = await supabase
+      .from('campaign_recipients')
+      .select('id, campaign_id')
+      .eq('meta_message_id', metaMessageId)
+      .maybeSingle();
+
+    if (recipientRow) {
+      const updatePayload = {
+        status: deliveryStatus,
+        ...(deliveryStatus === 'delivered' ? { delivered_at: new Date().toISOString() } : {}),
+        ...(deliveryStatus === 'read' ? { read_at: new Date().toISOString() } : {}),
+        ...(deliveryStatus === 'failed' ? { error_message: statusObj.errors?.[0]?.message || 'Delivery failed' } : {})
+      };
+
+      await supabase
+        .from('campaign_recipients')
+        .update(updatePayload)
+        .eq('id', recipientRow.id);
+
+      // Recalculate rates
+      const { data: allRecipients } = await supabase
+        .from('campaign_recipients')
+        .select('status')
+        .eq('campaign_id', recipientRow.campaign_id);
+
+      if (allRecipients && allRecipients.length > 0) {
+        const total = allRecipients.length;
+        const delivered = allRecipients.filter(r => ['delivered', 'read'].includes(r.status)).length;
+        const read = allRecipients.filter(r => r.status === 'read').length;
+        const failed = allRecipients.filter(r => r.status === 'failed').length;
+
+        await supabase
+          .from('campaigns')
+          .update({
+            delivered_count: delivered,
+            read_count: read,
+            failed_count: failed,
+            delivery_rate: total > 0 ? parseFloat(((delivered / total) * 100).toFixed(2)) : 0,
+            read_rate: total > 0 ? parseFloat(((read / total) * 100).toFixed(2)) : 0,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', recipientRow.campaign_id);
+      }
+    }
+  } catch (recErr) {
+    fastify.log.warn(`[campaign_recipients] Status update failed: ${recErr.message}`);
   }
 }
 
