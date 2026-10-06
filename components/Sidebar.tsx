@@ -123,6 +123,7 @@ function Sidebar() {
     ...(nicheId === 'ecommerce' ? [{ href: '/reviews', icon: Star, label: 'Reviews' }] : []),
     { href: '/campaigns',     icon: Megaphone,       label: 'Campaigns' },
     { href: '/templates',     icon: FileText,        label: 'Templates' },
+    { href: '/flows',         icon: Layers,          label: 'WhatsApp Flows' },
     { href: '/media',         icon: Folder,          label: 'Media' },
   ], [pendingOrders, nicheId]);
 

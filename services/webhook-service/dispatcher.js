@@ -256,10 +256,43 @@ export async function dispatchOutboundMessage(supabase, message, log = console) 
           };
         }
       } else {
-        const btnRegex = /\[Buttons:\s*([^\]]+)\]/i;
-        const btnMatch = message.content.match(btnRegex);
+        const flowRegex = /\[Flow:\s*([^|\]]+)(?:\|([^|\]]+))?(?:\|([^|\]]+))?(?:\|([^|\]]+))?\]/i;
+        const flowMatch = message.content.match(flowRegex);
 
-        if (btnMatch) {
+        if (flowMatch) {
+          const flowId = flowMatch[1].trim();
+          const ctaText = (flowMatch[2] || 'Open Form').trim().slice(0, 20);
+          const screenName = (flowMatch[3] || 'BOOKING_FORM').trim();
+          const headerText = (flowMatch[4] || 'Interactive Form').trim().slice(0, 60);
+          const bodyText = message.content.replace(flowRegex, '').trim() || 'Please tap below to complete the native form:';
+
+          payload = {
+            messaging_product: 'whatsapp',
+            recipient_type: 'individual',
+            to: customerPhone,
+            type: 'interactive',
+            interactive: {
+              type: 'flow',
+              header: { type: 'text', text: headerText },
+              body: { text: bodyText },
+              footer: { text: 'Powered by Ittisalo' },
+              action: {
+                name: 'flow',
+                parameters: {
+                  flow_message_version: '3',
+                  flow_token: `conv_${conv.id}_${Date.now()}`,
+                  flow_id: flowId,
+                  flow_cta: ctaText,
+                  flow_action: 'navigate',
+                  flow_action_payload: {
+                    screen: screenName,
+                    data: {}
+                  }
+                }
+              }
+            }
+          };
+        } else if (btnMatch) {
           const buttonsRaw = btnMatch[1].split('|').map(b => b.trim()).filter(b => b.length > 0).slice(0, 3);
           const bodyText = message.content.replace(btnRegex, '').trim();
 

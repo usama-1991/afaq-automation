@@ -358,6 +358,41 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
         messageText = rawMessageObj.interactive.button_reply?.title || rawMessageObj.interactive.button_reply?.id || messageText;
       } else if (rawMessageObj.interactive?.type === 'list_reply') {
         messageText = rawMessageObj.interactive.list_reply?.title || rawMessageObj.interactive.list_reply?.id || messageText;
+      } else if (rawMessageObj.interactive?.type === 'nfm_reply') {
+        const nfm = rawMessageObj.interactive.nfm_reply || {};
+        let parsedResponse = {};
+        try {
+          parsedResponse = JSON.parse(nfm.response_json || '{}');
+        } catch {
+          parsedResponse = {};
+        }
+
+        fastify.log.info(`[whatsapp] Native Flow submission received (${nfm.name}): ${JSON.stringify(parsedResponse)}`);
+
+        if (parsedResponse.service_name || parsedResponse.appointment_date || parsedResponse.doctor_name) {
+          messageText = `📅 [WhatsApp Flow Booking]:\n• Service: ${parsedResponse.service_name || 'Consultation'}\n• Specialist: ${parsedResponse.doctor_name || 'Any'}\n• Date: ${parsedResponse.appointment_date || 'N/A'}\n• Time: ${parsedResponse.slot_time || 'N/A'}\n• Patient: ${parsedResponse.patient_name || customerName}\n${parsedResponse.notes ? `• Notes: ${parsedResponse.notes}` : ''}`.trim();
+        } else if (parsedResponse.delivery_address || parsedResponse.city) {
+          messageText = `📍 [WhatsApp Flow Delivery Address]:\n• Recipient: ${parsedResponse.customer_name || customerName}\n• City: ${parsedResponse.city || 'Karachi'}\n• Address: ${parsedResponse.delivery_address || 'N/A'}\n${parsedResponse.landmark ? `• Landmark: ${parsedResponse.landmark}` : ''}\n${parsedResponse.alternate_phone ? `• Alt Contact: ${parsedResponse.alternate_phone}` : ''}`.trim();
+        } else if (parsedResponse.rating) {
+          messageText = `⭐ [WhatsApp Flow Feedback]: Rating: ${parsedResponse.rating}/5. ${parsedResponse.positive_feedback || ''} ${parsedResponse.improvement_feedback || ''}`.trim();
+        } else {
+          messageText = `📋 [WhatsApp Flow Response]: ${JSON.stringify(parsedResponse)}`;
+        }
+
+        (async () => {
+          try {
+            await supabase.from('flow_submissions').insert({
+              tenant_id: tenantId,
+              flow_id: nfm.name || 'meta_flow',
+              customer_phone: customerId,
+              flow_token: nfm.body || null,
+              response_payload: parsedResponse,
+              processed_status: 'completed',
+            });
+          } catch (subErr) {
+            fastify.log.warn(`Failed to insert flow submission: ${subErr.message}`);
+          }
+        })();
       }
       fastify.log.info(`[whatsapp] Interactive reply processed: "${messageText}"`);
     }
