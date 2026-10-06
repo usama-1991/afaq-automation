@@ -4,6 +4,7 @@ import { Suspense, useState, useEffect, useCallback } from 'react';
 import { CalendarIntegrationsSettings } from '@/components/settings/CalendarIntegrations';
 import { WebsiteChatWidgetSettings } from '@/components/settings/WebsiteChatWidgetSettings';
 import { DoctorsManagement } from '@/components/settings/DoctorsManagement';
+import { UsageQuotasTab } from '@/components/settings/UsageQuotasTab';
 import WhatsAppEmbeddedSignup from '@/components/whatsapp/WhatsAppEmbeddedSignup';
 import { useSearchParams } from 'next/navigation';
 import { 
@@ -2095,109 +2096,7 @@ function SettingsInner() {
         )}
 
         {/* ── Usage Quotas Tab ── */}
-        {tab === 'Usage Quotas' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {/* Quota Indicators */}
-            <div style={{ background: '#fff', borderRadius: 14, padding: '20px', border: '1px solid rgba(220,38,38,0.08)', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16 }}>
-                <BarChart3 size={16} color="#dc2626" />
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Messaging Volume Quotas (Current Cycle)</div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {/* WA Quota */}
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
-                    <span>WhatsApp Business API Dispatches</span>
-                    <span style={{ color: '#dc2626' }}>6,450 / 10,000 Messages (64.5%)</span>
-                  </div>
-                  <div style={{ width: '100%', height: 7, background: '#f3f4f6', borderRadius: 10, overflow: 'hidden' }}>
-                    <div style={{ width: '64.5%', height: '100%', background: 'linear-gradient(90deg, #dc2626, #f59e0b)', borderRadius: 10 }} />
-                  </div>
-                </div>
-
-                {/* TikTok Quota */}
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
-                    <span>TikTok Business Query Requests</span>
-                    <span style={{ color: '#dc2626' }}>350 / 1,000 Calls (35%)</span>
-                  </div>
-                  <div style={{ width: '100%', height: 7, background: '#f3f4f6', borderRadius: 10, overflow: 'hidden' }}>
-                    <div style={{ width: '35%', height: '100%', background: '#dc2626', borderRadius: 10 }} />
-                  </div>
-                </div>
-
-                {/* Voice transcription Quota */}
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
-                    <span>Voice Note AI Transcriptions</span>
-                    <span style={{ color: '#dc2626' }}>185 / 500 Minutes (37%)</span>
-                  </div>
-                  <div style={{ width: '100%', height: 7, background: '#f3f4f6', borderRadius: 10, overflow: 'hidden' }}>
-                    <div style={{ width: '37%', height: '100%', background: '#dc2626', borderRadius: 10 }} />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Pricing Packages */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {[
-                { name: 'Starter Plan', price: '$49', pricePKR: '$49', current: false, features: ['WhatsApp Single Channel', '1,000 monthly messages', 'Standard voice transcription', 'Basic email support'] },
-                { name: 'Growth Plan', price: '$149', pricePKR: '$149', current: true, features: ['All Channels (WA + TikTok + IG)', '10,000 monthly messages', 'Premium Whisper transcribing', 'Instant human handoff controls', 'Priority WhatsApp support'] },
-                { name: 'Enterprise Hub', price: '$399', pricePKR: '$399', current: false, features: ['Unlimited Omni-Channels', 'White-labeled studio portal', 'Full webhook and custom API key limits', '24/7 dedicated support staff'] },
-              ].map(plan => (
-                <div 
-                  key={plan.name} 
-                  style={{ 
-                    background: '#fff', borderRadius: 14, padding: '20px', 
-                    border: plan.current ? '2.5px solid #dc2626' : '1px solid rgba(220,38,38,0.08)', 
-                    position: 'relative', boxShadow: '0 2px 10px rgba(0,0,0,0.01)'
-                  }}
-                >
-                  {plan.current && (
-                    <span style={{ position: 'absolute', top: -11, left: 20, background: '#dc2626', color: '#fff', fontSize: 10.5, fontWeight: 800, padding: '3px 10px', borderRadius: 20, boxShadow: '0 2px 6px rgba(220,38,38,0.2)' }}>
-                      Current Active Plan
-                    </span>
-                  )}
-                  
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, alignItems: 'flex-start' }}>
-                    <div>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: '#111827' }}>{plan.name}</div>
-                      <div style={{ fontSize: 11.5, color: '#9ca3af', marginTop: 1 }}>{plan.pricePKR}/month</div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 22, fontWeight: 800, color: '#dc2626' }}>{plan.price}<span style={{ fontSize: 12, fontWeight: 550, color: '#9ca3af' }}>/mo</span></div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px', marginBottom: 16 }}>
-                    {plan.features.map(f => (
-                      <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#4b5563', fontWeight: 550 }}>
-                        <Check size={12} color="#dc2626" strokeWidth={3} /> {f}
-                      </div>
-                    ))}
-                  </div>
-
-                  <button 
-                    disabled={plan.current}
-                    style={{ 
-                      width: '100%', padding: '9px', fontSize: 12.5, fontWeight: 700, borderRadius: 9, cursor: plan.current ? 'default' : 'pointer',
-                      background: plan.current ? '#f3f4f6' : 'linear-gradient(135deg, #dc2626, #b91c1c)', 
-                      color: plan.current ? '#9ca3af' : '#fff', 
-                      border: plan.current ? '1.5px solid #e5e7eb' : 'none',
-                      transition: 'background 0.15s',
-                    }}
-                    onMouseEnter={e => { if(!plan.current) e.currentTarget.style.background = '#b91c1c'; }}
-                    onMouseLeave={e => { if(!plan.current) e.currentTarget.style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)'; }}
-                  >
-                    {plan.current ? 'Active Plan Details' : 'Upgrade Subscription'}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {tab === 'Usage Quotas' && <UsageQuotasTab />}
 
       </div>
 

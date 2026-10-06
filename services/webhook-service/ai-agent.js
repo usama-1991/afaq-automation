@@ -18,6 +18,39 @@ const openai = new OpenAI({
 // In-flight guard to prevent duplicate AI processing for the same incoming message
 const _activeAiMessageIds = new Set();
 
+async function trackAICallUsage(tenantId) {
+  if (!tenantId) return;
+  const cycle = new Date().toISOString().slice(0, 7);
+  try {
+    const { data: meter } = await supabase
+      .from('tenant_usage_meters')
+      .select('id, ai_conversations_count')
+      .eq('tenant_id', tenantId)
+      .eq('billing_cycle_id', cycle)
+      .maybeSingle();
+
+    if (meter) {
+      await supabase
+        .from('tenant_usage_meters')
+        .update({
+          ai_conversations_count: (meter.ai_conversations_count || 0) + 1,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', meter.id);
+    } else {
+      await supabase
+        .from('tenant_usage_meters')
+        .insert({
+          tenant_id: tenantId,
+          billing_cycle_id: cycle,
+          ai_conversations_count: 1
+        });
+    }
+  } catch (err) {
+    console.warn(`[Usage Meter] Error tracking AI usage: ${err.message}`);
+  }
+}
+
 export async function processAIAgent(ctx) {
   if (ctx.external_message_id) {
     if (_activeAiMessageIds.has(ctx.external_message_id)) {
@@ -27,6 +60,9 @@ export async function processAIAgent(ctx) {
     _activeAiMessageIds.add(ctx.external_message_id);
     setTimeout(() => _activeAiMessageIds.delete(ctx.external_message_id), 60000);
   }
+
+  // Real-time Metering: track AI conversation usage
+  trackAICallUsage(ctx.tenant_id);
 
   const _reqId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   try {

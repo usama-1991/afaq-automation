@@ -338,6 +338,39 @@ async function processIncomingMessage(platform, externalAccountId, customerId, c
           if (transcription.text) {
             fastify.log.info(`[whatsapp] Audio transcribed: ${transcription.text}`);
             messageText = `🎤 [Voice Note]: "${transcription.text}"`;
+
+            // Track voice note transcription usage (approx 30s per note)
+            (async () => {
+              try {
+                const cycle = new Date().toISOString().slice(0, 7);
+                const { data: meter } = await supabase
+                  .from('tenant_usage_meters')
+                  .select('id, voice_transcription_seconds')
+                  .eq('tenant_id', tenantId)
+                  .eq('billing_cycle_id', cycle)
+                  .maybeSingle();
+
+                if (meter) {
+                  await supabase
+                    .from('tenant_usage_meters')
+                    .update({
+                      voice_transcription_seconds: (meter.voice_transcription_seconds || 0) + 30,
+                      updated_at: new Date().toISOString()
+                    })
+                    .eq('id', meter.id);
+                } else {
+                  await supabase
+                    .from('tenant_usage_meters')
+                    .insert({
+                      tenant_id: tenantId,
+                      billing_cycle_id: cycle,
+                      voice_transcription_seconds: 30
+                    });
+                }
+              } catch (vuErr) {
+                fastify.log.warn(`Failed to track voice usage: ${vuErr.message}`);
+              }
+            })();
           }
         } else {
           fastify.log.warn(`[whatsapp] Failed to get media URL: ${JSON.stringify(mediaData)}`);
