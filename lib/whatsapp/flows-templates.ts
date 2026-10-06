@@ -102,7 +102,6 @@ export const APPOINTMENT_BOOKING_FLOW: FlowBlueprint = {
                   name: 'reminder_optin',
                   label: 'Receive automated WhatsApp reminders before visit',
                   required: false,
-                  'init-value': true,
                 },
                 {
                   type: 'Footer',
