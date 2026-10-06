@@ -38,17 +38,60 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   const { blueprint_key, custom_name, custom_flow_json } = body;
-
   const blueprint = ALL_FLOW_BLUEPRINTS.find(b => b.key === blueprint_key);
-  const flowName = custom_name || blueprint?.name || 'Custom WhatsApp Flow';
-  const flowCategory = blueprint?.category || 'OTHER';
-  const flowJson = custom_flow_json || blueprint?.flowJson;
 
-  if (!flowJson) {
+  // 1. Fetch Tenant details and Provider roster for tenant customization
+  const { data: tenant } = await supabase
+    .from('tenants')
+    .select('id, business_name, name, niche')
+    .eq('id', ctx.tenantId)
+    .single();
+
+  const businessName = tenant?.business_name || tenant?.name || 'Clinic';
+  let flowName = custom_name || blueprint?.name || `${businessName} Flow`;
+  const flowCategory = blueprint?.category || 'OTHER';
+  let flowJson = custom_flow_json || JSON.parse(JSON.stringify(blueprint?.flowJson || {}));
+
+  // If Appointment Booking blueprint, dynamically personalize with this tenant's real doctors
+  if (blueprint_key === 'APPOINTMENT_BOOKING' && flowJson?.screens) {
+    flowName = `${businessName} Appointment Booking`;
+
+    const { data: providers } = await supabase
+      .from('providers')
+      .select('id, name, title')
+      .eq('tenant_id', ctx.tenantId)
+      .eq('is_active', true)
+      .order('name');
+
+    if (providers && providers.length > 0) {
+      const doctorOptions = [
+        { id: 'any_available', title: 'First Available Specialist' },
+        ...providers.map(p => ({
+          id: p.name,
+          title: p.title ? `${p.name} (${p.title})` : p.name
+        }))
+      ];
+
+      // Update doctor dropdown in screen layout
+      const formChildren = flowJson.screens?.[0]?.layout?.children?.[0]?.children;
+      if (Array.isArray(formChildren)) {
+        const docDropdown = formChildren.find((c: any) => c.name === 'doctor_name');
+        if (docDropdown) {
+          docDropdown['data-source'] = doctorOptions;
+        }
+        const heading = formChildren.find((c: any) => c.type === 'TextHeading');
+        if (heading) {
+          heading.text = `${businessName} Booking`;
+        }
+      }
+    }
+  }
+
+  if (!flowJson || !flowJson.screens) {
     return NextResponse.json({ error: 'Missing flow JSON or valid blueprint key' }, { status: 400 });
   }
 
-  // 1. Fetch WABA ID & Access Token
+  // 2. Fetch WABA ID & Access Token
   const { wabaId, accessToken } = await getTenantWhatsAppCredentials(supabase, ctx.tenantId);
 
   let metaFlowId = `flow_local_${Date.now()}`;
