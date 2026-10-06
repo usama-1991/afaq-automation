@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, memo } from 'react';
+import Link from 'next/link';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar
@@ -873,8 +874,16 @@ export default function DashboardPage() {
             
             {/* Left: Today by doctor */}
             <div style={{ background: '#fff', borderRadius: 16, padding: '24px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 18 }}>
-                Today by doctor
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>
+                  Today by doctor
+                </div>
+                <Link 
+                  href="/appointments" 
+                  style={{ fontSize: 12.5, fontWeight: 600, color: '#dc2626', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}
+                >
+                  Open Full Calendar →
+                </Link>
               </div>
 
               {/* Sub-header */}

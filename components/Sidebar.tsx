@@ -7,7 +7,7 @@ import {
   Star, LayoutDashboard, MessageSquare, Users, Bot, Plug, Settings, LogOut, 
   FileText, Megaphone, Folder, BarChart3, Menu, X, ShoppingBag, Crown,
   Activity, Store, Coins, Layers, ShieldAlert, History, Building2, Receipt,
-  TrendingUp, ShieldCheck 
+  TrendingUp, ShieldCheck, Calendar 
 } from 'lucide-react';
 import { useNiche } from '@/context/NicheContext';
 import { supabase } from '@/lib/supabase/client';
@@ -117,7 +117,9 @@ function Sidebar() {
 
   // Cluster 2: Commerce & Ops
   const clusterCommerce = useMemo(() => [
-    { href: '/orders',        icon: ShoppingBag,     label: 'Orders', count: pendingOrders },
+    ...(['dental', 'clinic', 'salon', 'medical'].includes(nicheId)
+      ? [{ href: '/appointments', icon: Calendar, label: 'Appointments' }]
+      : [{ href: '/orders',        icon: ShoppingBag,     label: 'Orders', count: pendingOrders }]),
     ...(nicheId === 'ecommerce' ? [{ href: '/reviews', icon: Star, label: 'Reviews' }] : []),
     { href: '/campaigns',     icon: Megaphone,       label: 'Campaigns' },
     { href: '/templates',     icon: FileText,        label: 'Templates' },
@@ -143,14 +145,16 @@ function Sidebar() {
     ...clusterSettings
   ], [clusterCore, clusterCommerce, clusterIntelligence, clusterSettings]);
 
-  // Explicit Mobile Nav according to spec: Overview / Chats / Contacts / Orders / Campaigns / More
+  // Explicit Mobile Nav according to spec: Overview / Chats / Contacts / Orders or Appointments / Campaigns / More
   const MOBILE_NAV = useMemo(() => [
     { href: '/dashboard',     icon: LayoutDashboard, label: 'Overview' },
     { href: '/conversations', icon: MessageSquare,   label: 'Chats', count: unreadChats },
     { href: '/contacts',      icon: Users,           label: 'Contacts' },
-    { href: '/orders',        icon: ShoppingBag,     label: 'Orders', count: pendingOrders },
+    ...(['dental', 'clinic', 'salon', 'medical'].includes(nicheId)
+      ? [{ href: '/appointments', icon: Calendar, label: 'Appointments' }]
+      : [{ href: '/orders', icon: ShoppingBag, label: 'Orders', count: pendingOrders }]),
     { href: '/campaigns',     icon: Megaphone,       label: 'Campaigns' },
-  ], [unreadChats, pendingOrders]);
+  ], [unreadChats, pendingOrders, nicheId]);
 
   useEffect(() => {
     const fetchRole = async () => {

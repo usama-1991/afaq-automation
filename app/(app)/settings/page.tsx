@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect, useCallback } from 'react';
 import { CalendarIntegrationsSettings } from '@/components/settings/CalendarIntegrations';
 import { WebsiteChatWidgetSettings } from '@/components/settings/WebsiteChatWidgetSettings';
+import { DoctorsManagement } from '@/components/settings/DoctorsManagement';
 import WhatsAppEmbeddedSignup from '@/components/whatsapp/WhatsAppEmbeddedSignup';
 import { useSearchParams } from 'next/navigation';
 import { 
@@ -18,7 +19,7 @@ import { niches } from '@/lib/niches';
 import { supabase } from '@/lib/supabase/client';
 import { encrypt, decrypt } from '@/lib/crypto';
 
-const tabs = ['Business Profile', 'Channels & APIs', 'Website Chat Widget', 'Integrations', 'AI Knowledge', 'eCommerce Platform', 'Property Listings', 'Voice & Opt-Outs', 'Usage Quotas'] as const;
+const tabs = ['Business Profile', 'Channels & APIs', 'Website Chat Widget', 'Doctors & Staff', 'Integrations', 'AI Knowledge', 'eCommerce Platform', 'Property Listings', 'Voice & Opt-Outs', 'Usage Quotas'] as const;
 type Tab = typeof tabs[number];
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
@@ -1306,6 +1307,11 @@ function SettingsInner() {
         {/* ── Website Chat Widget Tab ── */}
         {tab === 'Website Chat Widget' && (
           <WebsiteChatWidgetSettings />
+        )}
+
+        {/* ── Doctors & Staff Tab ── */}
+        {tab === 'Doctors & Staff' && (
+          <DoctorsManagement />
         )}
 
         {/* ── Integrations Tab ── */}

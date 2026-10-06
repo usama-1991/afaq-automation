@@ -805,6 +805,55 @@ export async function processAIAgent(ctx) {
         else if (fullText.includes('consultation') || fullText.includes('checkup') || fullText.includes('doctor')) treatmentType = 'General Consultation';
         else if (!treatmentType) treatmentType = 'General Consultation';
 
+        // 4. Extract Doctor / Provider
+        let doctorName = recordData.doctor_name || null;
+        let providerId = recordData.provider_id || null;
+        let doctorGoogleCalendarId = recordData.doctor_google_calendar_id || null;
+
+        try {
+          let tenantProviders = [];
+          const { data: dbProvs } = await supabase.from('providers').select('*').eq('tenant_id', ctx.tenant_id).eq('is_active', true);
+          if (dbProvs && dbProvs.length > 0) {
+            tenantProviders = dbProvs;
+          } else {
+            const { data: t } = await supabase.from('tenants').select('niche_settings').eq('id', ctx.tenant_id).single();
+            tenantProviders = (t?.niche_settings?.providers || []).filter(p => p.is_active !== false);
+          }
+
+          if (tenantProviders.length > 0) {
+            // Check if any doctor is explicitly mentioned
+            for (const prov of tenantProviders) {
+              const cleanProvName = prov.name.toLowerCase().replace(/^dr\.\s*/i, '');
+              if (fullText.includes(prov.name.toLowerCase()) || fullText.includes(cleanProvName)) {
+                doctorName = prov.name;
+                providerId = prov.id;
+                doctorGoogleCalendarId = prov.google_calendar_id;
+                break;
+              }
+            }
+
+            // Match by specialty if doctor wasn't explicitly named
+            if (!doctorName) {
+              const matchedBySpec = tenantProviders.find(p => {
+                const spec = (p.title || '').toLowerCase();
+                if (treatmentType === 'Root Canal' && spec.includes('endodontic')) return true;
+                if (treatmentType === 'Braces Consultation' && spec.includes('orthodontic')) return true;
+                if (treatmentType === 'Teeth Whitening' && (spec.includes('cosmetic') || spec.includes('surgery'))) return true;
+                return false;
+              });
+              if (matchedBySpec) {
+                doctorName = matchedBySpec.name;
+                providerId = matchedBySpec.id;
+                doctorGoogleCalendarId = matchedBySpec.google_calendar_id;
+              } else if (tenantProviders.length > 0) {
+                doctorName = tenantProviders[0].name;
+                providerId = tenantProviders[0].id;
+                doctorGoogleCalendarId = tenantProviders[0].google_calendar_id;
+              }
+            }
+          }
+        } catch (_) {}
+
         const isConfirmed = ai_intent === 'appointment_confirmed' || aiConfirmed || userConfirmed;
 
         let startTimeIso = null;
@@ -824,6 +873,9 @@ export async function processAIAgent(ctx) {
           conversation_id: ctx.conversation_id,
           patient_name: ctx.customer_name || 'Patient',
           patient_phone: ctx.customer_phone,
+          doctor_name: doctorName || 'Dr. Hassan Ahmed',
+          provider_id: providerId || null,
+          doctor_google_calendar_id: doctorGoogleCalendarId || null,
           niche: niche,
           treatment_type: treatmentType,
           appointment_date: apptDate,
@@ -940,10 +992,15 @@ export async function processAIAgent(ctx) {
                 }
               }
               
+              // Route to doctor's assigned sub-calendar if configured, else tenant primary calendar
+              const targetCalendarId = (recordData.doctor_google_calendar_id && recordData.doctor_google_calendar_id !== 'primary')
+                ? encodeURIComponent(recordData.doctor_google_calendar_id)
+                : (gcalInt.primary_calendar_id || 'primary');
+
               // Query Google Calendar's configured timeZone so the slot displays at the exact requested time
               let calTimeZone = recordData.timezone || 'Asia/Karachi';
               try {
-                const calMetaRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${gcalInt.primary_calendar_id}`, {
+                const calMetaRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${targetCalendarId}`, {
                   headers: { Authorization: `Bearer ${gToken}` }
                 });
                 if (calMetaRes.ok) {
@@ -964,9 +1021,10 @@ export async function processAIAgent(ctx) {
                 ? `${recordData.appointment_date}T${endHour}:${minute}:00Z`
                 : `${recordData.appointment_date}T${endHour}:${minute}:00`;
 
+              const docDisplay = recordData.doctor_name && recordData.doctor_name !== 'Any Available' ? ` (${recordData.doctor_name})` : '';
               const eventBody = {
-                summary: `${recordData.treatment_type || 'Appointment'} - ${recordData.patient_name}`,
-                description: `Phone: ${recordData.patient_phone}\nConversation ID: ${ctx.conversation_id}\nBooked via WhatsApp AI`,
+                summary: `${recordData.treatment_type || 'Appointment'} - ${recordData.patient_name}${docDisplay}`,
+                description: `Patient: ${recordData.patient_name}\nPhone: ${recordData.patient_phone}\nDoctor: ${recordData.doctor_name || 'Any Available'}\nTreatment: ${recordData.treatment_type || 'Appointment'}\nConversation ID: ${ctx.conversation_id}\nBooked via WhatsApp AI`,
                 status: 'confirmed',
                 start: { 
                   dateTime: startDateTimeStr,
@@ -983,21 +1041,21 @@ export async function processAIAgent(ctx) {
               let gRes;
 
               if (existingGoogleEventId) {
-                console.log(`[AI-Agent] Updating existing Google Calendar event: ${existingGoogleEventId}`);
-                gRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${gcalInt.primary_calendar_id}/events/${existingGoogleEventId}`, {
+                console.log(`[AI-Agent] Updating existing Google Calendar event: ${existingGoogleEventId} in calendar: ${targetCalendarId}`);
+                gRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${targetCalendarId}/events/${existingGoogleEventId}`, {
                   method: 'PATCH',
                   headers: { Authorization: `Bearer ${gToken}`, 'Content-Type': 'application/json' },
                   body: JSON.stringify(eventBody),
                 });
                 if (gRes.status === 404) {
-                  gRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${gcalInt.primary_calendar_id}/events`, {
+                  gRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${targetCalendarId}/events`, {
                     method: 'POST',
                     headers: { Authorization: `Bearer ${gToken}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify(eventBody),
                   });
                 }
               } else {
-                gRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${gcalInt.primary_calendar_id}/events`, {
+                gRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${targetCalendarId}/events`, {
                   method: 'POST',
                   headers: { Authorization: `Bearer ${gToken}`, 'Content-Type': 'application/json' },
                   body: JSON.stringify(eventBody),
@@ -1006,8 +1064,13 @@ export async function processAIAgent(ctx) {
               
               if (gRes.ok) {
                 const gData = await gRes.json();
-                await supabase.from('appointments').update({ google_event_id: gData.id, source: 'google', status: 'scheduled' }).eq('conversation_id', ctx.conversation_id);
-                console.log(`[AI-Agent] ✅ Successfully pushed to Google Calendar (Event ID: ${gData.id}, status: ${gData.status})`);
+                await supabase.from('appointments').update({ 
+                  google_event_id: gData.id, 
+                  source: 'google', 
+                  status: 'scheduled',
+                  doctor_name: recordData.doctor_name
+                }).eq('conversation_id', ctx.conversation_id);
+                console.log(`[AI-Agent] ✅ Successfully pushed to Google Calendar (${targetCalendarId}, Event ID: ${gData.id}, Doctor: ${recordData.doctor_name})`);
               } else {
                 console.error(`[AI-Agent] Google Calendar sync failed:`, await gRes.text());
               }
