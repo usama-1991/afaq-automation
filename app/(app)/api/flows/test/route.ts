@@ -78,7 +78,6 @@ export async function POST(request: NextRequest) {
           flow_action: 'navigate',
           flow_action_payload: {
             screen: firstScreenId,
-            data: {},
           },
         },
       },
