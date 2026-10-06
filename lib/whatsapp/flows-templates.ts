@@ -1,5 +1,5 @@
 /**
- * Ittisalo — Meta WhatsApp Flows JSON Schema Blueprints (v3.0)
+ * Ittisalo — Meta WhatsApp Flows JSON Schema Blueprints (v6.0)
  * 
  * Standard Flow schemas ready for 1-click publishing to Meta WhatsApp Business API.
  */
@@ -20,7 +20,7 @@ export const APPOINTMENT_BOOKING_FLOW: FlowBlueprint = {
   description: 'Multi-step in-chat booking form with service selection, doctor choice, date picker, and preferred time slot.',
   ctaText: '📅 Book Appointment',
   flowJson: {
-    version: '3.0',
+    version: '6.0',
     screens: [
       {
         id: 'BOOKING_FORM',
@@ -48,11 +48,11 @@ export const APPOINTMENT_BOOKING_FLOW: FlowBlueprint = {
                   label: 'Select Service',
                   required: true,
                   'data-source': [
-                    { id: 'general_consult', title: '🩺 General Consultation (PKR 2,000)' },
-                    { id: 'dental_cleaning', title: '✨ Dental Cleaning & Scaling (PKR 4,500)' },
-                    { id: 'teeth_whitening', title: '💎 Laser Teeth Whitening (PKR 12,000)' },
-                    { id: 'root_canal', title: '🦷 Root Canal Therapy (PKR 15,000)' },
-                    { id: 'ortho_consult', title: '📐 Braces & Aligners Evaluation (PKR 3,000)' },
+                    { id: 'general_consult', title: 'General Consultation (PKR 2,000)' },
+                    { id: 'dental_cleaning', title: 'Dental Cleaning & Scaling (PKR 4,500)' },
+                    { id: 'teeth_whitening', title: 'Laser Teeth Whitening (PKR 12,000)' },
+                    { id: 'root_canal', title: 'Root Canal Therapy (PKR 15,000)' },
+                    { id: 'ortho_consult', title: 'Braces & Aligners Evaluation (PKR 3,000)' },
                   ],
                 },
                 {
@@ -61,7 +61,7 @@ export const APPOINTMENT_BOOKING_FLOW: FlowBlueprint = {
                   label: 'Preferred Specialist',
                   required: true,
                   'data-source': [
-                    { id: 'any_available', title: '👨‍⚕️ First Available Specialist' },
+                    { id: 'any_available', title: 'First Available Specialist' },
                     { id: 'dr_sarah', title: 'Dr. Sarah Khan (Senior Orthodontist)' },
                     { id: 'dr_bilal', title: 'Dr. Bilal Ahmed (Cosmetic Dental Surgeon)' },
                     { id: 'dr_ayesha', title: 'Dr. Ayesha Malik (General Practitioner)' },
@@ -79,10 +79,10 @@ export const APPOINTMENT_BOOKING_FLOW: FlowBlueprint = {
                   label: 'Preferred Time Window',
                   required: true,
                   'data-source': [
-                    { id: '11:00 AM', title: '🌅 Morning: 11:00 AM' },
-                    { id: '01:30 PM', title: '☀️ Afternoon: 01:30 PM' },
-                    { id: '04:00 PM', title: '🌇 Evening: 04:00 PM' },
-                    { id: '06:30 PM', title: '🌙 Night: 06:30 PM' },
+                    { id: '11:00 AM', title: 'Morning: 11:00 AM' },
+                    { id: '01:30 PM', title: 'Afternoon: 01:30 PM' },
+                    { id: '04:00 PM', title: 'Evening: 04:00 PM' },
+                    { id: '06:30 PM', title: 'Night: 06:30 PM' },
                   ],
                 },
                 {
@@ -135,7 +135,7 @@ export const COD_ADDRESS_FLOW: FlowBlueprint = {
   description: 'Native form collecting customer delivery address, city, landmark, and delivery instructions in 1 tap.',
   ctaText: '📍 Enter Delivery Address',
   flowJson: {
-    version: '3.0',
+    version: '6.0',
     screens: [
       {
         id: 'SHIPPING_FORM',
@@ -238,7 +238,7 @@ export const CUSTOMER_FEEDBACK_FLOW: FlowBlueprint = {
   description: 'Interactive post-purchase and appointment satisfaction rating flow.',
   ctaText: '⭐ Rate Experience',
   flowJson: {
-    version: '3.0',
+    version: '6.0',
     screens: [
       {
         id: 'FEEDBACK_FORM',
@@ -266,11 +266,11 @@ export const CUSTOMER_FEEDBACK_FLOW: FlowBlueprint = {
                   label: 'Overall Rating',
                   required: true,
                   'data-source': [
-                    { id: '5', title: '⭐⭐⭐⭐⭐ Excellent (5/5)' },
-                    { id: '4', title: '⭐⭐⭐⭐ Good (4/5)' },
-                    { id: '3', title: '⭐⭐⭐ Average (3/5)' },
-                    { id: '2', title: '⭐⭐ Needs Improvement (2/5)' },
-                    { id: '1', title: '⭐ Poor (1/5)' },
+                    { id: '5', title: 'Excellent (5/5)' },
+                    { id: '4', title: 'Good (4/5)' },
+                    { id: '3', title: 'Average (3/5)' },
+                    { id: '2', title: 'Needs Improvement (2/5)' },
+                    { id: '1', title: 'Poor (1/5)' },
                   ],
                 },
                 {

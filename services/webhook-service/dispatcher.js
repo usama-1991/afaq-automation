@@ -266,6 +266,21 @@ export async function dispatchOutboundMessage(supabase, message, log = console) 
           const headerText = (flowMatch[4] || 'Interactive Form').trim().slice(0, 60);
           const bodyText = message.content.replace(flowRegex, '').trim() || 'Please tap below to complete the native form:';
 
+          // Query flow status to determine draft vs published mode
+          let flowMode = 'published';
+          try {
+            const { data: flowRecord } = await supabase
+              .from('whatsapp_flows')
+              .select('status')
+              .eq('flow_id', flowId)
+              .maybeSingle();
+            if (flowRecord?.status === 'DRAFT') {
+              flowMode = 'draft';
+            }
+          } catch (e) {
+            // default to published
+          }
+
           payload = {
             messaging_product: 'whatsapp',
             recipient_type: 'individual',
@@ -279,6 +294,7 @@ export async function dispatchOutboundMessage(supabase, message, log = console) 
               action: {
                 name: 'flow',
                 parameters: {
+                  mode: flowMode,
                   flow_message_version: '3',
                   flow_token: `conv_${conv.id}_${Date.now()}`,
                   flow_id: flowId,

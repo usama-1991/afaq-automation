@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
       action: {
         name: 'flow',
         parameters: {
+          mode: flow.status === 'PUBLISHED' ? 'published' : 'draft',
           flow_message_version: '3',
           flow_token: `test_token_${Date.now()}_${flow_id.slice(-6)}`,
           flow_id: flow_id,
