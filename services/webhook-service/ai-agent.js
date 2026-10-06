@@ -934,10 +934,31 @@ export async function processAIAgent(ctx) {
         if (ordErr) console.error("[AI-Agent] Order Upsert Error:", ordErr);
         if (ord) upsertedOrderId = ord.id;
       } else if (recordType === 'appointment') {
-        delete recordData.updated_at;
-        const { error: apptErr } = await supabase.from('appointments').upsert(recordData, { onConflict: 'conversation_id' });
+        const isValidUUID = (str) => typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+        const apptPayload = {
+          tenant_id: recordData.tenant_id,
+          conversation_id: ctx.conversation_id,
+          patient_name: recordData.patient_name,
+          patient_phone: recordData.patient_phone,
+          doctor_name: recordData.doctor_name,
+          treatment_type: recordData.treatment_type,
+          appointment_date: recordData.appointment_date,
+          appointment_time: recordData.appointment_time,
+          status: recordData.status || 'scheduled',
+          timezone: recordData.timezone || 'Asia/Karachi',
+          start_time: recordData.start_time,
+          end_time: recordData.end_time,
+          niche: recordData.niche,
+          google_event_id: recordData.google_event_id,
+          source: recordData.source || 'google',
+          notes: recordData.notes,
+          is_new_patient: recordData.is_new_patient || false,
+          estimated_revenue: recordData.estimated_revenue || 0,
+          provider_id: isValidUUID(recordData.provider_id) ? recordData.provider_id : null,
+        };
+        const { error: apptErr } = await supabase.from('appointments').upsert(apptPayload, { onConflict: 'conversation_id' });
         if (apptErr) console.error("[AI-Agent] Appointment Upsert Error:", apptErr);
-        else console.log(`[AI-Agent] ✅ Successfully upserted appointment for conv ${ctx.conversation_id}: ${recordData.appointment_date} ${recordData.appointment_time}`);
+        else console.log(`[AI-Agent] ✅ Successfully upserted appointment for conv ${ctx.conversation_id}: ${recordData.appointment_date} ${recordData.appointment_time} (Doctor: ${recordData.doctor_name})`);
       } else if (recordType === 'lead') {
         const { error: leadErr } = await supabase.from('leads').upsert(recordData, { onConflict: 'conversation_id' });
         if (leadErr) console.error("[AI-Agent] Lead Upsert Error:", leadErr);

@@ -106,7 +106,35 @@ export default function AppointmentsPage() {
         .order('appointment_time', { ascending: true });
 
       if (!apptErr && apptData) {
-        setAppointments(apptData as Appointment[]);
+        const normalized = apptData.map((a: any) => {
+          let dateStr = a.appointment_date;
+          let timeStr = a.appointment_time;
+
+          if ((!dateStr || !timeStr) && a.start_time) {
+            try {
+              const dt = new Date(a.start_time);
+              if (!isNaN(dt.getTime())) {
+                const tz = a.timezone || 'Asia/Karachi';
+                dateStr = dateStr || new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(dt);
+                timeStr = timeStr || new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(dt);
+              }
+            } catch (_) {}
+          }
+
+          let docName = a.doctor_name;
+          if (!docName || docName === 'Any Available') {
+            const match = ((a.patient_name || '') + ' ' + (a.notes || '')).match(/\((Dr\.[^)]+)\)/i);
+            if (match) docName = match[1];
+          }
+
+          return {
+            ...a,
+            appointment_date: dateStr,
+            appointment_time: timeStr,
+            doctor_name: docName || 'Any Available'
+          };
+        });
+        setAppointments(normalized as Appointment[]);
       }
     } catch (e) {
       console.error('Error fetching appointments:', e);

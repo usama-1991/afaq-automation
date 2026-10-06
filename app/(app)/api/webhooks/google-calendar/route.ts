@@ -52,6 +52,33 @@ export async function POST(req: NextRequest) {
         const end = event.end?.dateTime || event.end?.date;
         
         if (start && end) {
+          const startDate = new Date(start);
+          const endDate = new Date(end);
+          const timeZone = event.start?.timeZone || 'Asia/Karachi';
+
+          // Extract date and time in calendar timezone
+          let apptDate = null;
+          let apptTime = null;
+          try {
+            apptDate = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(startDate);
+            apptTime = new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(startDate);
+          } catch (_) {
+            apptDate = startDate.toISOString().split('T')[0];
+            apptTime = startDate.toISOString().split('T')[1].slice(0, 8);
+          }
+
+          // Extract doctor name if in summary e.g. "Root Canal - Usama (Dr. Fatima Zahra)"
+          let doctorName = null;
+          let treatmentType = null;
+          const summary = event.summary || '';
+          const docMatch = summary.match(/\((Dr\.[^)]+)\)/i);
+          if (docMatch) doctorName = docMatch[1];
+
+          // Parse treatment type if summary is "Treatment - Patient"
+          if (summary.includes(' - ')) {
+            treatmentType = summary.split(' - ')[0].trim();
+          }
+
           // Upsert appointment
           await supabase
             .from('appointments')
@@ -59,9 +86,14 @@ export async function POST(req: NextRequest) {
               tenant_id: integration.tenant_id,
               google_event_id: event.id,
               source: 'google',
-              patient_name: event.summary || 'Busy',
-              start_time: new Date(start).toISOString(),
-              end_time: new Date(end).toISOString(),
+              patient_name: summary || 'Google Calendar Event',
+              doctor_name: doctorName,
+              treatment_type: treatmentType || 'General Consultation',
+              appointment_date: apptDate,
+              appointment_time: apptTime,
+              timezone: timeZone,
+              start_time: startDate.toISOString(),
+              end_time: endDate.toISOString(),
               status: 'scheduled',
               notes: event.description,
             }, { onConflict: 'google_event_id' });
