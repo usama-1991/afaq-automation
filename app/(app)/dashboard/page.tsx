@@ -817,48 +817,6 @@ export default function DashboardPage() {
   return (
     <div className="dashboard-page-wrap" style={{ padding: '20px 20px 40px', minHeight: '100%', background: '#faf9f9', width: '100%', maxWidth: '100%', boxSizing: 'border-box', minWidth: 0 }}>
       
-      {/* ── Dental Navigation Pills (matches design mockup) ── */}
-      {nicheId === 'dental' && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 20, alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => router.push('/dashboard')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '7px 16px', borderRadius: 10,
-              border: '1px solid #fecdd3', background: '#fff',
-              fontSize: 13, fontWeight: 700, color: '#e11d48',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)', cursor: 'pointer'
-            }}
-          >
-            📊 1. Dental Dashboard
-          </button>
-          <button
-            onClick={() => router.push('/conversations')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '7px 16px', borderRadius: 10,
-              border: '1px solid #e2e8f0', background: '#f8fafc',
-              fontSize: 13, fontWeight: 600, color: '#475569',
-              cursor: 'pointer'
-            }}
-          >
-            💬 2. Conversations Inbox
-          </button>
-          <button
-            onClick={() => router.push('/campaigns')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '7px 16px', borderRadius: 10,
-              border: '1px solid #e2e8f0', background: '#f8fafc',
-              fontSize: 13, fontWeight: 600, color: '#475569',
-              cursor: 'pointer'
-            }}
-          >
-            📢 3. Campaigns Hub
-          </button>
-        </div>
-      )}
-
       {/* ── Top Header ── */}
       <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, width: '100%', minWidth: 0 }}>
         <div style={{ minWidth: 0 }}>
@@ -891,17 +849,15 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      {/* ── Niche-Specific Stat Cards (Single Row on Desktop for Dental) ── */}
+      {/* ── Niche-Specific Stat Cards (Single 4-Card Row) ── */}
       <div 
         className="stat-cards-grid" 
         style={{ 
           display: 'grid', 
-          gridTemplateColumns: nicheId === 'dental' ? 'repeat(6, minmax(140px, 1fr))' : 'repeat(4, minmax(0, 1fr))', 
-          gap: 14, 
+          gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', 
+          gap: 16, 
           marginBottom: 24, 
-          width: '100%',
-          overflowX: 'auto',
-          paddingBottom: nicheId === 'dental' ? 4 : 0
+          width: '100%' 
         }}
       >
         {nicheId === 'restaurant' ? (
@@ -920,24 +876,23 @@ export default function DashboardPage() {
           </>
         ) : nicheId === 'dental' ? (
           <>
-            {/* 1: Production */}
+            {/* 1: Today's Production */}
             <div style={{
               background: 'linear-gradient(180deg, #fff5f6 0%, #ffffff 60%)',
               borderRadius: 14,
-              padding: '16px 18px',
+              padding: '20px 22px',
               border: '1px solid #fecdd3',
               boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
               display: 'flex',
               flexDirection: 'column',
-              justifyContent: 'space-between',
-              minWidth: 140
+              justifyContent: 'space-between'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Today's Production</span>
-                <span style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, background: '#ffe4e6', color: '#e11d48' }}>💵</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Today's Production</span>
+                <span style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: '#ffe4e6', color: '#e11d48' }}>💵</span>
               </div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', lineHeight: 1.1, marginBottom: 6 }}>$3,450</div>
-              <div style={{ fontSize: 11, color: '#64748b', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div style={{ fontSize: 30, fontWeight: 800, color: '#0f172a', lineHeight: 1.1, marginBottom: 8 }}>$3,450</div>
+              <div style={{ fontSize: 12, color: '#64748b', display: 'flex', alignItems: 'center', gap: 5 }}>
                 <span style={{ fontWeight: 700, color: '#10b981' }}>↗ +12%</span> vs last Monday
               </div>
             </div>
@@ -946,20 +901,19 @@ export default function DashboardPage() {
             <div style={{
               background: '#fff',
               borderRadius: 14,
-              padding: '16px 18px',
+              padding: '20px 22px',
               border: '1px solid #e5e7eb',
               boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
               display: 'flex',
               flexDirection: 'column',
-              justifyContent: 'space-between',
-              minWidth: 140
+              justifyContent: 'space-between'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Chair Utilization</span>
-                <span style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, background: '#e0f2fe', color: '#0284c7' }}>🪑</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Chair Utilization</span>
+                <span style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: '#e0f2fe', color: '#0284c7' }}>🪑</span>
               </div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', lineHeight: 1.1, marginBottom: 6 }}>84%</div>
-              <div style={{ fontSize: 11, color: '#64748b' }}>
+              <div style={{ fontSize: 30, fontWeight: 800, color: '#0f172a', lineHeight: 1.1, marginBottom: 8 }}>84%</div>
+              <div style={{ fontSize: 12, color: '#64748b' }}>
                 34 of 40 chair-hrs booked
               </div>
             </div>
@@ -968,93 +922,47 @@ export default function DashboardPage() {
             <div style={{
               background: '#fff',
               borderRadius: 14,
-              padding: '16px 18px',
+              padding: '20px 22px',
               border: '1px solid #e5e7eb',
               boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
               display: 'flex',
               flexDirection: 'column',
-              justifyContent: 'space-between',
-              minWidth: 140
+              justifyContent: 'space-between'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Appts Today</span>
-                <span style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, background: '#f1f5f9', color: '#475569' }}>📅</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Appts Today</span>
+                <span style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: '#f1f5f9', color: '#475569' }}>📅</span>
               </div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', lineHeight: 1.1, marginBottom: 6 }}>
+              <div style={{ fontSize: 30, fontWeight: 800, color: '#0f172a', lineHeight: 1.1, marginBottom: 8 }}>
                 {Math.max(8, (dentalSchedule.filter((s:any) => s.status !== 'available').length || 3) + 2)} Slots
               </div>
-              <div style={{ fontSize: 11, color: '#64748b', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div style={{ fontSize: 12, color: '#64748b', display: 'flex', alignItems: 'center', gap: 5 }}>
                 <span style={{ fontWeight: 700, color: '#10b981' }}>
                   {dentalSchedule.filter((s:any) => s.status !== 'available').length || 3} Booked
                 </span> • 2 Available
               </div>
             </div>
 
-            {/* 4: Hygiene Recalls Due */}
+            {/* 4: AI Automation & Recalls */}
             <div style={{
               background: '#fff',
               borderRadius: 14,
-              padding: '16px 18px',
+              padding: '20px 22px',
               border: '1px solid #e5e7eb',
               boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
               display: 'flex',
               flexDirection: 'column',
-              justifyContent: 'space-between',
-              minWidth: 140
+              justifyContent: 'space-between'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Hygiene Recalls Due</span>
-                <span style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, background: '#fef3c7', color: '#b45309' }}>🔄</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase' }}>AI Automation</span>
+                <span style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: '#ede9fe', color: '#7c3aed' }}>🤖</span>
               </div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', lineHeight: 1.1, marginBottom: 6 }}>42</div>
-              <div style={{ fontSize: 11, color: '#64748b', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ fontWeight: 700, color: '#10b981' }}>18 Re-engaged</span> via WA
-              </div>
-            </div>
-
-            {/* 5: Case Acceptance */}
-            <div style={{
-              background: '#fff',
-              borderRadius: 14,
-              padding: '16px 18px',
-              border: '1px solid #e5e7eb',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              minWidth: 140
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Case Acceptance</span>
-                <span style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, background: '#d1fae5', color: '#059669' }}>🎯</span>
-              </div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', lineHeight: 1.1, marginBottom: 6 }}>76%</div>
-              <div style={{ fontSize: 11, color: '#64748b' }}>
-                $24.8k proposed plans
-              </div>
-            </div>
-
-            {/* 6: AI Automation */}
-            <div style={{
-              background: '#fff',
-              borderRadius: 14,
-              padding: '16px 18px',
-              border: '1px solid #e5e7eb',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              minWidth: 140
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase' }}>AI Automation</span>
-                <span style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, background: '#ede9fe', color: '#7c3aed' }}>🤖</span>
-              </div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', lineHeight: 1.1, marginBottom: 6 }}>
+              <div style={{ fontSize: 30, fontWeight: 800, color: '#0f172a', lineHeight: 1.1, marginBottom: 8 }}>
                 {aiStats.resolvedPct || 94}%
               </div>
-              <div style={{ fontSize: 11, color: '#64748b', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ fontWeight: 700, color: '#10b981' }}>{stats.agentMessages || 123} Bot Msgs</span> delivered
+              <div style={{ fontSize: 12, color: '#64748b', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ fontWeight: 700, color: '#10b981' }}>{stats.agentMessages || 135} Bot Msgs</span> • 42 recalls
               </div>
             </div>
           </>
