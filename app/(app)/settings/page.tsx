@@ -188,9 +188,21 @@ function SettingsInner() {
   useEffect(() => {
     const t = searchParams.get('tab');
     if (t && tabs.includes(t as any)) {
-      setTab(t as Tab);
+      if (t === 'Doctors & Staff' && niche.id !== 'dental' && niche.id !== 'clinic') {
+        setTab('Business Profile');
+      } else if (t === 'Property Listings' && niche.id !== 'realestate') {
+        setTab('Business Profile');
+      } else {
+        setTab(t as Tab);
+      }
     }
-  }, [searchParams]);
+  }, [searchParams, niche.id]);
+
+  useEffect(() => {
+    if (tab === 'Doctors & Staff' && niche.id !== 'dental' && niche.id !== 'clinic') {
+      setTab('Business Profile');
+    }
+  }, [niche.id, tab]);
 
   useEffect(() => {
     try {
@@ -821,6 +833,7 @@ function SettingsInner() {
       <div className="settings-tab-bar" style={{ display: 'flex', gap: 2, borderBottom: '1px solid rgba(220,38,38,0.08)', marginBottom: 28, flexWrap: 'wrap' }}>
         {tabs.map(t => {
           if (t === 'Property Listings' && niche.id !== 'realestate') return null;
+          if (t === 'Doctors & Staff' && niche.id !== 'dental' && niche.id !== 'clinic') return null;
           const active = tab === t;
           return (
             <button 
@@ -1310,8 +1323,8 @@ function SettingsInner() {
           <WebsiteChatWidgetSettings />
         )}
 
-        {/* ── Doctors & Staff Tab ── */}
-        {tab === 'Doctors & Staff' && (
+        {/* ── Doctors & Staff Tab (Dental & Medical Clinic Only) ── */}
+        {tab === 'Doctors & Staff' && (niche.id === 'dental' || niche.id === 'clinic') && (
           <DoctorsManagement />
         )}
 
