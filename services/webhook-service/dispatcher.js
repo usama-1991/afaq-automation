@@ -214,6 +214,8 @@ export async function dispatchOutboundMessage(supabase, message, log = console) 
     const mediaInfo = parseMediaContent(message.content);
 
     if (conv.platform === 'whatsapp') {
+      const waPhoneId = externalPhoneId || process.env.META_PHONE_NUMBER_ID;
+      const url = `https://graph.facebook.com/v21.0/${waPhoneId}/messages`;
       let payload = {};
 
       if (mediaInfo) {
@@ -258,6 +260,8 @@ export async function dispatchOutboundMessage(supabase, message, log = console) 
       } else {
         const flowRegex = /\[Flow:\s*([^|\]]+)(?:\|([^|\]]+))?(?:\|([^|\]]+))?(?:\|([^|\]]+))?\]/i;
         const flowMatch = message.content.match(flowRegex);
+        const btnRegex = /\[Buttons?:\s*([^\]]+)\]/i;
+        const btnMatch = message.content.match(btnRegex);
 
         if (flowMatch) {
           const flowId = flowMatch[1].trim();
@@ -337,8 +341,6 @@ export async function dispatchOutboundMessage(supabase, message, log = console) 
         }
       }
 
-      const waPhoneId = externalPhoneId || process.env.META_PHONE_NUMBER_ID;
-      const url = `https://graph.facebook.com/v21.0/${waPhoneId}/messages`;
       log.info?.(`[whatsapp] Dispatching to ${customerPhone} via ${url}`);
 
       const metaRes = await fetch(url, {
@@ -354,7 +356,9 @@ export async function dispatchOutboundMessage(supabase, message, log = console) 
       const result = await metaRes.json();
       if (!metaRes.ok) {
         log.error?.(`[whatsapp] Meta Send Error: ${JSON.stringify(result)}`);
-        await supabase.from('messages').update({ external_message_id: null }).eq('id', message.id);
+        try {
+          await supabase.from('messages').update({ external_message_id: null }).eq('id', message.id);
+        } catch (_) {}
         return;
       }
 
@@ -419,8 +423,10 @@ export async function dispatchOutboundMessage(supabase, message, log = console) 
 
       const result = await metaRes.json();
       if (!metaRes.ok) {
-        log.error?.(`[${conv.platform}] Meta Send Error: ${JSON.stringify(result)}`);
-        await supabase.from('messages').update({ external_message_id: null }).eq('id', message.id);
+        log.error?.(`[${conv.platform}] Send Error: ${JSON.stringify(result)}`);
+        try {
+          await supabase.from('messages').update({ external_message_id: null }).eq('id', message.id);
+        } catch (_) {}
         return;
       }
 
@@ -434,7 +440,9 @@ export async function dispatchOutboundMessage(supabase, message, log = console) 
   } catch (err) {
     log.error?.(`[dispatcher] Unexpected error dispatching message ${message.id}: ${err.message}`);
     if (claimed) {
-      await supabase.from('messages').update({ external_message_id: null }).eq('id', message.id).catch(() => {});
+      try {
+        await supabase.from('messages').update({ external_message_id: null }).eq('id', message.id);
+      } catch (_) {}
     }
   } finally {
     setTimeout(() => _dispatchingMsgIds.delete(message.id), 15000);
