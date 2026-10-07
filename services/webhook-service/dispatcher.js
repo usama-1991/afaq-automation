@@ -262,13 +262,19 @@ export async function dispatchOutboundMessage(supabase, message, log = console) 
         const flowMatch = message.content.match(flowRegex);
         const btnRegex = /\[Buttons?:\s*([^\]]+)\]/i;
         const btnMatch = message.content.match(btnRegex);
+        const slotRegex = /\[Slots:\s*([^\]]+)\]/i;
+        const slotMatch = message.content.match(slotRegex);
 
         if (flowMatch) {
           const flowId = flowMatch[1].trim();
           const ctaText = (flowMatch[2] || 'Open Form').trim().slice(0, 20);
           const screenName = (flowMatch[3] || 'BOOKING_FORM').trim();
           const headerText = (flowMatch[4] || 'Interactive Form').trim().slice(0, 60);
-          const bodyText = message.content.replace(flowRegex, '').trim() || 'Please tap below to complete the native form:';
+          const bodyText = message.content
+            .replace(flowRegex, '')
+            .replace(btnRegex, '')
+            .replace(slotRegex, '')
+            .trim() || 'Please tap below to complete the native form:';
 
           // Query flow status to determine draft vs published mode
           let flowMode = 'published';
@@ -314,7 +320,11 @@ export async function dispatchOutboundMessage(supabase, message, log = console) 
           };
         } else if (btnMatch) {
           const buttonsRaw = btnMatch[1].split('|').map(b => b.trim()).filter(b => b.length > 0).slice(0, 3);
-          const bodyText = message.content.replace(btnRegex, '').trim();
+          const bodyText = message.content
+            .replace(btnRegex, '')
+            .replace(slotRegex, '')
+            .replace(flowRegex, '')
+            .trim();
 
           payload = {
             messaging_product: 'whatsapp',
@@ -331,12 +341,117 @@ export async function dispatchOutboundMessage(supabase, message, log = console) 
               }
             }
           };
+        } else if (slotMatch) {
+          const bodyText = message.content
+            .replace(slotRegex, '')
+            .replace(btnRegex, '')
+            .replace(flowRegex, '')
+            .trim();
+          const rawGroups = slotMatch[1].split(';');
+          const groups = [];
+          const allSlots = [];
+
+          for (const groupStr of rawGroups) {
+            if (!groupStr.trim()) continue;
+            const parts = groupStr.split('|');
+            let date = '';
+            let times = [];
+            if (parts.length >= 2) {
+              date = parts[0].trim();
+              times = parts[1].split(',').map(t => t.trim()).filter(Boolean);
+            } else {
+              times = parts[0].split(',').map(t => t.trim()).filter(Boolean);
+            }
+            if (times.length > 0) {
+              groups.push({ date, times });
+              times.forEach(t => allSlots.push({ date, time: t }));
+            }
+          }
+
+          if (allSlots.length > 0 && allSlots.length <= 3) {
+            payload = {
+              messaging_product: 'whatsapp',
+              to: customerPhone,
+              type: 'interactive',
+              interactive: {
+                type: 'button',
+                body: { text: bodyText.substring(0, 1024) || 'Please select an available slot:' },
+                action: {
+                  buttons: allSlots.map((s, idx) => {
+                    let title = s.time;
+                    if (groups.length > 1 && s.date) {
+                      const shortDate = s.date.split(',')[0].trim();
+                      const combined = `${shortDate} ${s.time}`;
+                      if (combined.length <= 20) title = combined;
+                    }
+                    return {
+                      type: 'reply',
+                      reply: {
+                        id: `slot_${idx}`,
+                        title: title.substring(0, 20)
+                      }
+                    };
+                  })
+                }
+              }
+            };
+          } else if (allSlots.length > 3) {
+            let totalRows = 0;
+            const sections = [];
+            for (const g of groups) {
+              if (totalRows >= 10) break;
+              const rows = [];
+              for (const t of g.times) {
+                if (totalRows >= 10) break;
+                rows.push({
+                  id: `slot_${totalRows}`,
+                  title: t.substring(0, 24),
+                  description: g.date ? `Book for ${g.date}`.substring(0, 72) : undefined
+                });
+                totalRows++;
+              }
+              if (rows.length > 0) {
+                sections.push({
+                  title: (g.date || 'Available Slots').substring(0, 24),
+                  rows
+                });
+              }
+            }
+
+            payload = {
+              messaging_product: 'whatsapp',
+              to: customerPhone,
+              type: 'interactive',
+              interactive: {
+                type: 'list',
+                header: { type: 'text', text: 'Available Appointments' },
+                body: { text: bodyText.substring(0, 1024) || 'Please choose a slot that works best for you:' },
+                action: {
+                  button: 'Select Slot',
+                  sections
+                }
+              }
+            };
+          } else {
+            payload = {
+              messaging_product: 'whatsapp',
+              to: customerPhone,
+              type: 'text',
+              text: { body: bodyText || message.content }
+            };
+          }
         } else {
+          const cleanBody = (message.content || '')
+            .replace(flowRegex, '')
+            .replace(btnRegex, '')
+            .replace(slotRegex, '')
+            .trim();
+
           payload = {
             messaging_product: 'whatsapp',
             to: customerPhone,
             type: 'text',
-            text: { body: message.content }
+            text: { body: cleanBody || message.content }
           };
         }
       }
@@ -405,12 +520,16 @@ export async function dispatchOutboundMessage(supabase, message, log = console) 
           }
         };
       } else {
-        // Clean up any button syntax for Messenger text
-        const cleanText = (message.content || '').replace(/\[Buttons:\s*([^\]]+)\]/i, '').trim();
+        // Clean up any button or slot syntax for Messenger/Instagram text
+        const cleanText = (message.content || '')
+          .replace(/\[Flow:\s*[^\]]+\]/gi, '')
+          .replace(/\[Buttons?:\s*[^\]]+\]/gi, '')
+          .replace(/\[Slots:\s*[^\]]+\]/gi, '')
+          .trim();
 
         payload = {
           recipient: { id: customerPhone },
-          message: { text: cleanText }
+          message: { text: cleanText || message.content }
         };
       }
 

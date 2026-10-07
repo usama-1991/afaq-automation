@@ -57,7 +57,7 @@ function ConversationsInner() {
 
   // ── Appointment Slots Card Parser ───────────────────────────────
   const parseAppointmentSlots = (content: string) => {
-    if (!content) return { hasSlots: false, cleanText: '', groups: [] };
+    if (!content) return { hasSlots: false, hasButtons: false, buttons: [] as string[], cleanText: '', groups: [] };
 
     // 1. Explicit [Slots: Date 1 | 10:30 AM, 02:00 PM; Date 2 | ...]
     const slotMatch = content.match(/\[Slots:\s*([^\]]+)\]/i);
@@ -68,8 +68,8 @@ function ConversationsInner() {
         const times = (timesStr || '').split(',').map(t => t.trim()).filter(Boolean);
         return { date: (date || '').trim(), times };
       }).filter(g => g.times.length > 0);
-      const cleanText = content.replace(/\[Slots:[^\]]+\]/i, '').replace(/\[Buttons:[^\]]+\]/i, '').trim();
-      return { hasSlots: true, cleanText, groups };
+      const cleanText = content.replace(/\[Slots:[^\]]+\]/gi, '').replace(/\[Buttons?:[^\]]+\]/gi, '').trim();
+      return { hasSlots: true, hasButtons: false, buttons: [] as string[], cleanText, groups };
     }
 
     // 2. Structured bulleted dates like "· September 27: 09:00 to 17:30" or "September 20: 10:30, 11:00..."
@@ -89,11 +89,19 @@ function ConversationsInner() {
       for (const b of dateBulletMatch) {
         cleanText = cleanText.replace(b, '');
       }
-      return { hasSlots: true, cleanText: cleanText.replace(/\[Buttons:[^\]]+\]/i, '').trim(), groups };
+      return { hasSlots: true, hasButtons: false, buttons: [] as string[], cleanText: cleanText.replace(/\[Buttons?:[^\]]+\]/gi, '').trim(), groups };
     }
 
-    const cleanText = content.replace(/\[Buttons:[^\]]+\]/i, '').trim();
-    return { hasSlots: false, cleanText, groups: [] };
+    // 3. Quick Reply Buttons: [Buttons: Option 1 | Option 2 | Option 3]
+    const btnMatch = content.match(/\[Buttons?:\s*([^\]]+)\]/i);
+    if (btnMatch) {
+      const buttons = btnMatch[1].split('|').map(b => b.trim()).filter(Boolean).slice(0, 3);
+      const cleanText = content.replace(/\[Buttons?:[^\]]+\]/gi, '').replace(/\[Slots:[^\]]+\]/gi, '').trim();
+      return { hasSlots: false, hasButtons: true, buttons, cleanText, groups: [] };
+    }
+
+    const cleanText = content.replace(/\[Buttons?:[^\]]+\]/gi, '').replace(/\[Slots:[^\]]+\]/gi, '').trim();
+    return { hasSlots: false, hasButtons: false, buttons: [] as string[], cleanText, groups: [] };
   };
 
   // ── Check Mobile Screen ─────────────────────────────────────────
@@ -848,6 +856,46 @@ function ConversationsInner() {
                               ))}
                               <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
                                 Reply with your preferred slot or tap any time chip above to lock it directly.
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Quick Reply Buttons Card */}
+                          {parsed.hasButtons && (
+                            <div style={{
+                              background: '#ffffff',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: 12,
+                              padding: '10px 12px',
+                              marginTop: 10,
+                              boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                              color: '#0f172a'
+                            }}>
+                              <div style={{
+                                fontSize: 11,
+                                fontWeight: 700,
+                                color: '#64748b',
+                                marginBottom: 6
+                              }}>
+                                <span>Suggested Options:</span>
+                              </div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                {parsed.buttons.map((btnText, bIdx) => (
+                                  <div
+                                    key={bIdx}
+                                    style={{
+                                      padding: '5px 12px',
+                                      borderRadius: 6,
+                                      border: '1px solid #cbd5e1',
+                                      background: '#f8fafc',
+                                      color: '#1e293b',
+                                      fontSize: 11,
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    {btnText}
+                                  </div>
+                                ))}
                               </div>
                             </div>
                           )}

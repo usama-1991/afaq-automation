@@ -313,12 +313,17 @@ export async function POST(request: Request) {
             : mediaInfo.caption;
         }
       } else {
-        const btnRegex = /\[Buttons:\s*([^\]]+)\]/i;
+        const btnRegex = /\[Buttons?:\s*([^\]]+)\]/i;
         const btnMatch = (message.content || '').match(btnRegex);
+        const slotRegex = /\[Slots:\s*([^\]]+)\]/i;
+        const slotMatch = (message.content || '').match(slotRegex);
 
         if (btnMatch) {
           const buttonsRaw = btnMatch[1].split('|').map((b: string) => b.trim()).filter((b: string) => b.length > 0).slice(0, 3);
-          const bodyText = (message.content || '').replace(btnRegex, '').trim();
+          const bodyText = (message.content || '')
+            .replace(btnRegex, '')
+            .replace(slotRegex, '')
+            .trim();
 
           payload = {
             messaging_product: 'whatsapp',
@@ -335,12 +340,115 @@ export async function POST(request: Request) {
               }
             }
           };
+        } else if (slotMatch) {
+          const bodyText = (message.content || '')
+            .replace(slotRegex, '')
+            .replace(btnRegex, '')
+            .trim();
+          const rawGroups = slotMatch[1].split(';');
+          const groups: Array<{ date: string; times: string[] }> = [];
+          const allSlots: Array<{ date: string; time: string }> = [];
+
+          for (const groupStr of rawGroups) {
+            if (!groupStr.trim()) continue;
+            const parts = groupStr.split('|');
+            let date = '';
+            let times: string[] = [];
+            if (parts.length >= 2) {
+              date = parts[0].trim();
+              times = parts[1].split(',').map((t: string) => t.trim()).filter(Boolean);
+            } else {
+              times = parts[0].split(',').map((t: string) => t.trim()).filter(Boolean);
+            }
+            if (times.length > 0) {
+              groups.push({ date, times });
+              times.forEach((t: string) => allSlots.push({ date, time: t }));
+            }
+          }
+
+          if (allSlots.length > 0 && allSlots.length <= 3) {
+            payload = {
+              messaging_product: 'whatsapp',
+              to: recipientId,
+              type: 'interactive',
+              interactive: {
+                type: 'button',
+                body: { text: bodyText.substring(0, 1024) || 'Please select an available slot:' },
+                action: {
+                  buttons: allSlots.map((s, idx) => {
+                    let title = s.time;
+                    if (groups.length > 1 && s.date) {
+                      const shortDate = s.date.split(',')[0].trim();
+                      const combined = `${shortDate} ${s.time}`;
+                      if (combined.length <= 20) title = combined;
+                    }
+                    return {
+                      type: 'reply',
+                      reply: {
+                        id: `slot_${idx}`,
+                        title: title.substring(0, 20)
+                      }
+                    };
+                  })
+                }
+              }
+            };
+          } else if (allSlots.length > 3) {
+            let totalRows = 0;
+            const sections = [];
+            for (const g of groups) {
+              if (totalRows >= 10) break;
+              const rows = [];
+              for (const t of g.times) {
+                if (totalRows >= 10) break;
+                rows.push({
+                  id: `slot_${totalRows}`,
+                  title: t.substring(0, 24),
+                  description: g.date ? `Book for ${g.date}`.substring(0, 72) : undefined
+                });
+                totalRows++;
+              }
+              if (rows.length > 0) {
+                sections.push({
+                  title: (g.date || 'Available Slots').substring(0, 24),
+                  rows
+                });
+              }
+            }
+
+            payload = {
+              messaging_product: 'whatsapp',
+              to: recipientId,
+              type: 'interactive',
+              interactive: {
+                type: 'list',
+                header: { type: 'text', text: 'Available Appointments' },
+                body: { text: bodyText.substring(0, 1024) || 'Please choose a slot that works best for you:' },
+                action: {
+                  button: 'Select Slot',
+                  sections
+                }
+              }
+            };
+          } else {
+            payload = {
+              messaging_product: 'whatsapp',
+              to: recipientId,
+              type: 'text',
+              text: { body: bodyText || message.content }
+            };
+          }
         } else {
+          const cleanBody = (message.content || '')
+            .replace(btnRegex, '')
+            .replace(slotRegex, '')
+            .trim();
+
           payload = {
             messaging_product: 'whatsapp',
             to: recipientId,
             type: 'text',
-            text: { body: message.content }
+            text: { body: cleanBody || message.content }
           };
         }
       }
@@ -426,14 +534,65 @@ export async function POST(request: Request) {
           });
         }
       } else {
-        metaRes = await fetch(sendUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            recipient: { id: recipientId },
-            message: { text: message.content }
-          })
-        });
+        const btnRegex = /\[Buttons?:\s*([^\]]+)\]/i;
+        const btnMatch = (message.content || '').match(btnRegex);
+        const slotRegex = /\[Slots:\s*([^\]]+)\]/i;
+        const slotMatch = (message.content || '').match(slotRegex);
+
+        let interactiveButtons: string[] = [];
+        let cleanText = (message.content || '')
+          .replace(/\[Flow:\s*[^\]]+\]/gi, '')
+          .replace(btnRegex, '')
+          .replace(slotRegex, '')
+          .trim();
+
+        if (btnMatch) {
+          interactiveButtons = btnMatch[1].split('|').map((b: string) => b.trim()).filter((b: string) => b.length > 0).slice(0, 3);
+        } else if (slotMatch) {
+          const rawGroups = slotMatch[1].split(';');
+          for (const groupStr of rawGroups) {
+            const parts = groupStr.split('|');
+            const times = (parts.length >= 2 ? parts[1] : parts[0]).split(',').map((t: string) => t.trim()).filter(Boolean);
+            for (const t of times) {
+              if (interactiveButtons.length < 3) {
+                interactiveButtons.push(t);
+              }
+            }
+          }
+        }
+
+        if (interactiveButtons.length > 0) {
+          metaRes = await fetch(sendUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              recipient: { id: recipientId },
+              message: {
+                attachment: {
+                  type: 'template',
+                  payload: {
+                    template_type: 'button',
+                    text: cleanText.substring(0, 640) || 'Please select an option:',
+                    buttons: interactiveButtons.map((btn: string, idx: number) => ({
+                      type: 'postback',
+                      title: btn.substring(0, 20),
+                      payload: `btn_${idx}`
+                    }))
+                  }
+                }
+              }
+            })
+          });
+        } else {
+          metaRes = await fetch(sendUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              recipient: { id: recipientId },
+              message: { text: cleanText || message.content }
+            })
+          });
+        }
       }
 
       const metaData = await metaRes.json();
