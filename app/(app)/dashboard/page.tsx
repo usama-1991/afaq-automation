@@ -484,23 +484,133 @@ export default function DashboardPage() {
 
       const { data: dbAppts } = await supabase.from('appointments').select('*').order('appointment_time', { ascending: true });
       if (dbAppts) {
-        const todayStr = new Date().toISOString().split('T')[0];
-        const todayAppts = dbAppts.filter((a: any) => a.appointment_date === todayStr);
-        const mappedAppts = todayAppts.map((a: any) => ({
-          name: a.patient_name,
-          treatment: a.treatment_type,
-          doctor: a.doctor_name,
-          status: a.status,
-          time: (a.appointment_time || '').slice(0, 5),
-          isNew: a.is_new_patient,
-          id: a.id
+        const tz = 'Asia/Karachi';
+        let todayStr = '';
+        try {
+          todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+        } catch (_) {
+          todayStr = new Date().toISOString().split('T')[0];
+        }
+
+        const normalizedAppts = dbAppts.map((a: any) => {
+          let dateStr = a.appointment_date;
+          let timeStr = a.appointment_time;
+
+          if ((!dateStr || !timeStr) && a.start_time) {
+            try {
+              const dt = new Date(a.start_time);
+              if (!isNaN(dt.getTime())) {
+                const itemTz = a.timezone || tz;
+                dateStr = dateStr || new Intl.DateTimeFormat('en-CA', { timeZone: itemTz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(dt);
+                timeStr = timeStr || new Intl.DateTimeFormat('en-GB', { timeZone: itemTz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(dt);
+              }
+            } catch (_) {}
+          }
+
+          let docName = a.doctor_name;
+          if (!docName || docName === 'Any Available') {
+            const match = ((a.patient_name || '') + ' ' + (a.notes || '')).match(/\((Dr\.[^)]+)\)/i);
+            if (match) docName = match[1];
+          }
+
+          return {
+            ...a,
+            appointment_date: dateStr,
+            appointment_time: timeStr,
+            doctor_name: docName || 'Dr. Fatima Zahra'
+          };
+        });
+
+        // Today's appointments
+        const todayAppts = normalizedAppts.filter((a: any) => a.appointment_date === todayStr);
+
+        const format12h = (t: string) => {
+          if (!t) return '11:00 AM';
+          const parts = t.split(':');
+          let h = parseInt(parts[0], 10);
+          const m = parts[1] || '00';
+          const ampm = h >= 12 ? 'PM' : 'AM';
+          h = h % 12 || 12;
+          return `${String(h).padStart(2, '0')}:${m} ${ampm}`;
+        };
+
+        const liveMapped = todayAppts.map((a: any, idx: number) => ({
+          id: a.id,
+          name: a.patient_name || 'Patient',
+          treatment: a.treatment_type || 'Consultation',
+          doctor: a.doctor_name || 'Dr. Fatima Zahra',
+          status: a.status || 'pending',
+          time: format12h(a.appointment_time),
+          operatory: `Operatory ${idx % 2 === 0 ? 2 : 1}`,
+          operatoryColor: idx % 2 === 0 ? '#7c3aed' : '#0284c7',
+          isLive: true
         }));
-        
-        // Add mock available slots for the demo
-        mappedAppts.push({ name: '-', treatment: 'Open Slot', doctor: 'Dr. Hassan Ahmed', status: 'available', time: '14:00', isNew: false });
-        mappedAppts.push({ name: '-', treatment: 'Open Slot', doctor: 'Dr. Fatima Zahra', status: 'available', time: '16:30', isNew: false });
-        
-        setDentalSchedule(mappedAppts);
+
+        const finalSchedule = [...liveMapped];
+
+        // If no or only 1 live appointment, supplement with standard morning slot to showcase a full clinic schedule
+        if (finalSchedule.length === 0) {
+          finalSchedule.push({
+            id: 'mock-1',
+            name: 'Rahim Khan (RKN)',
+            treatment: 'Scaling & Polishing',
+            doctor: 'Dr. Hassan Ahmed',
+            status: 'confirmed',
+            time: '10:30 AM',
+            operatory: 'Operatory 1',
+            operatoryColor: '#0284c7',
+            isLive: false
+          });
+          finalSchedule.push({
+            id: 'mock-2',
+            name: 'Usama Tariq',
+            treatment: 'Root Canal Consultation',
+            doctor: 'Dr. Fatima Zahra',
+            status: 'confirmed',
+            time: '11:45 AM',
+            operatory: 'Operatory 2',
+            operatoryColor: '#7c3aed',
+            isLive: false
+          });
+        } else if (finalSchedule.length === 1 && !finalSchedule[0].name.toLowerCase().includes('rahim')) {
+          finalSchedule.unshift({
+            id: 'mock-1',
+            name: 'Rahim Khan (RKN)',
+            treatment: 'Scaling & Polishing',
+            doctor: 'Dr. Hassan Ahmed',
+            status: 'confirmed',
+            time: '10:30 AM',
+            operatory: 'Operatory 1',
+            operatoryColor: '#0284c7',
+            isLive: false
+          });
+        }
+
+        // Add available open slots
+        finalSchedule.push({
+          id: 'open-1',
+          name: 'Open Slot',
+          treatment: 'Available for Scaling / Emergency OPD',
+          doctor: 'Dr. Hassan Ahmed',
+          status: 'available',
+          time: '02:00 PM',
+          operatory: 'Operatory 1',
+          operatoryColor: '#0284c7',
+          isLive: false
+        });
+        finalSchedule.push({
+          id: 'open-2',
+          name: 'Open Slot',
+          treatment: 'Available for Zoom Whitening',
+          doctor: 'Dr. Fatima Zahra',
+          status: 'available',
+          time: '04:30 PM',
+          operatory: 'Operatory 2',
+          operatoryColor: '#7c3aed',
+          isLive: false
+        });
+
+        setDentalSchedule(finalSchedule);
       }
 
       if (dbOrders) {
@@ -707,6 +817,48 @@ export default function DashboardPage() {
   return (
     <div className="dashboard-page-wrap" style={{ padding: '20px 20px 40px', minHeight: '100%', background: '#faf9f9', width: '100%', maxWidth: '100%', boxSizing: 'border-box', minWidth: 0 }}>
       
+      {/* ── Dental Navigation Pills (matches design mockup) ── */}
+      {nicheId === 'dental' && (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 20, alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => router.push('/dashboard')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '7px 16px', borderRadius: 10,
+              border: '1px solid #fecdd3', background: '#fff',
+              fontSize: 13, fontWeight: 700, color: '#e11d48',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)', cursor: 'pointer'
+            }}
+          >
+            📊 1. Dental Dashboard
+          </button>
+          <button
+            onClick={() => router.push('/conversations')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '7px 16px', borderRadius: 10,
+              border: '1px solid #e2e8f0', background: '#f8fafc',
+              fontSize: 13, fontWeight: 600, color: '#475569',
+              cursor: 'pointer'
+            }}
+          >
+            💬 2. Conversations Inbox
+          </button>
+          <button
+            onClick={() => router.push('/campaigns')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '7px 16px', borderRadius: 10,
+              border: '1px solid #e2e8f0', background: '#f8fafc',
+              fontSize: 13, fontWeight: 600, color: '#475569',
+              cursor: 'pointer'
+            }}
+          >
+            📢 3. Campaigns Hub
+          </button>
+        </div>
+      )}
+
       {/* ── Top Header ── */}
       <div className="page-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, width: '100%', minWidth: 0 }}>
         <div style={{ minWidth: 0 }}>
@@ -715,7 +867,9 @@ export default function DashboardPage() {
             {greeting}{tenantInfo?.business_name ? `, ${tenantInfo.business_name}` : (displayName ? `,${displayName}` : '')} 👋
           </h1>
           <p style={{ fontSize: 14, color: '#6b7280', marginTop: 4, fontWeight: 500 }}>
-            Live metrics for <strong style={{ color: RED }}>{niche.label}</strong>
+            {nicheId === 'dental' 
+              ? 'Comprehensive Clinical, Chair Utilization & Revenue Overview'
+              : <>Live metrics for <strong style={{ color: RED }}>{niche.label}</strong></>}
           </p>
         </div>
         <button
@@ -737,15 +891,17 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      {/* ── Niche-Specific Stat Cards ── */}
+      {/* ── Niche-Specific Stat Cards (Single Row on Desktop for Dental) ── */}
       <div 
         className="stat-cards-grid" 
         style={{ 
           display: 'grid', 
-          gridTemplateColumns: nicheId === 'dental' ? 'repeat(auto-fit, minmax(175px, 1fr))' : 'repeat(4, minmax(0, 1fr))', 
-          gap: 16, 
+          gridTemplateColumns: nicheId === 'dental' ? 'repeat(6, minmax(140px, 1fr))' : 'repeat(4, minmax(0, 1fr))', 
+          gap: 14, 
           marginBottom: 24, 
-          width: '100%' 
+          width: '100%',
+          overflowX: 'auto',
+          paddingBottom: nicheId === 'dental' ? 4 : 0
         }}
       >
         {nicheId === 'restaurant' ? (
@@ -764,40 +920,142 @@ export default function DashboardPage() {
           </>
         ) : nicheId === 'dental' ? (
           <>
-            <div style={{ background: '#fff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>Appointments today</div>
-              <div style={{ fontSize: 32, fontWeight: 800, color: '#111827', lineHeight: 1 }}>{dentalSchedule.filter((s:any) => s.status === 'confirmed' || s.status === 'pending').length || 7}</div>
-              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 10 }}>5 confirmed, 2 pending</div>
+            {/* 1: Production */}
+            <div style={{
+              background: 'linear-gradient(180deg, #fff5f6 0%, #ffffff 60%)',
+              borderRadius: 14,
+              padding: '16px 18px',
+              border: '1px solid #fecdd3',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              minWidth: 140
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Today's Production</span>
+                <span style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, background: '#ffe4e6', color: '#e11d48' }}>💵</span>
+              </div>
+              <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', lineHeight: 1.1, marginBottom: 6 }}>$3,450</div>
+              <div style={{ fontSize: 11, color: '#64748b', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontWeight: 700, color: '#10b981' }}>↗ +12%</span> vs last Monday
+              </div>
             </div>
 
-            <div style={{ background: '#fff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>Booked by AI (week)</div>
-              <div style={{ fontSize: 32, fontWeight: 800, color: '#111827', lineHeight: 1 }}>18</div>
-              <div style={{ fontSize: 12, color: '#10b981', fontWeight: 600, marginTop: 10 }}>+23% vs last week</div>
+            {/* 2: Chair Utilization */}
+            <div style={{
+              background: '#fff',
+              borderRadius: 14,
+              padding: '16px 18px',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              minWidth: 140
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Chair Utilization</span>
+                <span style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, background: '#e0f2fe', color: '#0284c7' }}>🪑</span>
+              </div>
+              <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', lineHeight: 1.1, marginBottom: 6 }}>84%</div>
+              <div style={{ fontSize: 11, color: '#64748b' }}>
+                34 of 40 chair-hrs booked
+              </div>
             </div>
 
-            <div style={{ background: '#fff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>No-shows / cancels</div>
-              <div style={{ fontSize: 32, fontWeight: 800, color: '#111827', lineHeight: 1 }}>2</div>
-              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 10 }}>1 more than last week</div>
+            {/* 3: Appointments Today */}
+            <div style={{
+              background: '#fff',
+              borderRadius: 14,
+              padding: '16px 18px',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              minWidth: 140
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Appts Today</span>
+                <span style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, background: '#f1f5f9', color: '#475569' }}>📅</span>
+              </div>
+              <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', lineHeight: 1.1, marginBottom: 6 }}>
+                {Math.max(8, (dentalSchedule.filter((s:any) => s.status !== 'available').length || 3) + 2)} Slots
+              </div>
+              <div style={{ fontSize: 11, color: '#64748b', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontWeight: 700, color: '#10b981' }}>
+                  {dentalSchedule.filter((s:any) => s.status !== 'available').length || 3} Booked
+                </span> • 2 Available
+              </div>
             </div>
 
-            <div style={{ background: '#fff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>New vs returning</div>
-              <div style={{ fontSize: 32, fontWeight: 800, color: '#111827', lineHeight: 1 }}>9 / 14</div>
-              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 10 }}>this week</div>
+            {/* 4: Hygiene Recalls Due */}
+            <div style={{
+              background: '#fff',
+              borderRadius: 14,
+              padding: '16px 18px',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              minWidth: 140
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Hygiene Recalls Due</span>
+                <span style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, background: '#fef3c7', color: '#b45309' }}>🔄</span>
+              </div>
+              <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', lineHeight: 1.1, marginBottom: 6 }}>42</div>
+              <div style={{ fontSize: 11, color: '#64748b', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontWeight: 700, color: '#10b981' }}>18 Re-engaged</span> via WA
+              </div>
             </div>
 
-            <div style={{ background: '#fff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>First response</div>
-              <div style={{ fontSize: 32, fontWeight: 800, color: '#111827', lineHeight: 1 }}>8s</div>
-              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 10 }}>AI median</div>
+            {/* 5: Case Acceptance */}
+            <div style={{
+              background: '#fff',
+              borderRadius: 14,
+              padding: '16px 18px',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              minWidth: 140
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Case Acceptance</span>
+                <span style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, background: '#d1fae5', color: '#059669' }}>🎯</span>
+              </div>
+              <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', lineHeight: 1.1, marginBottom: 6 }}>76%</div>
+              <div style={{ fontSize: 11, color: '#64748b' }}>
+                $24.8k proposed plans
+              </div>
             </div>
 
-            <div style={{ background: '#fff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>Handed to staff</div>
-              <div style={{ fontSize: 32, fontWeight: 800, color: '#111827', lineHeight: 1 }}>13%</div>
-              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 10 }}>87% handled by AI</div>
+            {/* 6: AI Automation */}
+            <div style={{
+              background: '#fff',
+              borderRadius: 14,
+              padding: '16px 18px',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              minWidth: 140
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase' }}>AI Automation</span>
+                <span style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, background: '#ede9fe', color: '#7c3aed' }}>🤖</span>
+              </div>
+              <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', lineHeight: 1.1, marginBottom: 6 }}>
+                {aiStats.resolvedPct || 94}%
+              </div>
+              <div style={{ fontSize: 11, color: '#64748b', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontWeight: 700, color: '#10b981' }}>{stats.agentMessages || 123} Bot Msgs</span> delivered
+              </div>
             </div>
           </>
         ) : nicheId === 'realestate' ? (
@@ -869,236 +1127,252 @@ export default function DashboardPage() {
       {nicheId === 'dental' ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginBottom: 28, width: '100%' }}>
           
-          {/* Middle Row: Today by doctor (left) + Do next (right) - Screenshot 1 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.85fr) minmax(0, 1fr)', gap: 20 }}>
+          {/* Middle Row: Today's Operatory Schedule (left 2fr) + AI Agent Intelligence (right 1fr) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: 20 }}>
             
-            {/* Left: Today by doctor */}
-            <div style={{ background: '#fff', borderRadius: 16, padding: '24px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>
-                  Today by doctor
+            {/* Left: Today's Operatory Schedule */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: 20, border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <div>
+                  <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
+                    📅 Today's Operatory Schedule
+                  </h3>
+                  <p style={{ fontSize: 12, color: '#64748b', marginTop: 2, marginBottom: 0 }}>
+                    Real-time chair booking by patient WhatsApp confirmation
+                  </p>
                 </div>
-                <Link 
-                  href="/appointments" 
-                  style={{ fontSize: 12.5, fontWeight: 600, color: '#dc2626', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}
+                <button
+                  onClick={() => router.push('/appointments')}
+                  style={{
+                    width: 'auto',
+                    padding: '7px 14px',
+                    borderRadius: 8,
+                    background: '#e11d48',
+                    color: '#fff',
+                    border: 'none',
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(225, 29, 72, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6
+                  }}
                 >
-                  Open Full Calendar →
-                </Link>
+                  + Book Walk-in
+                </button>
               </div>
 
-              {/* Sub-header */}
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 14, fontSize: 12, fontWeight: 600, color: '#6b7280' }}>
-                <div style={{ width: 80 }}>Time</div>
-                <div style={{ flex: 1, paddingRight: 10 }}>Dr. Hassan Ahmed · 5/8 filled</div>
-                <div style={{ flex: 1 }}>Dr. Fatima Zahra · 6/8 filled</div>
-              </div>
-
-              {/* Slot Rows */}
+              {/* Dynamic Schedule Items */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {/* 10:30 */}
-                <div style={{ display: 'flex', alignItems: 'center', minHeight: 40 }}>
-                  <div style={{ width: 80, fontSize: 13, fontWeight: 600, color: '#374151' }}>10:30</div>
-                  <div style={{ flex: 1, paddingRight: 10 }}>
-                    <div style={{ background: '#fff1f2', border: '1px solid #ffe4e6', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: '#111827' }}>
-                      RKN · Scaling
-                    </div>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ background: '#fff1f2', border: '1px solid #ffe4e6', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: '#111827' }}>
-                      Sana M. · Whitening
-                    </div>
-                  </div>
-                </div>
+                {dentalSchedule.map((item: any, idx: number) => {
+                  const isAvailable = item.status === 'available';
+                  const isConfirmed = item.status === 'confirmed';
+                  const isPending = item.status === 'pending';
 
-                {/* 12:00 */}
-                <div style={{ display: 'flex', alignItems: 'center', minHeight: 40 }}>
-                  <div style={{ width: 80, fontSize: 13, fontWeight: 600, color: '#374151' }}>12:00</div>
-                  <div style={{ flex: 1, paddingRight: 10 }}>
-                    <div style={{ background: '#fff1f2', border: '1px solid #ffe4e6', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: '#111827' }}>
-                      Bilal K. · Root canal
-                    </div>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ background: '#fff1f2', border: '1px solid #ffe4e6', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: '#111827' }}>
-                      Hira S. · Braces
-                    </div>
-                  </div>
-                </div>
+                  return (
+                    <div
+                      key={item.id || idx}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '12px 14px',
+                        borderRadius: 10,
+                        background: isAvailable ? '#fff5f5' : '#f8fafc',
+                        border: isAvailable ? '1px dashed #fecaca' : '1px solid #edf2f7',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#334155', width: 75, flexShrink: 0 }}>
+                        {item.time}
+                      </div>
 
-                {/* 14:00 */}
-                <div style={{ display: 'flex', alignItems: 'center', minHeight: 40 }}>
-                  <div style={{ width: 80, fontSize: 13, fontWeight: 600, color: '#374151' }}>14:00</div>
-                  <div style={{ flex: 1, paddingRight: 10 }}>
-                    <div style={{ background: '#fff', border: '1px dashed #d1d5db', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, fontWeight: 500, color: '#6b7280' }}>
-                      Open · Book via AI
-                    </div>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ background: '#fff1f2', border: '1px solid #ffe4e6', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: '#111827' }}>
-                      Omar F. · Checkup
-                    </div>
-                  </div>
-                </div>
+                      <div style={{ flex: 1, padding: '0 12px', minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span>{item.name}</span>
+                          {item.operatory && (
+                            <>
+                              <span style={{ color: '#94a3b8' }}>•</span>
+                              <span style={{ color: item.operatoryColor || '#0284c7', fontSize: 12 }}>
+                                {item.operatory}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>
+                          {item.treatment} • {item.doctor}
+                        </div>
+                      </div>
 
-                {/* 16:30 */}
-                <div style={{ display: 'flex', alignItems: 'center', minHeight: 40 }}>
-                  <div style={{ width: 80, fontSize: 13, fontWeight: 600, color: '#374151' }}>16:30</div>
-                  <div style={{ flex: 1, paddingRight: 10 }}>
-                    <div style={{ background: '#fff1f2', border: '1px solid #ffe4e6', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: '#111827' }}>
-                      Zoya A. · Scaling
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: '4px 8px',
+                          borderRadius: 6,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          flexShrink: 0,
+                          background: isConfirmed ? '#d1fae5' : isPending ? '#fef3c7' : '#fee2e2',
+                          color: isConfirmed ? '#065f46' : isPending ? '#92400e' : '#991b1b'
+                        }}
+                      >
+                        {isAvailable ? 'AVAILABLE (BOOK VIA AI)' : item.status}
+                      </span>
                     </div>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ background: '#fff', border: '1px dashed #d1d5db', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, fontWeight: 500, color: '#6b7280' }}>
-                      Open · Book via AI
-                    </div>
-                  </div>
-                </div>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Right: Do next */}
-            <div style={{ background: '#fff', borderRadius: 16, padding: '24px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 20 }}>
-                Do next
+            {/* Right: AI Agent Intelligence */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: 20, border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <div>
+                  <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
+                    🤖 AI Agent Intelligence
+                  </h3>
+                  <p style={{ fontSize: 12, color: '#64748b', marginTop: 2, marginBottom: 0 }}>
+                    Autonomous dental copilot active
+                  </p>
+                </div>
+                <button
+                  onClick={() => router.push('/settings?tab=AI+Knowledge')}
+                  style={{
+                    background: '#f1f5f9',
+                    color: '#475569',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 6,
+                    padding: '4px 10px',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Train KB
+                </button>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1, justifyContent: 'space-around' }}>
-                {/* Task 1 */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>
-                    2 unconfirmed appointments
-                  </span>
-                  <button
-                    onClick={() => {
-                      setRemindersSent(true);
-                      alert('WhatsApp appointment confirmation reminders dispatched to 2 patients.');
-                    }}
-                    style={{
-                      background: '#9f1239', color: '#fff', border: 'none',
-                      borderRadius: 8, padding: '8px 16px', fontSize: 12.5, fontWeight: 700,
-                      cursor: 'pointer', whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {remindersSent ? 'Reminders Sent' : 'Send reminders'}
-                  </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#f8fafc', borderRadius: 8, fontSize: 13 }}>
+                  <span style={{ color: '#64748b', fontWeight: 500 }}>Active Copilot</span>
+                  <span style={{ fontWeight: 700, color: '#0f172a' }}>{activeAgentInfo?.name || 'Ittisalo Dental Copilot'}</span>
                 </div>
-
-                {/* Task 2 */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>
-                    14 patients due for 6-month recall
-                  </span>
-                  <button
-                    onClick={() => router.push('/campaigns')}
-                    style={{
-                      background: '#fff', color: '#9f1239', border: '1px solid #9f1239',
-                      borderRadius: 8, padding: '8px 16px', fontSize: 12.5, fontWeight: 700,
-                      cursor: 'pointer', whiteSpace: 'nowrap'
-                    }}
-                  >
-                    Start campaign
-                  </button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#f8fafc', borderRadius: 8, fontSize: 13 }}>
+                  <span style={{ color: '#64748b', fontWeight: 500 }}>AI Model</span>
+                  <span style={{ fontWeight: 700, color: '#0f172a' }}>GPT-4o Mini (Dental Tuned)</span>
                 </div>
-
-                {/* Task 3 */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>
-                    1 hot lead unassigned
-                  </span>
-                  <button
-                    onClick={() => router.push('/conversations?queue=unassigned')}
-                    style={{
-                      background: '#fff', color: '#9f1239', border: '1px solid #9f1239',
-                      borderRadius: 8, padding: '8px 16px', fontSize: 12.5, fontWeight: 700,
-                      cursor: 'pointer', whiteSpace: 'nowrap'
-                    }}
-                  >
-                    Assign
-                  </button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#f8fafc', borderRadius: 8, fontSize: 13 }}>
+                  <span style={{ color: '#64748b', fontWeight: 500 }}>Knowledge Base</span>
+                  <span style={{ fontWeight: 700, color: '#0f172a' }}>{kbDocCount || 13} Clinic Docs Indexed</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#f8fafc', borderRadius: 8, fontSize: 13 }}>
+                  <span style={{ color: '#64748b', fontWeight: 500 }}>Resolved by AI</span>
+                  <span style={{ fontWeight: 700, color: '#10b981' }}>{aiStats.resolvedPct || 100}% (No Escaped Queries)</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#f8fafc', borderRadius: 8, fontSize: 13 }}>
+                  <span style={{ color: '#64748b', fontWeight: 500 }}>WhatsApp Channels</span>
+                  <span style={{ fontWeight: 700, color: '#0f172a' }}>Connected (Official Cloud API)</span>
                 </div>
               </div>
             </div>
 
           </div>
 
-          {/* Bottom Row: 4 Cards from Screenshot 2 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16 }}>
+          {/* Bottom Row: Treatments + Clinical Queries + Patient Inbound Trends (3 Columns) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 20 }}>
             
-            {/* 1: Est. revenue from AI bookings */}
-            <div style={{ background: '#fff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>Est. revenue from AI bookings</div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: '#111827', lineHeight: 1.1 }}>PKR 184,000</div>
-              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 10 }}>this month, from booked treatments</div>
+            {/* 1: Weekly Treatment Volume */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: 20, border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+              <div style={{ marginBottom: 16 }}>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  🦷 Weekly Treatment Volume
+                </h3>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {[
+                  { label: 'Scaling & Polishing', count: 12, pct: 75, color: '#0284c7' },
+                  { label: 'Zoom Whitening', count: 8, pct: 50, color: '#10b981' },
+                  { label: 'Root Canal', count: 5, pct: 32, color: '#e11d48' },
+                  { label: 'Braces / Orthodontics', count: 3, pct: 20, color: '#f59e0b' }
+                ].map(t => (
+                  <div key={t.label}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 600, marginBottom: 4, color: '#334155' }}>
+                      <span>{t.label}</span>
+                      <span>{t.count} cases</span>
+                    </div>
+                    <div style={{ height: 8, borderRadius: 4, background: '#e2e8f0', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${t.pct}%`, background: t.color, borderRadius: 4 }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* 2: Peak inquiry hours */}
-            <div style={{ background: '#fff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', marginBottom: 12 }}>Peak inquiry hours</div>
-                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                  {['#fce7f3', '#fbcfe8', '#f43f5e', '#be123c', '#9f1239', '#e11d48', '#be123c', '#9f1239', '#9f1239', '#f43f5e', '#fce7f3'].map((color, i) => (
-                    <div key={i} style={{ flex: 1, height: 16, borderRadius: 3, background: color }} />
-                  ))}
-                </div>
+            {/* 2: Clinical Queries Awaiting Review */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: 20, border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  🚨 Clinical Queries Awaiting Review
+                </h3>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 6, background: '#fee2e2', color: '#991b1b', textTransform: 'uppercase' }}>
+                  2 Urgencies
+                </span>
               </div>
-              <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 10 }}>
-                9am to 8pm · busiest 12 to 1pm and 6 to 7pm
-              </div>
-            </div>
-
-            {/* 3: Unanswered by AI */}
-            <div style={{ background: '#fff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', marginBottom: 12 }}>Unanswered by AI</div>
+              
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {unansweredList.map(item => (
-                  <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 12, color: '#374151', fontStyle: 'italic' }}>"{item.question}"</span>
+                {dentalClinicalQueries.map((query: any) => (
+                  <div key={query.id} style={{ background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: 10, padding: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700, color: '#9b2c2c', marginBottom: 4 }}>
+                      <span>{query.patient}</span>
+                      <span>{query.type?.toUpperCase()}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: '#4a5568', lineHeight: 1.4, marginBottom: 8 }}>
+                      {query.issue}
+                    </div>
                     <button
-                      onClick={async () => {
-                        try {
-                          await supabase.from('knowledge_base').insert([{
-                            title: item.question,
-                            content: `Customer inquiry: ${item.question}. Clinic policy pending review.`,
-                            is_active: true
-                          }]);
-                        } catch (e) {}
-                        setKbAddedItems(prev => ({ ...prev, [item.id]: true }));
-                      }}
-                      disabled={kbAddedItems[item.id]}
-                      style={{
-                        padding: '4px 10px', fontSize: 11, fontWeight: 700,
-                        background: '#fff', color: kbAddedItems[item.id] ? '#10b981' : '#9f1239',
-                        border: `1px solid ${kbAddedItems[item.id] ? '#10b981' : '#9f1239'}`,
-                        borderRadius: 6, cursor: kbAddedItems[item.id] ? 'default' : 'pointer',
-                        whiteSpace: 'nowrap'
-                      }}
+                      onClick={() => router.push('/conversations')}
+                      style={{ background: '#e53e3e', color: 'white', border: 'none', padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
                     >
-                      {kbAddedItems[item.id] ? 'Added' : 'Add to KB'}
+                      Resolve Inquiry & Call
                     </button>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* 4: Treatments this week */}
-            <div style={{ background: '#fff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', marginBottom: 12 }}>Treatments this week</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {/* 3: Patient Inbound Trends */}
+            <div style={{ background: '#fff', borderRadius: 14, padding: 20, border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+              <div style={{ marginBottom: 16 }}>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  📈 Patient Inbound Trends
+                </h3>
+              </div>
+              <div style={{ height: 140, display: 'flex', alignItems: 'flex-end', gap: 8, paddingTop: 20 }}>
                 {[
-                  { name: 'Scaling & polishing', count: 12, max: 15 },
-                  { name: 'Zoom whitening', count: 8, max: 15 },
-                  { name: 'Root canal', count: 5, max: 15 },
-                  { name: 'Braces', count: 3, max: 15 }
-                ].map(t => (
-                  <div key={t.name}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, fontWeight: 500, color: '#374151', marginBottom: 3 }}>
-                      <span>{t.name}</span>
-                      <span style={{ fontWeight: 700 }}>{t.count}</span>
-                    </div>
-                    <div style={{ width: '100%', height: 5, background: '#f1f5f9', borderRadius: 3, overflow: 'hidden' }}>
-                      <div style={{ width: `${(t.count / t.max) * 100}%`, height: '100%', background: '#9f1239', borderRadius: 3 }} />
-                    </div>
+                  { day: 'Tue', h: 30, val: 12, active: false },
+                  { day: 'Wed', h: 45, val: 18, active: false },
+                  { day: 'Thu', h: 60, val: 24, active: false },
+                  { day: 'Fri', h: 50, val: 20, active: false },
+                  { day: 'Sat', h: 40, val: 16, active: false },
+                  { day: 'Sun', h: 75, val: 30, active: false },
+                  { day: 'Mon', h: 100, val: 41, active: true },
+                ].map(bar => (
+                  <div key={bar.day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+                    <div
+                      style={{
+                        width: '100%',
+                        height: `${bar.h}%`,
+                        background: bar.active ? '#e11d48' : '#cbd5e1',
+                        borderRadius: 4,
+                        transition: 'height 0.3s'
+                      }}
+                      title={`${bar.day}: ${bar.val}`}
+                    />
+                    <span style={{ fontSize: 10, color: bar.active ? '#e11d48' : '#94a3b8', fontWeight: bar.active ? 700 : 500, marginTop: 8 }}>
+                      {bar.day}
+                    </span>
                   </div>
                 ))}
               </div>
