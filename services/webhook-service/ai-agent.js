@@ -829,22 +829,29 @@ export async function processAIAgent(ctx) {
         let apptDate = extractedDate || recordData.appointment_date || null;
         let apptTime = extractedTime || recordData.appointment_time || null;
 
-        // 3. Extract Treatment Type
-        let treatmentType = recordData.treatment_type || recordData.service_type || null;
-        const fullText = (history.map(h => h.content || '').join(' ') + ' ' + msg + ' ' + ai_reply).toLowerCase();
-        if (fullText.includes('scaling') || fullText.includes('cleaning') || fullText.includes('polishing')) treatmentType = 'Scaling & Polishing';
-        else if (fullText.includes('braces') || fullText.includes('aligners')) treatmentType = 'Braces Consultation';
-        else if (fullText.includes('root canal')) treatmentType = 'Root Canal';
-        else if (fullText.includes('filling') || fullText.includes('cavity')) treatmentType = 'Dental Filling';
-        else if (fullText.includes('whitening') || fullText.includes('bleaching')) treatmentType = 'Teeth Whitening';
-        else if (fullText.includes('extraction') || fullText.includes('removal')) treatmentType = 'Tooth Extraction';
-        else if (fullText.includes('consultation') || fullText.includes('checkup') || fullText.includes('doctor')) treatmentType = 'General Consultation';
-        else if (!treatmentType) treatmentType = 'General Consultation';
+        // 3. Extract Treatment Type (scoped to recent booking turn to prevent history bleed)
+        const recentTurnMessages = [
+          ...(history.slice(-3).map(h => h.content || '')),
+          msg,
+          ai_reply
+        ];
+        const recentTurnText = recentTurnMessages.join(' ').toLowerCase();
+
+        let treatmentType = null;
+        if (recentTurnText.includes('scaling') || recentTurnText.includes('cleaning') || recentTurnText.includes('polishing')) treatmentType = 'Scaling & Polishing';
+        else if (recentTurnText.includes('braces') || recentTurnText.includes('aligners') || recentTurnText.includes('orthodontic')) treatmentType = 'Braces Consultation';
+        else if (recentTurnText.includes('root canal') || recentTurnText.includes('endodontic')) treatmentType = 'Root Canal';
+        else if (recentTurnText.includes('filling') || recentTurnText.includes('cavity')) treatmentType = 'Dental Filling';
+        else if (recentTurnText.includes('whitening') || recentTurnText.includes('bleaching')) treatmentType = 'Teeth Whitening';
+        else if (recentTurnText.includes('extraction') || recentTurnText.includes('removal') || recentTurnText.includes('wisdom')) treatmentType = 'Tooth Extraction';
+        else if (recentTurnText.includes('pediatric') || recentTurnText.includes('child') || recentTurnText.includes('kid')) treatmentType = 'Pediatric Dentistry';
+        else if (recentTurnText.includes('consultation') || recentTurnText.includes('checkup') || recentTurnText.includes('doctor')) treatmentType = 'General Consultation';
+        else treatmentType = recordData.treatment_type || recordData.service_type || 'General Consultation';
 
         // 4. Extract Doctor / Provider
-        let doctorName = recordData.doctor_name || null;
-        let providerId = recordData.provider_id || null;
-        let doctorGoogleCalendarId = recordData.doctor_google_calendar_id || null;
+        let doctorName = null;
+        let providerId = null;
+        let doctorGoogleCalendarId = null;
 
         try {
           let tenantProviders = [];
@@ -857,10 +864,10 @@ export async function processAIAgent(ctx) {
           }
 
           if (tenantProviders.length > 0) {
-            // Check if any doctor is explicitly mentioned
+            // Tier 1: Check if any doctor is explicitly mentioned in the CURRENT booking turn
             for (const prov of tenantProviders) {
               const cleanProvName = prov.name.toLowerCase().replace(/^dr\.\s*/i, '');
-              if (fullText.includes(prov.name.toLowerCase()) || fullText.includes(cleanProvName)) {
+              if (recentTurnText.includes(prov.name.toLowerCase()) || recentTurnText.includes(cleanProvName)) {
                 doctorName = prov.name;
                 providerId = prov.id;
                 doctorGoogleCalendarId = prov.google_calendar_id;
@@ -868,24 +875,85 @@ export async function processAIAgent(ctx) {
               }
             }
 
-            // Match by specialty if doctor wasn't explicitly named
+            // Tier 2: Match by medical specialty if doctor wasn't explicitly named
             if (!doctorName) {
               const matchedBySpec = tenantProviders.find(p => {
                 const spec = (p.title || '').toLowerCase();
                 if (treatmentType === 'Root Canal' && spec.includes('endodontic')) return true;
                 if (treatmentType === 'Braces Consultation' && spec.includes('orthodontic')) return true;
                 if (treatmentType === 'Teeth Whitening' && (spec.includes('cosmetic') || spec.includes('surgery'))) return true;
+                if (treatmentType === 'Tooth Extraction' && (spec.includes('surgery') || spec.includes('oral'))) return true;
+                if (treatmentType === 'Pediatric Dentistry' && spec.includes('pediatric')) return true;
                 return false;
               });
               if (matchedBySpec) {
                 doctorName = matchedBySpec.name;
                 providerId = matchedBySpec.id;
                 doctorGoogleCalendarId = matchedBySpec.google_calendar_id;
-              } else if (tenantProviders.length > 0) {
-                doctorName = tenantProviders[0].name;
-                providerId = tenantProviders[0].id;
-                doctorGoogleCalendarId = tenantProviders[0].google_calendar_id;
               }
+            }
+
+            // Tier 3: Intelligent Load Balancing across available working doctors
+            if (!doctorName) {
+              let candidateProviders = [...tenantProviders];
+              if (apptDate) {
+                try {
+                  const dayOfWeek = new Date(apptDate).getDay(); // 0 = Sun, 1 = Mon ...
+                  const workingOnDay = tenantProviders.filter(p => {
+                    if (!Array.isArray(p.working_days) || p.working_days.length === 0) return true;
+                    return p.working_days.includes(dayOfWeek);
+                  });
+                  if (workingOnDay.length > 0) {
+                    candidateProviders = workingOnDay;
+                  }
+                } catch (_) {}
+              }
+
+              // Query current appointment load on that date
+              const loadMap = {};
+              for (const p of candidateProviders) {
+                loadMap[p.name] = 0;
+              }
+
+              if (apptDate) {
+                try {
+                  let query = supabase
+                    .from('appointments')
+                    .select('doctor_name')
+                    .eq('tenant_id', ctx.tenant_id)
+                    .eq('appointment_date', apptDate)
+                    .neq('status', 'canceled');
+
+                  if (existingAppointment?.id) {
+                    query = query.neq('id', existingAppointment.id);
+                  }
+
+                  const { data: existingOnDate } = await query;
+                  if (existingOnDate) {
+                    for (const a of existingOnDate) {
+                      if (a.doctor_name && loadMap[a.doctor_name] !== undefined) {
+                        loadMap[a.doctor_name]++;
+                      }
+                    }
+                  }
+                } catch (_) {}
+              }
+
+              // Select the candidate provider with the lowest appointment load
+              let leastLoaded = candidateProviders[0];
+              let minAppointments = loadMap[leastLoaded.name] ?? 0;
+
+              for (const p of candidateProviders) {
+                const count = loadMap[p.name] ?? 0;
+                if (count < minAppointments) {
+                  minAppointments = count;
+                  leastLoaded = p;
+                }
+              }
+
+              doctorName = leastLoaded.name;
+              providerId = leastLoaded.id;
+              doctorGoogleCalendarId = leastLoaded.google_calendar_id;
             }
           }
         } catch (_) {}

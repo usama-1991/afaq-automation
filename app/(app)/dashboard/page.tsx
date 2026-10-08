@@ -517,7 +517,7 @@ export default function DashboardPage() {
             ...a,
             appointment_date: dateStr,
             appointment_time: timeStr,
-            doctor_name: docName || 'Dr. Fatima Zahra'
+            doctor_name: docName || 'Dr. Hassan Ahmed'
           };
         });
 
@@ -538,7 +538,7 @@ export default function DashboardPage() {
           id: a.id,
           name: a.patient_name || 'Patient',
           treatment: a.treatment_type || 'Consultation',
-          doctor: a.doctor_name || 'Dr. Fatima Zahra',
+          doctor: a.doctor_name || 'Dr. Hassan Ahmed',
           status: a.status || 'pending',
           time: format12h(a.appointment_time),
           operatory: `Operatory ${idx % 2 === 0 ? 2 : 1}`,
