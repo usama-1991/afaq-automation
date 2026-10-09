@@ -715,9 +715,9 @@ export async function processAIAgent(ctx) {
       }
     }
 
-    if (['dental', 'salon', 'clinic', 'medical'].includes(niche) || /appointment|doctor|clinic|dentist|scaling|booking/i.test(msg + ' ' + ai_reply)) {
+    if (['dental', 'salon', 'clinic', 'medical'].includes(niche) || /appointment|doctor|clinic|dentist|scaling|booking|demo|schedule|onboarding/i.test(msg + ' ' + ai_reply)) {
       const isBookingIntent = ['booking_intent', 'appointment_confirmed', 'appointment_booked', 'booking_requested'].includes(ai_intent);
-      const msgHasBooking = /\b(appointment|book|booking|slot|timing|schedule|scaling|consultation|checkup|visit)\b/i.test(msg);
+      const msgHasBooking = /\b(appointment|book|booking|slot|timing|schedule|scaling|consultation|checkup|visit|demo|onboarding)\b/i.test(msg);
       const aiConfirmed = /appointment.*?is confirmed|confirmed.*?appointment|all set for your|confirmed for|look forward to seeing you|scheduled for/i.test(ai_reply);
       const userConfirmed = /^\s*(yes|confirm|confirmed|yes,?\s*confirm|sure|proceed|okay|ok|yep|yeah)\b/i.test(msg.trim());
 
@@ -845,8 +845,9 @@ export async function processAIAgent(ctx) {
         else if (recentTurnText.includes('whitening') || recentTurnText.includes('bleaching')) treatmentType = 'Teeth Whitening';
         else if (recentTurnText.includes('extraction') || recentTurnText.includes('removal') || recentTurnText.includes('wisdom')) treatmentType = 'Tooth Extraction';
         else if (recentTurnText.includes('pediatric') || recentTurnText.includes('child') || recentTurnText.includes('kid')) treatmentType = 'Pediatric Dentistry';
+        else if (recentTurnText.includes('demo') || recentTurnText.includes('onboarding') || niche === 'general') treatmentType = 'Platform Demo & Onboarding';
         else if (recentTurnText.includes('consultation') || recentTurnText.includes('checkup') || recentTurnText.includes('doctor')) treatmentType = 'General Consultation';
-        else treatmentType = recordData.treatment_type || recordData.service_type || 'General Consultation';
+        else treatmentType = recordData.treatment_type || recordData.service_type || (niche === 'general' ? 'Platform Demo & Onboarding' : 'General Consultation');
 
         // 4. Extract Doctor / Provider
         let doctorName = null;
@@ -977,7 +978,7 @@ export async function processAIAgent(ctx) {
           conversation_id: ctx.conversation_id,
           patient_name: ctx.customer_name || 'Patient',
           patient_phone: ctx.customer_phone,
-          doctor_name: doctorName || 'Dr. Hassan Ahmed',
+          doctor_name: doctorName || (['dental', 'clinic', 'medical'].includes(niche) ? 'Dr. Hassan Ahmed' : 'Ittisalo Technical Team'),
           provider_id: providerId || null,
           doctor_google_calendar_id: doctorGoogleCalendarId || null,
           niche: niche,
@@ -1026,6 +1027,72 @@ export async function processAIAgent(ctx) {
           temperature: 'warm',
           last_activity_at: new Date().toISOString(),
         };
+      }
+    } else if (niche === 'general') {
+      // General Business / Ittisalo SaaS Lead Capture
+      const emailMatch = (msg + ' ' + (history.map(h => h.content || '').join(' '))).match(/\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/);
+      const customerEmail = emailMatch ? emailMatch[0] : (recordData.customer_email || null);
+
+      // Extract customer name if provided
+      let resolvedCustomerName = ctx.customer_name;
+      const nameMatch = msg.match(/(?:my name is|naam|name)\s+([a-zA-Z\s]{2,30})/i) ||
+                        (history.slice(-3).map(h => h.content || '').join(' ')).match(/(?:my name is|naam|name)\s+([a-zA-Z\s]{2,30})/i);
+      if (nameMatch && nameMatch[1]) {
+        resolvedCustomerName = nameMatch[1].trim();
+      } else if (/^[a-zA-Z\s]{3,25}$/.test(msg.trim()) && !/(yes|no|ok|sure|schedule|demo|help|hello|hi)/i.test(msg.trim())) {
+        resolvedCustomerName = msg.trim();
+      }
+
+      const isDemoOrConsultation = /(demo|schedule|onboarding|integrate|appointment|call|meeting|lead|pricing)/i.test(msg + ' ' + ai_reply) ||
+                                  ['booking_intent', 'appointment_confirmed'].includes(ai_intent);
+
+      if (isDemoOrConsultation || customerEmail) {
+        createRecord = true;
+        recordType = 'lead';
+
+        const isDemoScheduled = /scheduled for|schedule ho gaya|confirmed for demo|booked your demo/i.test(ai_reply);
+        const isScheduleRequested = /(schedule now|demo|book|timing|slot)/i.test(msg);
+
+        const currentStage = isDemoScheduled ? 'demo_scheduled' : 
+                             (customerEmail ? 'qualified' : 
+                             (isScheduleRequested ? 'demo_scheduled' : (recordData.stage || 'new_inquiry')));
+
+        recordData = {
+          ...recordData,
+          tenant_id: ctx.tenant_id,
+          conversation_id: ctx.conversation_id,
+          customer_name: resolvedCustomerName,
+          customer_phone: ctx.customer_phone,
+          customer_email: customerEmail,
+          intent: 'Platform Demo & Onboarding',
+          stage: currentStage,
+          temperature: (customerEmail || isScheduleRequested || isDemoScheduled) ? 'hot' : 'warm',
+          area_preference: customerEmail ? `Email: ${customerEmail} | ${isScheduleRequested ? 'Requested Demo Slot' : ''}` : (recordData.area_preference || 'Inquired via WhatsApp'),
+          last_activity_at: new Date().toISOString(),
+        };
+
+        // Also create/sync scheduled demo in appointments table if schedule requested
+        if (isDemoScheduled || isScheduleRequested) {
+          (async () => {
+            try {
+              await supabase.from('appointments').upsert({
+                tenant_id: ctx.tenant_id,
+                conversation_id: ctx.conversation_id,
+                patient_name: resolvedCustomerName || 'Prospect',
+                patient_phone: ctx.customer_phone,
+                doctor_name: 'Ittisalo Technical Team',
+                treatment_type: 'Platform Demo & Onboarding',
+                appointment_date: recordData.appointment_date || new Date(Date.now() + 86400000).toISOString().split('T')[0],
+                appointment_time: recordData.appointment_time || '15:00:00',
+                status: isDemoScheduled ? 'scheduled' : 'pending',
+                notes: `Platform demo inquiry via WhatsApp. ${customerEmail ? `Email: ${customerEmail}` : ''}`,
+                niche: 'general'
+              }, { onConflict: 'conversation_id' });
+            } catch (aErr) {
+              console.warn('[AI-Agent] General demo appointment upsert error:', aErr.message);
+            }
+          })();
+        }
       }
     }
 
@@ -1077,12 +1144,20 @@ export async function processAIAgent(ctx) {
         updated_at: new Date().toISOString()
       }, { onConflict: 'conversation_id' });
       
-      // Propagate customer email to conversation record for contact card display
-      if (recordData.customer_email && ctx.conversation_id) {
-        await supabase.from('conversations')
-          .update({ customer_email: recordData.customer_email })
-          .eq('id', ctx.conversation_id);
-        console.log(`[AI-Agent] Updated conversation ${ctx.conversation_id} with email: ${recordData.customer_email}`);
+      // Propagate customer email, name, and lifecycle stage to conversation record
+      if (ctx.conversation_id) {
+        const convUpdates = {};
+        if (recordData.customer_email) convUpdates.customer_email = recordData.customer_email;
+        if (recordData.customer_name && !['Patient', 'Prospect', 'Visitor'].includes(recordData.customer_name)) {
+          convUpdates.customer_name = recordData.customer_name;
+        }
+        if (['lead', 'appointment'].includes(recordType)) {
+          convUpdates.lifecycle_stage = recordData.stage === 'demo_scheduled' || recordData.status === 'scheduled' ? 'appointment_booked' : 'hot_lead';
+        }
+        if (Object.keys(convUpdates).length > 0) {
+          await supabase.from('conversations').update(convUpdates).eq('id', ctx.conversation_id);
+          console.log(`[AI-Agent] Updated conversation ${ctx.conversation_id} with:`, JSON.stringify(convUpdates));
+        }
       }
 
       // ── Direct Google Calendar Sync ──

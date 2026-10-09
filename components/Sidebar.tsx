@@ -7,7 +7,7 @@ import {
   Star, LayoutDashboard, MessageSquare, Users, Bot, Plug, Settings, LogOut, 
   FileText, Megaphone, Folder, BarChart3, Menu, X, ShoppingBag, Crown,
   Activity, Store, Coins, Layers, ShieldAlert, History, Building2, Receipt,
-  TrendingUp, ShieldCheck, Calendar 
+  TrendingUp, ShieldCheck, Calendar, Target 
 } from 'lucide-react';
 import { useNiche } from '@/context/NicheContext';
 import { supabase } from '@/lib/supabase/client';
@@ -119,7 +119,9 @@ function Sidebar() {
   const clusterCommerce = useMemo(() => [
     ...(['dental', 'clinic', 'salon', 'medical'].includes(nicheId)
       ? [{ href: '/appointments', icon: Calendar, label: 'Appointments' }]
-      : [{ href: '/orders',        icon: ShoppingBag,     label: 'Orders', count: pendingOrders }]),
+      : (nicheId === 'general'
+        ? [{ href: '/orders', icon: Target, label: 'Leads & Demos', count: pendingOrders }]
+        : [{ href: '/orders', icon: ShoppingBag, label: 'Orders', count: pendingOrders }])),
     ...(nicheId === 'ecommerce' ? [{ href: '/reviews', icon: Star, label: 'Reviews' }] : []),
     { href: '/campaigns',     icon: Megaphone,       label: 'Campaigns' },
     { href: '/templates',     icon: FileText,        label: 'Templates' },
@@ -153,7 +155,9 @@ function Sidebar() {
     { href: '/contacts',      icon: Users,           label: 'Contacts' },
     ...(['dental', 'clinic', 'salon', 'medical'].includes(nicheId)
       ? [{ href: '/appointments', icon: Calendar, label: 'Appointments' }]
-      : [{ href: '/orders', icon: ShoppingBag, label: 'Orders', count: pendingOrders }]),
+      : (nicheId === 'general'
+        ? [{ href: '/orders', icon: Target, label: 'Leads', count: pendingOrders }]
+        : [{ href: '/orders', icon: ShoppingBag, label: 'Orders', count: pendingOrders }])),
     { href: '/campaigns',     icon: Megaphone,       label: 'Campaigns' },
   ], [unreadChats, pendingOrders, nicheId]);
 
@@ -170,8 +174,8 @@ function Sidebar() {
 
   useEffect(() => {
     let tableName = 'orders';
-    if (['dental', 'salon', 'clinic'].includes(nicheId)) tableName = 'appointments';
-    else if (nicheId === 'realestate') tableName = 'leads';
+    if (['dental', 'salon', 'clinic', 'medical'].includes(nicheId)) tableName = 'appointments';
+    else if (nicheId === 'realestate' || nicheId === 'general') tableName = 'leads';
 
     const fetchCounts = async () => {
       const { data: { user } } = await supabase.auth.getUser();

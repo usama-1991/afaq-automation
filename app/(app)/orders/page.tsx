@@ -8,7 +8,7 @@ import {
   Search, Loader2, Download, Filter, FileSpreadsheet, X,
   ShoppingBag, Calendar, Home, UtensilsCrossed, Check,
   Phone, Clock, CheckCircle2, Truck, XCircle, MoreVertical, MapPin, DollarSign, Activity,
-  ExternalLink, Mail, Store
+  ExternalLink, Mail, Store, Target, Sparkles, MessageSquare, Flame
 } from 'lucide-react';
 
 import { useConfirm, useAlert } from '@/context/DialogContext';
@@ -28,8 +28,13 @@ export default function OrdersPage() {
   const isEcommerce = niche.id === 'ecommerce';
   const isAppointment = ['dental', 'salon', 'clinic'].includes(niche.id);
   const isRealEstate = niche.id === 'realestate';
+  const isGeneral = niche.id === 'general';
 
-  const tableName = isAppointment ? 'appointments' : (isRealEstate ? 'leads' : 'orders');
+  const [generalTab, setGeneralTab] = useState<'leads' | 'appointments'>('leads');
+
+  const tableName = isAppointment 
+    ? 'appointments' 
+    : (isRealEstate ? 'leads' : (isGeneral ? generalTab : 'orders'));
 
   // Get tenant ID
   useEffect(() => {
@@ -246,6 +251,7 @@ export default function OrdersPage() {
     if (isEcommerce) return 'Store Orders';
     if (isAppointment) return 'Appointments';
     if (isRealEstate) return 'Property Leads';
+    if (isGeneral) return generalTab === 'leads' ? 'Leads & Pipeline' : 'Demo Appointments';
     return 'Transactions';
   };
 
@@ -253,16 +259,18 @@ export default function OrdersPage() {
     const total = data.length;
     let pending = 0;
     let revenue = 0;
+    let qualified = 0;
     
     data.forEach(item => {
       const status = (item.status || item.stage || '').toLowerCase();
       if (['pending', 'pending_address', 'new_inquiry'].includes(status)) pending++;
+      if (['qualified', 'demo_scheduled', 'visit_scheduled', 'confirmed'].includes(status)) qualified++;
       if (tableName === 'orders' && !['cancelled'].includes(status)) {
         revenue += (Number(item.order_amount) || 0);
       }
     });
 
-    return { total, pending, revenue };
+    return { total, pending, revenue, qualified };
   };
 
   const metrics = getMetrics();
@@ -323,10 +331,14 @@ export default function OrdersPage() {
         {tableName === 'leads' && (
           <>
             {status === 'new_inquiry' && <ActionButton loadingVal="qualified" onClick={() => handleStatusUpdate(selected.id, 'qualified')} text="Qualify Lead" icon={CheckCircle2} />}
-            {status === 'qualified' && <ActionButton loadingVal="properties_sent" onClick={() => handleStatusUpdate(selected.id, 'properties_sent')} text="Props Sent" icon={Home} />}
+            {status === 'qualified' && (
+              isRealEstate 
+                ? <ActionButton loadingVal="properties_sent" onClick={() => handleStatusUpdate(selected.id, 'properties_sent')} text="Props Sent" icon={Home} />
+                : <ActionButton loadingVal="demo_scheduled" onClick={() => handleStatusUpdate(selected.id, 'demo_scheduled')} text="Schedule Demo" icon={Calendar} />
+            )}
             {status === 'properties_sent' && <ActionButton loadingVal="visit_scheduled" onClick={() => handleStatusUpdate(selected.id, 'visit_scheduled')} text="Schedule Visit" icon={Calendar} />}
-            {status === 'visit_scheduled' && <ActionButton loadingVal="closed_won" onClick={() => handleStatusUpdate(selected.id, 'closed_won')} text="Closed Won" icon={Check} />}
-            {status !== 'closed_lost' && status !== 'closed_won' && <ActionButton variant="danger" loadingVal="closed_lost" onClick={() => handleStatusUpdate(selected.id, 'closed_lost')} text="Closed Lost" icon={XCircle} />}
+            {(status === 'visit_scheduled' || status === 'demo_scheduled') && <ActionButton loadingVal="closed_won" onClick={() => handleStatusUpdate(selected.id, 'closed_won')} text="Close Won" icon={Check} />}
+            {status !== 'closed_lost' && status !== 'closed_won' && <ActionButton variant="danger" loadingVal="closed_lost" onClick={() => handleStatusUpdate(selected.id, 'closed_lost')} text="Mark Lost" icon={XCircle} />}
           </>
         )}
       </div>
@@ -337,10 +349,14 @@ export default function OrdersPage() {
     <div className="orders-page-wrap" style={{ background: '#f9fafb', minHeight: 'calc(100vh - 98px)' }}>
       
       {/* ── Page Header & Stats ── */}
-      <div className="orders-header-row" style={{ marginBottom: 24 }}>
+      <div className="orders-header-row" style={{ marginBottom: 16 }}>
         <div>
           <h1 style={{ fontSize: 'clamp(20px, 3vw, 24px)', fontWeight: 800, color: '#111827', margin: 0, letterSpacing: '-0.5px' }}>{renderTitle()}</h1>
-          <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>Manage, track, and update your {tableName.replace('_', ' ')}.</p>
+          <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>
+            {isGeneral
+              ? (generalTab === 'leads' ? 'Manage, qualify, and track your incoming business leads and demo requests.' : 'Track and manage your scheduled platform demos and consultations.')
+              : `Manage, track, and update your ${tableName.replace('_', ' ')}.`}
+          </p>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
           <button onClick={downloadCSV} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', transition: 'all 0.15s', minHeight: 44 }}>
@@ -349,22 +365,62 @@ export default function OrdersPage() {
         </div>
       </div>
 
+      {/* ── Workspace Niche Switcher for General B2B ── */}
+      {isGeneral && (
+        <div style={{ display: 'flex', gap: 8, background: '#f3f4f6', padding: 4, borderRadius: 10, width: 'fit-content', marginBottom: 20 }}>
+          <button
+            onClick={() => { setGeneralTab('leads'); setSelectedRecord(null); }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700,
+              background: generalTab === 'leads' ? '#ffffff' : 'transparent',
+              color: generalTab === 'leads' ? '#dc2626' : '#6b7280',
+              boxShadow: generalTab === 'leads' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+              border: 'none', cursor: 'pointer', transition: 'all 0.15s'
+            }}
+          >
+            <Target size={14} /> Leads Pipeline
+          </button>
+          <button
+            onClick={() => { setGeneralTab('appointments'); setSelectedRecord(null); }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700,
+              background: generalTab === 'appointments' ? '#ffffff' : 'transparent',
+              color: generalTab === 'appointments' ? '#dc2626' : '#6b7280',
+              boxShadow: generalTab === 'appointments' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+              border: 'none', cursor: 'pointer', transition: 'all 0.15s'
+            }}
+          >
+            <Calendar size={14} /> Demo Bookings
+          </button>
+        </div>
+      )}
+
       <div className="orders-summary-grid" style={{ marginBottom: 24 }}>
         <div style={{ background: '#fff', padding: '18px 20px', borderRadius: 16, border: '1px solid #f3f4f6', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-            <div style={{ background: '#fef2f2', padding: 8, borderRadius: 10, color: '#dc2626' }}><ShoppingBag size={18} /></div>
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#6b7280' }}>Total Records</span>
+            <div style={{ background: '#fef2f2', padding: 8, borderRadius: 10, color: '#dc2626' }}>
+              {tableName === 'leads' ? <Target size={18} /> : (tableName === 'appointments' ? <Calendar size={18} /> : <ShoppingBag size={18} />)}
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#6b7280' }}>
+              {tableName === 'leads' ? 'Total Inquiries' : (tableName === 'appointments' ? 'Total Bookings' : 'Total Records')}
+            </span>
           </div>
           <div style={{ fontSize: 'clamp(22px, 3vw, 28px)', fontWeight: 800, color: '#111827' }}>{metrics.total}</div>
         </div>
         <div style={{ background: '#fff', padding: '18px 20px', borderRadius: 16, border: '1px solid #f3f4f6', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-            <div style={{ background: '#fffbeb', padding: 8, borderRadius: 10, color: '#d97706' }}><Clock size={18} /></div>
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#6b7280' }}>Action Required</span>
+            <div style={{ background: '#fffbeb', padding: 8, borderRadius: 10, color: '#d97706' }}>
+              {tableName === 'leads' ? <Flame size={18} /> : <Clock size={18} />}
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#6b7280' }}>
+              {tableName === 'leads' ? 'Hot / Action Required' : (tableName === 'appointments' ? 'Pending Confirm' : 'Action Required')}
+            </span>
           </div>
           <div style={{ fontSize: 'clamp(22px, 3vw, 28px)', fontWeight: 800, color: '#111827' }}>{metrics.pending}</div>
         </div>
-        {tableName === 'orders' && (
+        {tableName === 'orders' ? (
           <div style={{ background: '#fff', padding: '18px 20px', borderRadius: 16, border: '1px solid #f3f4f6', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
               <div style={{ background: '#f0fdf4', padding: 8, borderRadius: 10, color: '#16a34a' }}><DollarSign size={18} /></div>
@@ -373,6 +429,18 @@ export default function OrdersPage() {
             <div style={{ fontSize: 'clamp(22px, 3vw, 28px)', fontWeight: 800, color: '#111827' }}>
               <span style={{ fontSize: 18, color: '#6b7280', marginRight: 4 }}>{data.find(d => d.currency)?.currency || 'USD'}</span>
               {metrics.revenue.toLocaleString()}
+            </div>
+          </div>
+        ) : (
+          <div style={{ background: '#fff', padding: '18px 20px', borderRadius: 16, border: '1px solid #f3f4f6', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+              <div style={{ background: '#ecfdf5', padding: 8, borderRadius: 10, color: '#10b981' }}><Sparkles size={18} /></div>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#6b7280' }}>
+                {tableName === 'leads' ? 'Qualified & Demo Ready' : 'Confirmed Demos'}
+              </span>
+            </div>
+            <div style={{ fontSize: 'clamp(22px, 3vw, 28px)', fontWeight: 800, color: '#111827' }}>
+              {metrics.qualified}
             </div>
           </div>
         )}
@@ -414,10 +482,10 @@ export default function OrdersPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: 640 }}>
               <thead>
                 <tr style={{ background: '#fff', borderBottom: '1px solid #e5e7eb' }}>
-                  <th style={{ padding: '16px 24px', fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Customer</th>
-                  <th style={{ padding: '16px 24px', fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{tableName === 'orders' ? 'Items' : 'Service/Intent'}</th>
-                  <th style={{ padding: '16px 24px', fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{tableName === 'orders' ? 'Amount' : (tableName === 'leads' ? 'Budget' : 'Date')}</th>
-                  <th style={{ padding: '16px 24px', fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Status</th>
+                  <th style={{ padding: '16px 24px', fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Customer / Lead</th>
+                  <th style={{ padding: '16px 24px', fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{tableName === 'orders' ? 'Items' : (tableName === 'appointments' ? 'Demo / Service' : 'Requirement / Intent')}</th>
+                  <th style={{ padding: '16px 24px', fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{tableName === 'orders' ? 'Amount' : (tableName === 'leads' ? (isRealEstate ? 'Budget' : 'Details / Notes') : 'Date & Time')}</th>
+                  <th style={{ padding: '16px 24px', fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Status / Stage</th>
                   <th style={{ padding: '16px 24px', fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Received</th>
                   <th style={{ padding: '16px 24px', width: 60 }}></th>
                 </tr>
@@ -438,20 +506,21 @@ export default function OrdersPage() {
                       col2 = 'No items listed';
                     }
                   } else if (tableName === 'appointments') {
-                    col2 = item.treatment_type || item.service_type || 'Consultation';
+                    col2 = item.treatment_type || item.service_type || 'Platform Demo & Onboarding';
                   } else {
-                    col2 = `${item.intent || 'Buy'} ${item.property_type || 'Property'}`;
+                    col2 = item.intent || (isRealEstate ? `${item.intent || 'Buy'} ${item.property_type || 'Property'}` : 'Platform Demo & Onboarding');
                   }
 
                   let col3 = '';
                   if (tableName === 'orders') col3 = `${item.currency || 'USD'} ${item.order_amount || 0}`;
-                  else if (tableName === 'leads') col3 = `${item.budget_min||0} - ${item.budget_max||'Any'}`;
-                  else {
+                  else if (tableName === 'leads') {
+                    col3 = isRealEstate ? `${item.budget_min||0} - ${item.budget_max||'Any'}` : (item.area_preference || 'Via WhatsApp');
+                  } else {
                     if (item.start_time) {
                       const d = new Date(item.start_time);
                       col3 = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                     } else {
-                      col3 = `${item.appointment_date || ''} ${item.appointment_time || ''}`;
+                      col3 = `${item.appointment_date || 'TBD'} ${item.appointment_time || ''}`;
                     }
                   }
 
@@ -653,6 +722,47 @@ export default function OrdersPage() {
                     </div>
                   </div>
                 </>
+              )}
+
+              {tableName === 'leads' && (
+                <div style={{ background: '#fff', borderRadius: 14, padding: 20, border: '1px solid #e5e7eb', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                    <Target size={16} color="#dc2626" />
+                    <h3 style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>Lead Profile</h3>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6', paddingBottom: 10 }}>
+                      <span style={{ fontSize: 13, color: '#6b7280' }}>Requirement / Intent</span>
+                      <span style={{ fontSize: 13.5, fontWeight: 600, color: '#111827' }}>{(selectedRecord.intent || 'Platform Demo & Onboarding').replace(/_/g, ' ')}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6', paddingBottom: 10 }}>
+                      <span style={{ fontSize: 13, color: '#6b7280' }}>WhatsApp Phone</span>
+                      <span style={{ fontSize: 13.5, fontWeight: 600, color: '#111827' }}>{selectedRecord.customer_phone || 'N/A'}</span>
+                    </div>
+                    {selectedRecord.area_preference && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6', paddingBottom: 10 }}>
+                        <span style={{ fontSize: 13, color: '#6b7280' }}>Lead Notes / Details</span>
+                        <span style={{ fontSize: 13, fontWeight: 500, color: '#374151', textAlign: 'right', maxWidth: 260 }}>{selectedRecord.area_preference}</span>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6', paddingBottom: 10 }}>
+                      <span style={{ fontSize: 13, color: '#6b7280' }}>Temperature</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 12, background: selectedRecord.temperature === 'hot' ? '#fef2f2' : '#eff6ff', color: selectedRecord.temperature === 'hot' ? '#dc2626' : '#2563eb' }}>
+                        {(selectedRecord.temperature || 'WARM').toUpperCase()}
+                      </span>
+                    </div>
+                    {selectedRecord.conversation_id && (
+                      <div style={{ paddingTop: 6 }}>
+                        <a
+                          href={`/conversations?id=${selectedRecord.conversation_id}`}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: '#dc2626', textDecoration: 'none' }}
+                        >
+                          <MessageSquare size={14} /> Open Live WhatsApp Chat &rarr;
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
 
               {/* Action Banner Sticky Bottom */}
